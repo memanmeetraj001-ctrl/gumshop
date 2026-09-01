@@ -1,0 +1,1193 @@
+{
+  "tenants": [
+    {
+      "id": "tenant_demo",
+      "slug": "demo",
+      "storeName": "My GumShop Store",
+      "tagline": "Premium Lifestyle & Tech Gear",
+      "ownerEmail": "admin@gumshop.online",
+      "ownerName": "Store Admin",
+      "plan": "pro",
+      "productLimit": 50,
+      "gumroadStoreUrl": "https://manmeetraj6.gumroad.com",
+      "primaryColor": "#6366F1",
+      "currency": "USD",
+      "createdAt": "2026-09-01T10:47:50.735Z",
+      "updatedAt": "2026-09-01T14:54:52.039Z",
+      "isActive": true
+    },
+    {
+      "id": "tenant_1788272351856_wmvplk",
+      "slug": "lol",
+      "storeName": "lol",
+      "tagline": "Sell anything. Get paid instantly.",
+      "ownerEmail": "apkreviews@gmail.com",
+      "ownerName": "lol",
+      "plan": "free",
+      "productLimit": 10,
+      "gumroadStoreUrl": "https://gumroad.com",
+      "primaryColor": "#6366F1",
+      "currency": "USD",
+      "createdAt": "2026-09-01T14:19:11.924Z",
+      "updatedAt": "2026-09-01T14:19:11.924Z",
+      "isActive": true
+    }
+  ],
+  "orders": [
+    {
+      "id": "ord_1788273879475_d17jf6",
+      "orderNumber": "GUM-92023",
+      "customerName": "sdv",
+      "customerEmail": "sdfs@ggg.vp",
+      "customerPhone": "5465415875461",
+      "shippingAddress": {
+        "addressLine1": "asfwse",
+        "city": "reg",
+        "state": "rege",
+        "postalCode": "449855",
+        "country": "United States"
+      },
+      "items": [
+        {
+          "productId": "prod_water_bottle",
+          "title": "Matte Vacuum-Insulated Stainless Steel Bottle (32oz)",
+          "price": 24.99,
+          "quantity": 2,
+          "thumbnail": "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=600&q=80",
+          "sku": "GUM-FIT-003"
+        }
+      ],
+      "totalAmount": 24.99,
+      "discountCode": "GUM50",
+      "discountAmount": 24.99,
+      "currency": "USD",
+      "status": "pending_payment",
+      "gumroadRedirectUrl": "https://manmeetraj6.gumroad.com/l/insulated-stainless-bottle?wanted=true&email=sdfs%40ggg.vp&quantity=2",
+      "createdAt": "2026-09-01T14:44:39.475Z",
+      "updatedAt": "2026-09-01T14:44:39.475Z"
+    },
+    {
+      "id": "ord_1788264746796_6nbzqw",
+      "orderNumber": "GUM-61841",
+      "customerName": "Elena Vance",
+      "customerEmail": "elena.vance@example.com",
+      "customerPhone": "+1 (555) 234-5678",
+      "shippingAddress": {
+        "addressLine1": "742 Evergreen Terrace",
+        "city": "Springfield",
+        "state": "OR",
+        "postalCode": "97477",
+        "country": "United States"
+      },
+      "items": [
+        {
+          "productId": "prod_headphones_pro",
+          "title": "Wireless ANC Headphones",
+          "price": 49.99,
+          "quantity": 2,
+          "thumbnail": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e"
+        }
+      ],
+      "totalAmount": 79.98,
+      "discountCode": "VIP20",
+      "discountAmount": 20,
+      "currency": "USD",
+      "status": "fulfilled",
+      "gumroadRedirectUrl": "https://gumroad.com/l/wireless-headphones-pro?wanted=true&email=elena.vance%40example.com&quantity=2",
+      "createdAt": "2026-09-01T12:12:26.796Z",
+      "updatedAt": "2026-09-01T12:12:26.808Z",
+      "recoveredAt": "2026-09-01T12:12:26.804Z",
+      "carrier": "FedEx Express",
+      "trackingNumber": "940011189922334455",
+      "trackingUrl": "https://www.google.com/search?q=940011189922334455",
+      "shippedAt": "2026-09-01T12:12:26.808Z"
+    }
+  ],
+  "analyticsEvents": [
+    {
+      "eventType": "checkout_click",
+      "productId": "prod_water_bottle",
+      "productTitle": "Matte Vacuum-Insulated Stainless Steel Bottle (32oz)",
+      "metadata": {
+        "orderId": "ord_1788273879475_d17jf6",
+        "orderNumber": "GUM-92023",
+        "customerEmail": "sdfs@ggg.vp",
+        "totalAmount": 24.99
+      },
+      "id": "evt_1788273879476_c00xo",
+      "timestamp": "2026-09-01T14:44:39.476Z"
+    },
+    {
+      "eventType": "add_to_cart",
+      "productId": "prod_water_bottle",
+      "productTitle": "Matte Vacuum-Insulated Stainless Steel Bottle (32oz)",
+      "url": "http://localhost:5173/collections/all",
+      "referrer": "http://localhost:5173/admin/onboarding",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {
+        "quantity": 1,
+        "price": 24.99
+      },
+      "id": "evt_1788273822278_b8yfi",
+      "timestamp": "2026-09-01T14:43:42.278Z"
+    },
+    {
+      "eventType": "product_view",
+      "productId": "prod_mtirmgnq_0",
+      "productTitle": "Washer Gun with Extensions",
+      "url": "http://localhost:5173/products/washer-gun-with-extensions-279",
+      "referrer": "http://localhost:5173/products/washer-gun-with-extensions-279",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {},
+      "id": "evt_1788273122988_lvn20",
+      "timestamp": "2026-09-01T14:32:02.988Z"
+    },
+    {
+      "eventType": "product_view",
+      "productId": "prod_mtirmgnq_0",
+      "productTitle": "Washer Gun with Extensions",
+      "url": "http://localhost:5173/products/washer-gun-with-extensions-279",
+      "referrer": "http://localhost:5173/products/washer-gun-with-extensions-279",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {},
+      "id": "evt_1788273122899_bvcon",
+      "timestamp": "2026-09-01T14:32:02.899Z"
+    },
+    {
+      "eventType": "gumroad_click",
+      "provider": "gumroad",
+      "productId": "prod_mtirmgnq_0",
+      "productTitle": "Washer Gun with Extensions",
+      "url": "http://localhost:5173/collections/all",
+      "referrer": "http://localhost:5173/admin/onboarding",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {
+        "cartItemsCount": 0,
+        "subtotal": 0
+      },
+      "id": "evt_1788273114580_qsax1",
+      "timestamp": "2026-09-01T14:31:54.580Z"
+    },
+    {
+      "eventType": "add_to_cart",
+      "productId": "prod_water_bottle",
+      "productTitle": "Matte Vacuum-Insulated Stainless Steel Bottle (32oz)",
+      "url": "http://localhost:5173/products/insulated-stainless-bottle",
+      "referrer": "http://localhost:5173/track",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {
+        "quantity": 4,
+        "price": 24.99
+      },
+      "id": "evt_1788270119275_kedk8",
+      "timestamp": "2026-09-01T13:41:59.275Z"
+    },
+    {
+      "eventType": "gumroad_click",
+      "productId": "prod_water_bottle",
+      "productTitle": "Matte Vacuum-Insulated Stainless Steel Bottle (32oz)",
+      "url": "http://localhost:5173/products/insulated-stainless-bottle",
+      "referrer": "http://localhost:5173/track",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {
+        "targetUrl": ""
+      },
+      "id": "evt_1788270114267_j8pxo",
+      "timestamp": "2026-09-01T13:41:54.267Z"
+    },
+    {
+      "eventType": "gumroad_click",
+      "productId": "prod_water_bottle",
+      "productTitle": "Matte Vacuum-Insulated Stainless Steel Bottle (32oz)",
+      "url": "http://localhost:5173/products/insulated-stainless-bottle",
+      "referrer": "http://localhost:5173/track",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {
+        "targetUrl": ""
+      },
+      "id": "evt_1788270105691_z1t7k",
+      "timestamp": "2026-09-01T13:41:45.691Z"
+    },
+    {
+      "eventType": "product_view",
+      "productId": "prod_water_bottle",
+      "productTitle": "Matte Vacuum-Insulated Stainless Steel Bottle (32oz)",
+      "url": "http://localhost:5173/products/insulated-stainless-bottle",
+      "referrer": "http://localhost:5173/track",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {},
+      "id": "evt_1788270104432_vqnkg",
+      "timestamp": "2026-09-01T13:41:44.432Z"
+    },
+    {
+      "eventType": "product_view",
+      "productId": "prod_water_bottle",
+      "productTitle": "Matte Vacuum-Insulated Stainless Steel Bottle (32oz)",
+      "url": "http://localhost:5173/products/insulated-stainless-bottle",
+      "referrer": "http://localhost:5173/track",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {},
+      "id": "evt_1788270104419_pka8t",
+      "timestamp": "2026-09-01T13:41:44.419Z"
+    },
+    {
+      "eventType": "gumroad_click",
+      "provider": "gumroad",
+      "productId": "prod_leather_wallet",
+      "productTitle": "Slim RFID-Blocking Full-Grain Leather Wallet",
+      "url": "http://localhost:5173/collections/all",
+      "referrer": "http://localhost:5173/super-admin",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {
+        "cartItemsCount": 1,
+        "subtotal": 274.5
+      },
+      "id": "evt_1788265147503_45ywv",
+      "timestamp": "2026-09-01T12:19:07.503Z"
+    },
+    {
+      "eventType": "product_view",
+      "productId": "prod_headphones_pro",
+      "productTitle": "Wireless Active Noise-Cancelling Headphones",
+      "url": "http://localhost:5173/products/wireless-headphones-pro",
+      "referrer": "http://localhost:5173/products/wireless-headphones-pro",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {},
+      "id": "evt_1788264899132_ddop1",
+      "timestamp": "2026-09-01T12:14:59.132Z"
+    },
+    {
+      "eventType": "product_view",
+      "productId": "prod_headphones_pro",
+      "productTitle": "Wireless Active Noise-Cancelling Headphones",
+      "url": "http://localhost:5173/products/wireless-headphones-pro",
+      "referrer": "http://localhost:5173/products/wireless-headphones-pro",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {},
+      "id": "evt_1788264899066_a0u0c",
+      "timestamp": "2026-09-01T12:14:59.066Z"
+    },
+    {
+      "eventType": "checkout_click",
+      "productId": "prod_headphones_pro",
+      "productTitle": "Wireless Active Noise-Cancelling Headphones",
+      "metadata": {
+        "orderId": "ord_1788264746796_6nbzqw",
+        "orderNumber": "GUM-61841",
+        "customerEmail": "elena.vance@example.com",
+        "totalAmount": 79.98
+      },
+      "id": "evt_1788264746797_onttk",
+      "timestamp": "2026-09-01T12:12:26.797Z"
+    },
+    {
+      "eventType": "product_view",
+      "productId": "prod_leather_wallet",
+      "productTitle": "Slim RFID-Blocking Full-Grain Leather Wallet",
+      "url": "http://localhost:5173/products/minimalist-leather-wallet",
+      "referrer": "http://localhost:5173/products/minimalist-leather-wallet",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {},
+      "id": "evt_1788261439127_l5nap",
+      "timestamp": "2026-09-01T11:17:19.127Z"
+    },
+    {
+      "eventType": "product_view",
+      "productId": "prod_leather_wallet",
+      "productTitle": "Slim RFID-Blocking Full-Grain Leather Wallet",
+      "url": "http://localhost:5173/products/minimalist-leather-wallet",
+      "referrer": "http://localhost:5173/products/minimalist-leather-wallet",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {},
+      "id": "evt_1788261439071_n3oml",
+      "timestamp": "2026-09-01T11:17:19.071Z"
+    },
+    {
+      "eventType": "gumroad_click",
+      "productId": "prod_leather_wallet",
+      "productTitle": "Slim RFID-Blocking Full-Grain Leather Wallet",
+      "url": "http://localhost:5173/products/minimalist-leather-wallet",
+      "referrer": "http://localhost:5173/products/minimalist-leather-wallet",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {
+        "targetUrl": ""
+      },
+      "id": "evt_1788259957039_rgqz0",
+      "timestamp": "2026-09-01T10:52:37.039Z"
+    },
+    {
+      "eventType": "product_view",
+      "productId": "prod_leather_wallet",
+      "productTitle": "Slim RFID-Blocking Full-Grain Leather Wallet",
+      "url": "http://localhost:5173/products/minimalist-leather-wallet",
+      "referrer": "http://localhost:5173/products/minimalist-leather-wallet",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {},
+      "id": "evt_1788259944408_wxitv",
+      "timestamp": "2026-09-01T10:52:24.408Z"
+    },
+    {
+      "eventType": "product_view",
+      "productId": "prod_leather_wallet",
+      "productTitle": "Slim RFID-Blocking Full-Grain Leather Wallet",
+      "url": "http://localhost:5173/products/minimalist-leather-wallet",
+      "referrer": "http://localhost:5173/products/minimalist-leather-wallet",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "metadata": {},
+      "id": "evt_1788259944390_jq0o4",
+      "timestamp": "2026-09-01T10:52:24.390Z"
+    }
+  ],
+  "mediaItems": [],
+  "adminActivity": [
+    {
+      "userId": "system",
+      "userName": "Store Admin",
+      "action": "PLAN_UPGRADE",
+      "resource": "BILLING",
+      "details": "Store \"My GumShop Store\" successfully upgraded to PRO (50 products) via Gumroad payment.",
+      "id": "act_1788274492040_t4hs9",
+      "timestamp": "2026-09-01T14:54:52.040Z"
+    },
+    {
+      "userId": "usr_admin_1",
+      "userName": "Store Admin",
+      "action": "LOGIN",
+      "resource": "AUTH",
+      "details": "User logged in from ::1",
+      "id": "act_1788274491359_u5bdp",
+      "timestamp": "2026-09-01T14:54:51.359Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "UPDATE",
+      "resource": "SETTINGS",
+      "details": "Updated global site settings & maintenance mode",
+      "id": "act_1788273698863_r04o2",
+      "timestamp": "2026-09-01T14:41:38.863Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "UPDATE",
+      "resource": "SETTINGS",
+      "details": "Updated global site settings & maintenance mode",
+      "id": "act_1788273692520_dq5or",
+      "timestamp": "2026-09-01T14:41:32.520Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "SYNC",
+      "resource": "GUMROAD",
+      "details": "Synced 3/3 products with Gumroad API",
+      "id": "act_1788273490148_s6aiz",
+      "timestamp": "2026-09-01T14:38:10.148Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "SYNC",
+      "resource": "GUMROAD",
+      "details": "Synced 0/3 products with Gumroad API",
+      "id": "act_1788273414061_hfu5r",
+      "timestamp": "2026-09-01T14:36:54.061Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "SYNC",
+      "resource": "GUMROAD",
+      "details": "Synced 0/3 products with Gumroad API",
+      "id": "act_1788273393847_31178",
+      "timestamp": "2026-09-01T14:36:33.847Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "SYNC",
+      "resource": "GUMROAD",
+      "details": "Synced 0/3 products with Gumroad API",
+      "id": "act_1788273334935_gkwpl",
+      "timestamp": "2026-09-01T14:35:34.935Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "SYNC",
+      "resource": "GUMROAD",
+      "details": "Synced 0/3 products with Gumroad API",
+      "id": "act_1788273231792_7g1x9",
+      "timestamp": "2026-09-01T14:33:51.792Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "SYNC",
+      "resource": "GUMROAD",
+      "details": "Synced 0/3 products with Gumroad API",
+      "id": "act_1788273221659_7hcwo",
+      "timestamp": "2026-09-01T14:33:41.659Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "SYNC",
+      "resource": "GUMROAD",
+      "details": "Synced 0/3 products with Gumroad API",
+      "id": "act_1788273181622_7jqhc",
+      "timestamp": "2026-09-01T14:33:01.622Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "SYNC",
+      "resource": "GUMROAD",
+      "details": "Synced 0/3 products with Gumroad API",
+      "id": "act_1788273176602_px6zc",
+      "timestamp": "2026-09-01T14:32:56.602Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "SYNC",
+      "resource": "GUMROAD",
+      "details": "Synced 0/3 products with Gumroad API",
+      "id": "act_1788273152131_a78qp",
+      "timestamp": "2026-09-01T14:32:32.131Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "DELETE",
+      "resource": "PRODUCT",
+      "resourceId": "prod_yoga_mat",
+      "details": "Deleted product \"Eco-Grip Non-Slip Alignment Yoga Mat (6mm)\"",
+      "id": "act_1788273102011_40v7u",
+      "timestamp": "2026-09-01T14:31:42.011Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "DELETE",
+      "resource": "PRODUCT",
+      "resourceId": "prod_leather_wallet",
+      "details": "Deleted product \"Slim RFID-Blocking Full-Grain Leather Wallet\"",
+      "id": "act_1788273099610_56oj8",
+      "timestamp": "2026-09-01T14:31:39.610Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "DELETE",
+      "resource": "PRODUCT",
+      "resourceId": "prod_headphones_pro",
+      "details": "Deleted product \"Wireless Active Noise-Cancelling Headphones\"",
+      "id": "act_1788273095671_9d6xt",
+      "timestamp": "2026-09-01T14:31:35.671Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "apkreviews@gmail.com",
+      "action": "SCRAPER_IMPORT",
+      "resource": "PRODUCTS",
+      "details": "Imported 1 products via 1-Click Importer.",
+      "id": "act_1788273086679_v65uh",
+      "timestamp": "2026-09-01T14:31:26.679Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "UPDATE",
+      "resource": "SETTINGS",
+      "details": "Updated global site settings & maintenance mode",
+      "id": "act_1788272968029_xcdij",
+      "timestamp": "2026-09-01T14:29:28.029Z"
+    },
+    {
+      "userId": "usr_1788272351856_mavtfn",
+      "userName": "lol",
+      "action": "UPDATE",
+      "resource": "APPEARANCE",
+      "details": "Updated theme branding and color settings",
+      "id": "act_1788272968022_zxvwm",
+      "timestamp": "2026-09-01T14:29:28.022Z"
+    },
+    {
+      "userId": "usr_admin_1",
+      "userName": "Store Admin",
+      "action": "LOGIN",
+      "resource": "AUTH",
+      "details": "User logged in from ::1",
+      "id": "act_1788271462762_cn91w",
+      "timestamp": "2026-09-01T14:04:22.762Z"
+    },
+    {
+      "userId": "system",
+      "userName": "Store Admin",
+      "action": "PLAN_UPGRADE",
+      "resource": "BILLING",
+      "details": "Store \"My GumShop Store\" successfully upgraded to PRO (50 products) via Gumroad payment.",
+      "id": "act_1788270560868_j28um",
+      "timestamp": "2026-09-01T13:49:20.868Z"
+    },
+    {
+      "userId": "usr_superadmin_1",
+      "userName": "GumShop Super Admin",
+      "action": "LOGIN",
+      "resource": "AUTH",
+      "details": "User logged in from ::1",
+      "id": "act_1788265647018_3a5wx",
+      "timestamp": "2026-09-01T12:27:27.018Z"
+    },
+    {
+      "userId": "usr_admin_1",
+      "userName": "Store Admin",
+      "action": "LOGIN",
+      "resource": "AUTH",
+      "details": "User logged in from ::1",
+      "id": "act_1788264918408_3w60w",
+      "timestamp": "2026-09-01T12:15:18.408Z"
+    },
+    {
+      "userId": "usr_admin_1",
+      "userName": "Store Admin",
+      "action": "LOGIN",
+      "resource": "AUTH",
+      "details": "User logged in from ::1",
+      "id": "act_1788264746775_jbkhf",
+      "timestamp": "2026-09-01T12:12:26.775Z"
+    },
+    {
+      "userId": "usr_admin_1",
+      "userName": "Store Admin",
+      "action": "LOGIN",
+      "resource": "AUTH",
+      "details": "User logged in from ::1",
+      "id": "act_1788264646125_00wfh",
+      "timestamp": "2026-09-01T12:10:46.125Z"
+    },
+    {
+      "userId": "usr_admin_1",
+      "userName": "Store Admin",
+      "action": "LOGIN",
+      "resource": "AUTH",
+      "details": "User logged in from ::1",
+      "id": "act_1788263740227_6a3nx",
+      "timestamp": "2026-09-01T11:55:40.227Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "usr_admin_1",
+      "tenantId": "tenant_demo",
+      "email": "admin@gumshop.online",
+      "name": "Store Admin",
+      "role": "superadmin",
+      "createdAt": "2026-09-01T10:47:50.736Z",
+      "password": "$2a$10$apee4zuuE1yRWLoKiP5tVOcjc4BWgmoAEJXHN1FuQKGmIhCA18Q1O"
+    },
+    {
+      "id": "usr_superadmin_1",
+      "tenantId": "tenant_demo",
+      "email": "superadmin@gumshop.online",
+      "name": "GumShop Super Admin",
+      "role": "superadmin",
+      "createdAt": "2026-09-01T10:47:50.807Z",
+      "password": "$2a$10$bdZewqghhlF1IIaLNruRc.736tCK4q0Oz9RDhN.2fUzoGjm7ZSca6"
+    },
+    {
+      "id": "usr_1788272351856_mavtfn",
+      "tenantId": "tenant_1788272351856_wmvplk",
+      "email": "apkreviews@gmail.com",
+      "name": "lol",
+      "role": "superadmin",
+      "password": "$2a$10$t10ZGij4zNMfKiYV5TZm2uLPmRGY9uchj.Cxh4bNcvgu1HUeXkcrm",
+      "createdAt": "2026-09-01T14:19:11.924Z"
+    }
+  ],
+  "categories": [
+    {
+      "id": "cat_electronics",
+      "tenantId": "tenant_demo",
+      "slug": "electronics",
+      "name": "Electronics & Audio",
+      "description": "Studio-grade acoustics, mechanical keyboards, and precision tech.",
+      "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80",
+      "icon": "Headphones",
+      "sortOrder": 1,
+      "status": "active"
+    },
+    {
+      "id": "cat_accessories",
+      "tenantId": "tenant_demo",
+      "slug": "everyday-carry",
+      "name": "Everyday Carry",
+      "description": "Full-grain leather wallets, key organizers, and minimalist accessories.",
+      "image": "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=600&q=80",
+      "icon": "Briefcase",
+      "sortOrder": 2,
+      "status": "active"
+    },
+    {
+      "id": "cat_fitness",
+      "tenantId": "tenant_demo",
+      "slug": "fitness-outdoors",
+      "name": "Fitness & Hydration",
+      "description": "Insulated stainless bottles, alignment yoga mats, and active lifestyle gear.",
+      "image": "https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?auto=format&fit=crop&w=600&q=80",
+      "icon": "Activity",
+      "sortOrder": 3,
+      "status": "active"
+    }
+  ],
+  "collections": [
+    {
+      "id": "col_all",
+      "tenantId": "tenant_demo",
+      "slug": "all-products",
+      "title": "All Products",
+      "description": "Browse our complete catalog of curated lifestyle and tech essentials.",
+      "image": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80",
+      "productIds": [
+        "prod_headphones_pro",
+        "prod_leather_wallet",
+        "prod_water_bottle",
+        "prod_yoga_mat",
+        "prod_mechanical_keyboard"
+      ],
+      "sortOrder": 1,
+      "status": "published"
+    },
+    {
+      "id": "col_bestsellers",
+      "tenantId": "tenant_demo",
+      "slug": "bestsellers",
+      "title": "Best Sellers",
+      "description": "Top-rated gear loved by thousands of creators and professionals worldwide.",
+      "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80",
+      "productIds": [
+        "prod_headphones_pro",
+        "prod_leather_wallet",
+        "prod_mechanical_keyboard"
+      ],
+      "sortOrder": 2,
+      "status": "published"
+    }
+  ],
+  "products": [
+    {
+      "id": "prod_mtirmgnq_0",
+      "tenantId": "tenant_1788272351856_wmvplk",
+      "slug": "minimalist-titanium-everyday-pen",
+      "title": "Minimalist Titanium Everyday Pen & Stylus",
+      "shortDescription": "Grade 5 titanium precision machined EDC pen with refillable ink cartridge.",
+      "description": "Crafted from Grade 5 titanium, this minimalist pen delivers balanced weight and supreme durability for daily note-taking and sketching.",
+      "price": 49.0,
+      "compareAtPrice": 65.0,
+      "currency": "USD",
+      "sku": "EDC-PEN-TI",
+      "categoryId": "cat_electronics",
+      "collectionIds": [
+        "col_all"
+      ],
+      "tags": [
+        "edc",
+        "minimalist",
+        "stationery",
+        "titanium"
+      ],
+      "status": "published",
+      "featured": false,
+      "bestseller": false,
+      "newProduct": true,
+      "sale": false,
+      "images": [
+        "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&q=80"
+      ],
+      "thumbnail": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=400&q=80",
+      "specifications": [],
+      "faq": [],
+      "primaryCheckout": "gumroad",
+      "directCheckout": true,
+      "buttonText": "Buy Now - Free Shipping",
+      "sortOrder": 1,
+      "createdAt": "2026-09-01T14:31:26.678Z",
+      "updatedAt": "2026-09-01T14:31:26.678Z",
+      "gumroadUrl": "https://manmeetraj6.gumroad.com/l/gumshop-pen"
+    },
+    {
+      "id": "prod_water_bottle",
+      "tenantId": "tenant_demo",
+      "slug": "insulated-stainless-bottle",
+      "title": "Matte Vacuum-Insulated Stainless Steel Bottle (32oz)",
+      "shortDescription": "Keeps drinks ice cold for 24 hours or piping hot for 12 hours with double-wall insulation.",
+      "description": "<p>Built from food-grade 18/8 stainless steel with a sweat-proof matte powder coat finish. Leak-proof spout lid included.</p>",
+      "price": 24.99,
+      "compareAtPrice": 49.99,
+      "currency": "USD",
+      "sku": "GUM-FIT-003",
+      "categoryId": "cat_fitness",
+      "collectionIds": [
+        "col_all"
+      ],
+      "tags": [
+        "bottle",
+        "stainless",
+        "hydration",
+        "fitness"
+      ],
+      "status": "published",
+      "featured": false,
+      "bestseller": false,
+      "newProduct": true,
+      "sale": true,
+      "images": [
+        "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=1000&q=80"
+      ],
+      "thumbnail": "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=600&q=80",
+      "specifications": [
+        {
+          "key": "Capacity",
+          "value": "32 oz / 950 ml"
+        },
+        {
+          "key": "Insulation",
+          "value": "Double-Wall Vacuum"
+        },
+        {
+          "key": "Material",
+          "value": "Food-Grade 18/8 Stainless Steel"
+        }
+      ],
+      "faq": [
+        {
+          "question": "Is it dishwasher safe?",
+          "answer": "Yes, the bottle and lid are top-rack dishwasher safe."
+        }
+      ],
+      "gumroadUrl": "https://manmeetraj6.gumroad.com/l/insulated-stainless-bottle",
+      "primaryCheckout": "gumroad",
+      "directCheckout": true,
+      "buttonText": "Buy Now - Free Shipping",
+      "sortOrder": 3,
+      "createdAt": "2026-09-01T10:47:50.872Z",
+      "updatedAt": "2026-09-01T10:47:50.872Z"
+    },
+    {
+      "id": "prod_mechanical_keyboard",
+      "tenantId": "tenant_demo",
+      "slug": "rgb-mechanical-keyboard",
+      "title": "Compact 75% Wireless Mechanical Keyboard",
+      "shortDescription": "Hot-swappable tactile switches, per-key RGB backlighting, and CNC aluminum casing.",
+      "description": "<p>Elevate your workspace. Features tri-mode connectivity (Bluetooth 5.1, 2.4GHz wireless, USB-C), sound-dampening silicone pads, and cross-platform Mac/Windows support.</p>",
+      "price": 79.99,
+      "compareAtPrice": 159.99,
+      "currency": "USD",
+      "sku": "GUM-TECH-005",
+      "categoryId": "cat_electronics",
+      "collectionIds": [
+        "col_all",
+        "col_bestsellers"
+      ],
+      "tags": [
+        "keyboard",
+        "wireless",
+        "mechanical",
+        "rgb",
+        "gaming"
+      ],
+      "status": "published",
+      "featured": true,
+      "bestseller": true,
+      "newProduct": true,
+      "sale": true,
+      "images": [
+        "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=1000&q=80",
+        "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?auto=format&fit=crop&w=1000&q=80"
+      ],
+      "thumbnail": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=600&q=80",
+      "specifications": [
+        {
+          "key": "Switches",
+          "value": "Gateron Pro Brown (Tactile)"
+        },
+        {
+          "key": "Layout",
+          "value": "75% ANSI (84 Keys)"
+        },
+        {
+          "key": "Battery",
+          "value": "4000 mAh Rechargeable"
+        }
+      ],
+      "faq": [
+        {
+          "question": "Is this hot-swappable?",
+          "answer": "Yes, full 5-pin and 3-pin hot-swappable PCB support with no soldering required."
+        }
+      ],
+      "gumroadUrl": "https://manmeetraj6.gumroad.com/l/rgb-mechanical-keyboard",
+      "primaryCheckout": "gumroad",
+      "directCheckout": true,
+      "buttonText": "Buy Now - Free Shipping",
+      "sortOrder": 5,
+      "createdAt": "2026-09-01T10:47:50.872Z",
+      "updatedAt": "2026-09-01T10:47:50.872Z"
+    }
+  ],
+  "bundles": [
+    {
+      "id": "bnd_creator_desk",
+      "tenantId": "tenant_demo",
+      "slug": "creator-desk-kit",
+      "name": "Creator Desk Setup Kit",
+      "description": "Includes the Compact 75% Mechanical Keyboard + Wireless ANC Headphones at an exclusive 55% bundle discount.",
+      "price": 99.99,
+      "compareAtPrice": 259.98,
+      "image": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=1000&q=80",
+      "productIds": [
+        "prod_mechanical_keyboard",
+        "prod_headphones_pro"
+      ],
+      "ctaText": "Get Desk Setup Kit",
+      "gumroadUrl": "",
+      "status": "published",
+      "sortOrder": 1
+    },
+    {
+      "id": "bnd_everyday_carry",
+      "tenantId": "tenant_demo",
+      "slug": "edc-essentials-pack",
+      "name": "Daily Carry Essentials Pack",
+      "description": "Pair the Slim RFID Full-Grain Leather Wallet with our 32oz Insulated Stainless Steel Bottle.",
+      "price": 39.99,
+      "compareAtPrice": 109.98,
+      "image": "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=1000&q=80",
+      "productIds": [
+        "prod_leather_wallet",
+        "prod_water_bottle"
+      ],
+      "ctaText": "Get Daily Carry Pack",
+      "gumroadUrl": "",
+      "status": "published",
+      "sortOrder": 2
+    }
+  ],
+  "homepageSections": [
+    {
+      "id": "sec_hero",
+      "type": "hero",
+      "title": "Crafted for Everyday Excellence",
+      "subtitle": "Premium gear designed with obsession for detail, durability, and aesthetics.",
+      "content": "Enjoy flat 50% launch discounts on all catalog items with free express delivery worldwide.",
+      "image": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1600&q=80",
+      "buttonText": "Shop Best Sellers",
+      "buttonUrl": "/collections/bestsellers",
+      "enabled": true,
+      "sortOrder": 1
+    },
+    {
+      "id": "sec_categories",
+      "type": "categories",
+      "title": "Shop by Category",
+      "enabled": true,
+      "sortOrder": 2
+    },
+    {
+      "id": "sec_featured_products",
+      "type": "products",
+      "title": "Featured Essentials",
+      "content": "col_all",
+      "enabled": true,
+      "sortOrder": 3
+    },
+    {
+      "id": "sec_bundles",
+      "type": "bundles",
+      "title": "Exclusive Bundle Deals",
+      "content": "Save up to 55% when you bundle complementary hardware and everyday carry items together.",
+      "enabled": true,
+      "sortOrder": 4
+    }
+  ],
+  "navigationItems": [
+    {
+      "id": "nav_all",
+      "label": "All Products",
+      "url": "/collections/all",
+      "sortOrder": 1,
+      "openNewTab": false,
+      "visible": true
+    },
+    {
+      "id": "nav_bestsellers",
+      "label": "Best Sellers",
+      "url": "/collections/bestsellers",
+      "sortOrder": 2,
+      "openNewTab": false,
+      "visible": true
+    },
+    {
+      "id": "nav_bundles",
+      "label": "Bundles & Kits",
+      "url": "/bundles",
+      "sortOrder": 3,
+      "openNewTab": false,
+      "visible": true
+    },
+    {
+      "id": "nav_about",
+      "label": "About Us",
+      "url": "/about",
+      "sortOrder": 4,
+      "openNewTab": false,
+      "visible": true
+    },
+    {
+      "id": "nav_contact",
+      "label": "Support",
+      "url": "/contact",
+      "sortOrder": 5,
+      "openNewTab": false,
+      "visible": true
+    }
+  ],
+  "footerColumns": [
+    {
+      "id": "col_shop",
+      "title": "Shop",
+      "sortOrder": 1,
+      "links": [
+        {
+          "id": "fl_all",
+          "label": "All Products",
+          "url": "/collections/all"
+        },
+        {
+          "id": "fl_best",
+          "label": "Best Sellers",
+          "url": "/collections/bestsellers"
+        },
+        {
+          "id": "fl_bun",
+          "label": "Bundles & Deals",
+          "url": "/bundles"
+        }
+      ]
+    },
+    {
+      "id": "col_company",
+      "title": "Company",
+      "sortOrder": 2,
+      "links": [
+        {
+          "id": "fl_abt",
+          "label": "About Us",
+          "url": "/about"
+        },
+        {
+          "id": "fl_cnt",
+          "label": "Contact & Support",
+          "url": "/contact"
+        },
+        {
+          "id": "fl_blg",
+          "label": "Store Blog",
+          "url": "/blog"
+        }
+      ]
+    },
+    {
+      "id": "col_cust",
+      "title": "Customer Service",
+      "sortOrder": 3,
+      "links": [
+        {
+          "id": "fl_shp",
+          "label": "Shipping & Delivery",
+          "url": "/contact"
+        },
+        {
+          "id": "fl_trk",
+          "label": "Track My Order",
+          "url": "/contact"
+        },
+        {
+          "id": "fl_ret",
+          "label": "Returns & Warranty",
+          "url": "/contact"
+        }
+      ]
+    }
+  ],
+  "themeSettings": {
+    "brandName": "GumShop",
+    "tagline": "Premium Gear, Minimalist Living",
+    "logoUrl": "",
+    "faviconUrl": "",
+    "primaryColor": "#F59E0B",
+    "secondaryColor": "#4F46E5",
+    "accentColor": "#10B981",
+    "backgroundColor": "#0A0C0F",
+    "surfaceColor": "#14171F",
+    "textColor": "#F3F4F6",
+    "mutedTextColor": "#9CA3AF",
+    "buttonColor": "#6366F1",
+    "buttonTextColor": "#FFFFFF",
+    "headingFont": "Inter",
+    "bodyFont": "Inter",
+    "headingWeight": "800",
+    "bodyWeight": "400",
+    "maxWidth": "1280px",
+    "borderRadius": "16px",
+    "cardRadius": "16px",
+    "buttonRadius": "12px",
+    "sectionSpacing": "80px",
+    "gridGap": "24px",
+    "stickyHeader": true,
+    "transparentHeader": true,
+    "logoPosition": "left",
+    "navigationPosition": "left",
+    "announcementEnabled": true,
+    "announcementText": "? Flash Sale: 50% Off Everything Today + Free Worldwide Express Shipping",
+    "announcementLink": "/collections/all",
+    "announcementBg": "#4F46E5",
+    "announcementColor": "#FFFFFF",
+    "footerColumnsCount": 3,
+    "footerBg": "#090B0E",
+    "footerTextColor": "#9CA3AF",
+    "copyrightText": "? 2026 GumShop. All rights reserved.",
+    "socialLinks": {
+      "x": "https://x.com",
+      "youtube": "https://youtube.com"
+    }
+  },
+  "paymentIntegrations": [
+    {
+      "id": "pay_gumroad",
+      "provider": "gumroad",
+      "label": "Gumroad Payments",
+      "enabled": true,
+      "storeUrl": "https://manmeetraj6.gumroad.com",
+      "buttonText": "Buy Now - Free Shipping",
+      "checkoutMode": "overlay",
+      "openNewTab": true,
+      "settingsJson": {
+        "accessToken": "5--PUy8ScjP8XFUa_rqsOvFvySPA9jUQ8a0oJ4mAH5Y",
+        "prefillEmail": true,
+        "lastSyncedAt": "2026-09-01T14:38:10.147Z"
+      }
+    }
+  ],
+  "promotions": [
+    {
+      "id": "promo_welcome",
+      "type": "popup",
+      "title": "Get 50% Off Your First Order",
+      "description": "Enter your email to receive our flash sale bundle discounts.",
+      "discountCode": "GUM50",
+      "discountType": "percentage",
+      "discountValue": 50,
+      "enabled": true
+    },
+    {
+      "id": "promo_save10",
+      "type": "discount_code",
+      "title": "$10 Off Orders Over $50",
+      "description": "Save $10 on orders over $50.",
+      "discountCode": "SAVE10",
+      "discountType": "fixed_amount",
+      "discountValue": 10,
+      "minSpend": 50,
+      "enabled": true
+    },
+    {
+      "id": "promo_vip20",
+      "type": "discount_code",
+      "title": "VIP 20% Off",
+      "description": "Take 20% off your entire cart.",
+      "discountCode": "VIP20",
+      "discountType": "percentage",
+      "discountValue": 20,
+      "enabled": true
+    }
+  ],
+  "testimonials": [
+    {
+      "id": "test_1",
+      "name": "Marcus Vance",
+      "title": "Audio Engineer",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+      "review": "The ANC Wireless Headphones blew away my expectations. Studio-accurate bass and the build quality feels like a $300 unit.",
+      "rating": 5,
+      "verified": true,
+      "published": true,
+      "sortOrder": 1
+    },
+    {
+      "id": "test_2",
+      "name": "Elena Rostova",
+      "title": "Digital Nomad & Designer",
+      "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+      "review": "I love how slim the RFID leather wallet is. Fits seamlessly into front pockets and the leather patina after 2 months is stunning.",
+      "rating": 5,
+      "verified": true,
+      "published": true,
+      "sortOrder": 2
+    },
+    {
+      "id": "test_mtirydco",
+      "name": "test",
+      "title": "drumer",
+      "avatar": "",
+      "rating": 5,
+      "review": "good",
+      "productName": "",
+      "productId": "",
+      "verified": true,
+      "published": true,
+      "sortOrder": 3
+    }
+  ],
+  "blogPosts": [
+    {
+      "id": "post_desk_setup",
+      "slug": "how-to-build-the-ultimate-minimalist-desk-setup",
+      "title": "How to Build the Ultimate Minimalist Workspace for Focus & Flow",
+      "excerpt": "Tips and hardware essentials to streamline your desk and boost creative productivity.",
+      "content": "<p>A clean desk leads to a clear mind. Here are the 5 core hardware choices that eliminate clutter and enhance ergonomics...</p>",
+      "author": "GumShop Team",
+      "featuredImage": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=1200&q=80",
+      "categories": [
+        "Workspace"
+      ],
+      "tags": [
+        "productivity",
+        "hardware",
+        "workspace"
+      ],
+      "readTime": "4 min read",
+      "status": "published",
+      "publishedAt": "2026-09-01T10:47:50.873Z"
+    }
+  ],
+  "siteSettings": {
+    "currency": "USD",
+    "currencySymbol": "$",
+    "maintenanceMode": false,
+    "maintenanceTitle": "Store Under Maintenance",
+    "maintenanceMessage": "We are updating our catalog. Please check back shortly.",
+    "newsletterProvider": "custom",
+    "newsletterHeadline": "Get 50% Off Your First Order",
+    "newsletterDescription": "Join 10,000+ creators getting exclusive gear discounts.",
+    "newsletterSuccessMsg": "Welcome aboard! Check your inbox for your 50% off promo code.",
+    "contactEmail": "lol@lol.com",
+    "seoTitle": "GumShop ? Premium Lifestyle & Tech Gear",
+    "seoDescription": "Launch your store and shop curated tech, everyday carry, and fitness gear.",
+    "ogImage": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
+    "twitterCard": "summary_large_image",
+    "canonicalUrl": "https://gumshop.online"
+  }
+}
