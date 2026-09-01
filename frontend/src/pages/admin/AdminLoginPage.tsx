@@ -4,8 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { Shield, Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
 
 export const AdminLoginPage: React.FC = () => {
-  const [email, setEmail] = useState('admin@gumshop.online');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -36,7 +36,7 @@ export const AdminLoginPage: React.FC = () => {
             GumShop Admin
           </h1>
           <p className="text-xs text-gray-400">
-            Authenticate to access the store management CMS
+            Authenticate to access your store management CMS
           </p>
         </div>
 
@@ -55,9 +55,10 @@ export const AdminLoginPage: React.FC = () => {
               <input
                 type="email"
                 required
+                placeholder="you@yourdomain.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#0A0C0F] border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#0A0C0F] border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 placeholder:text-gray-600"
               />
             </div>
           </div>
@@ -69,9 +70,10 @@ export const AdminLoginPage: React.FC = () => {
               <input
                 type="password"
                 required
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#0A0C0F] border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#0A0C0F] border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 placeholder:text-gray-600"
               />
             </div>
           </div>
@@ -91,20 +93,20 @@ export const AdminLoginPage: React.FC = () => {
             )}
           </button>
         </form>
-      </div>
 
-      <div className="w-full max-w-md mt-6 bg-indigo-950/30 border border-indigo-500/20 rounded-xl p-4">
-        <h3 className="text-xs font-bold text-indigo-300 uppercase mb-2 flex items-center gap-2">
-          🔑 Demo Credentials
-        </h3>
-        <div className="text-sm font-mono text-indigo-200">
-          <p>admin@gumshop.online / admin123</p>
+        <div className="mt-6 text-center border-t border-white/5 pt-4">
+          <p className="text-xs text-gray-500">
+            Don&apos;t have a store yet?{' '}
+            <a href="/signup" className="text-indigo-400 hover:text-indigo-300 font-bold">
+              Start Free
+            </a>
+          </p>
         </div>
       </div>
       
       <div className="mt-8">
         <a href="/" className="text-xs font-semibold text-gray-500 hover:text-white transition-colors">
-          &larr; Back to Store
+          &larr; Back to Home
         </a>
       </div>
     </div>
