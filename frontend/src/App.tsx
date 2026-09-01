@@ -26,6 +26,9 @@ import { BlogPostPage } from './pages/storefront/BlogPostPage';
 import { AboutPage } from './pages/storefront/AboutPage';
 import { ContactPage } from './pages/storefront/ContactPage';
 import { OrderTrackingPage } from './pages/storefront/OrderTrackingPage';
+import { PrivacyPolicyPage } from './pages/storefront/PrivacyPolicyPage';
+import { TermsOfServicePage } from './pages/storefront/TermsOfServicePage';
+import { CookiePolicyPage } from './pages/storefront/CookiePolicyPage';
 
 // Admin layout and pages
 import { AdminLayout } from './components/admin/AdminLayout';
@@ -131,10 +134,16 @@ export function App() {
               <Route path="/blog/:slug" element={<StorefrontLayout><BlogPostPage /></StorefrontLayout>} />
               <Route path="/about" element={<StorefrontLayout><AboutPage /></StorefrontLayout>} />
               <Route path="/contact" element={<StorefrontLayout><ContactPage /></StorefrontLayout>} />
+              <Route path="/privacy" element={<StorefrontLayout><PrivacyPolicyPage /></StorefrontLayout>} />
+              <Route path="/terms" element={<StorefrontLayout><TermsOfServicePage /></StorefrontLayout>} />
+              <Route path="/cookies" element={<StorefrontLayout><CookiePolicyPage /></StorefrontLayout>} />
               <Route path="/track" element={<StorefrontLayout><OrderTrackingPage /></StorefrontLayout>} />
               <Route path="/account" element={<StorefrontLayout><CustomerAccountPage /></StorefrontLayout>} />
               <Route path="/store/:slug/account" element={<StorefrontLayout><CustomerAccountPage /></StorefrontLayout>} />
               <Route path="/store/:slug/track" element={<StorefrontLayout><OrderTrackingPage /></StorefrontLayout>} />
+              <Route path="/store/:slug/privacy" element={<StorefrontLayout><PrivacyPolicyPage /></StorefrontLayout>} />
+              <Route path="/store/:slug/terms" element={<StorefrontLayout><TermsOfServicePage /></StorefrontLayout>} />
+              <Route path="/store/:slug/cookies" element={<StorefrontLayout><CookiePolicyPage /></StorefrontLayout>} />
 
               {/* Admin Auth Route */}
               <Route path="/admin/login" element={<AdminLoginPage />} />

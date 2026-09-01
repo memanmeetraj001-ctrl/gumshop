@@ -61,9 +61,12 @@ export const Footer: React.FC = () => {
         {/* Bottom bar */}
         <div className="mt-14 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
           <p>© 2026 {theme?.brandName || 'GumShop'}. All rights reserved.</p>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6">
             <Link to="/about" className="hover:text-white transition-colors">About Us</Link>
             <Link to="/contact" className="hover:text-white transition-colors">Support &amp; FAQ</Link>
+            <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+            <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
+            <Link to="/cookies" className="hover:text-white transition-colors">Cookies</Link>
             <Link to="/track" className="hover:text-white transition-colors">Track Order</Link>
             <Link to="/admin/login" className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors">Admin Login ↗</Link>
           </div>
