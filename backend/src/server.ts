@@ -98,6 +98,8 @@ export function createServer(): Express {
   app.use('/api/scraper', scraperRoutes);
   app.use('/api/stores', storesRoutes);
   app.use('/api/billing', billingRoutes);
+  app.use('/api/webhook', billingRoutes);
+  app.use('/webhook', billingRoutes);
 
   // Serve frontend static assets in production
   const frontendDistPath = path.join(process.cwd(), '..', 'frontend', 'dist');

@@ -3,9 +3,12 @@ import { db } from '../db/database';
 
 const router = Router();
 
-// Gumroad Webhook (Ping) Listener for SaaS Subscriptions
-// Set in Gumroad Settings > Advanced > Ping URL: https://gumshop.online/api/billing/webhook
-router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
+// Gumroad Ping Verification (GET / HEAD support so tests never 404)
+router.all('/webhook', async (req: Request, res: Response): Promise<void> => {
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    res.status(200).json({ status: 'ok', message: 'Gumroad Webhook Endpoint is Live and Ready' });
+    return;
+  }
   try {
     const payload = req.body || {};
     const buyerEmail = (payload.email || payload.buyer_email || '').toLowerCase().trim();
@@ -13,10 +16,11 @@ router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
     const isRefund = payload.refunded === 'true' || payload.refunded === true;
     const isCancelled = payload.cancelled === 'true' || payload.cancelled === true;
 
-    console.log(`[Gumroad Billing] Received ping for ${buyerEmail} ? Product: ${productName} ? Refunded: ${isRefund} ? Cancelled: ${isCancelled}`);
+    console.log(`[Gumroad Billing] Received ping for ${buyerEmail || 'test-ping'} | Product: ${productName} | Refunded: ${isRefund} | Cancelled: ${isCancelled}`);
 
     if (!buyerEmail) {
-      res.status(200).json({ status: 'ignored', reason: 'No email in payload' });
+      // Respond 200 OK immediately for test pings with empty/test payloads
+      res.status(200).json({ status: 'success', message: 'Test ping acknowledged' });
       return;
     }
 
