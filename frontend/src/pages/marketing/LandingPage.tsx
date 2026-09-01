@@ -981,51 +981,60 @@ const columns = [
   {
     title: 'Product',
     links: [
-      { label: 'Features', href: '#features' },
-      { label: 'Pricing', href: '#pricing' },
-      { label: 'How It Works', href: '#how-it-works' },
-      { label: 'Demo Store', href: '/store/demo' },
+      { label: 'Features', href: '#features', internal: false },
+      { label: 'Pricing', href: '#pricing', internal: false },
+      { label: 'How It Works', href: '#how-it-works', internal: false },
+      { label: 'Live Demo Store', href: '/store/demo', internal: true },
+      { label: 'Track An Order', href: '/track', internal: true },
     ],
   },
   {
     title: 'Platform',
     links: [
-      { label: 'Admin Login', href: '/admin/login' },
-      { label: 'Sign Up', href: '/signup' },
-      { label: 'Merchant Docs', href: '#' },
-      { label: 'API Webhooks', href: '#' },
+      { label: 'Admin Login', href: '/admin/login', internal: true },
+      { label: 'Create Free Store', href: '/signup', internal: true },
+      { label: 'Merchant Guide', href: '/admin/guide', internal: true },
+      { label: 'Master Admin / Billing', href: '/super-admin/billing', internal: true },
+    ],
+  },
+  {
+    title: 'Storefront',
+    links: [
+      { label: 'About Us', href: '/about', internal: true },
+      { label: 'Customer Support', href: '/contact', internal: true },
+      { label: 'Journal & Guides', href: '/blog', internal: true },
     ],
   },
   {
     title: 'Legal',
     links: [
-      { label: 'Privacy Policy', href: '/privacy' },
-      { label: 'Terms of Service', href: '/terms' },
-      { label: 'Cookie Policy', href: '/cookies' },
+      { label: 'Privacy Policy', href: '/privacy', internal: true },
+      { label: 'Terms of Service', href: '/terms', internal: true },
+      { label: 'Cookie Policy', href: '/cookies', internal: true },
     ],
   },
 ];
 
 const socials = [
-  { icon: XIcon, label: 'Twitter / X', href: '#' },
-  { icon: LinkedinIcon, label: 'LinkedIn', href: '#' },
-  { icon: GithubIcon, label: 'GitHub', href: '#' },
+  { icon: XIcon, label: 'Twitter / X', href: 'https://twitter.com' },
+  { icon: LinkedinIcon, label: 'LinkedIn', href: 'https://linkedin.com' },
+  { icon: GithubIcon, label: 'GitHub', href: 'https://github.com' },
 ];
 
 export function LandingFooter() {
   return (
     <footer className="border-t border-white/5 bg-[#0F1118]">
       <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
-          <div>
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
+          <div className="lg:col-span-1">
             <div className="flex items-center gap-2.5">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600">
                 <ShieldCheck className="h-5 w-5 text-white" aria-hidden="true" />
               </span>
               <span className="text-lg font-black tracking-tight text-white">GumShop</span>
             </div>
-            <p className="mt-4 text-sm leading-relaxed text-gray-500">
-              Premium Gear, Minimalist Living.
+            <p className="mt-4 text-sm leading-relaxed text-gray-400">
+              The 60-Second Headless E-Commerce Platform.
             </p>
             <p className="mt-4 text-xs text-gray-600">
               © 2026 GumShop. All rights reserved.
@@ -1034,18 +1043,27 @@ export function LandingFooter() {
 
           {columns.map((col) => (
             <div key={col.title}>
-              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400">
                 {col.title}
               </h3>
               <ul className="mt-4 flex flex-col gap-2.5">
                 {col.links.map((link) => (
                   <li key={link.label}>
-                    <a
-                      href={link.href}
-                      className="text-sm text-gray-400 transition-colors hover:text-white"
-                    >
-                      {link.label}
-                    </a>
+                    {link.internal ? (
+                      <Link
+                        to={link.href}
+                        className="text-sm text-gray-400 transition-colors hover:text-indigo-300"
+                      >
+                        {link.label}
+                      </Link>
+                    ) : (
+                      <a
+                        href={link.href}
+                        className="text-sm text-gray-400 transition-colors hover:text-white"
+                      >
+                        {link.label}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
