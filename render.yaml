@@ -5,7 +5,7 @@
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm install --prefix frontend && npm install --prefix backend && npm run build
+    buildCommand: npm install --include=dev --prefix frontend && npm install --include=dev --prefix backend && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
