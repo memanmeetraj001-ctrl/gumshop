@@ -10,23 +10,36 @@ export interface GumroadPlanConfig {
 
 export const GUMROAD_DEFAULT_STORE = 'https://manmeetraj6.gumroad.com';
 
-// User's active Gumroad Product Permalinks
-export const GUMROAD_PERMALINK_PRO = 'htgiks';
-export const GUMROAD_PERMALINK_SCALE = 'ffvqsn';
+// User's active Gumroad Product Permalinks & IDs
+export const GUMROAD_PERMALINK_PRO_MONTHLY = 'gumshop-pro';        // ID: htgiks ($12/mo)
+export const GUMROAD_PERMALINK_PRO_ANNUAL = 'umshop-pro-annual';   // ID: kujvkd ($9/mo, $108/yr)
+export const GUMROAD_PERMALINK_SCALE_MONTHLY = 'gumshop-scale';    // ID: ffvqsn ($29/mo)
+export const GUMROAD_PERMALINK_SCALE_ANNUAL = 'gumshop-scale-annual'; // ID: mienn ($24/mo, $288/yr)
 
-// Map Gumroad permalinks / product IDs to SaaS tiers
+// Map all possible Gumroad permalinks, slugs, and product IDs to SaaS tiers
 export const GUMROAD_PERMALINK_MAP: Record<string, GumroadPlanConfig> = {
-  // Pro Creator ($12/mo)
-  'htgiks': { plan: 'pro', cycle: 'monthly', limit: 50 },
+  // ── Pro Monthly ($12/mo) ──
   'gumshop-pro': { plan: 'pro', cycle: 'monthly', limit: 50 },
+  'htgiks': { plan: 'pro', cycle: 'monthly', limit: 50 },
   'pro-monthly': { plan: 'pro', cycle: 'monthly', limit: 50 },
   'pro': { plan: 'pro', cycle: 'monthly', limit: 50 },
 
-  // Unlimited Scale ($29/mo)
-  'ffvqsn': { plan: 'scale', cycle: 'monthly', limit: 9999 },
+  // ── Pro Annual ($9/mo billed $108/yr) ──
+  'umshop-pro-annual': { plan: 'pro', cycle: 'annual', limit: 50 },
+  'gumshop-pro-annual': { plan: 'pro', cycle: 'annual', limit: 50 },
+  'kujvkd': { plan: 'pro', cycle: 'annual', limit: 50 },
+  'pro-annual': { plan: 'pro', cycle: 'annual', limit: 50 },
+
+  // ── Scale Monthly ($29/mo) ──
   'gumshop-scale': { plan: 'scale', cycle: 'monthly', limit: 9999 },
+  'ffvqsn': { plan: 'scale', cycle: 'monthly', limit: 9999 },
   'scale-monthly': { plan: 'scale', cycle: 'monthly', limit: 9999 },
   'scale': { plan: 'scale', cycle: 'monthly', limit: 9999 },
+
+  // ── Scale Annual ($24/mo billed $288/yr) ──
+  'gumshop-scale-annual': { plan: 'scale', cycle: 'annual', limit: 9999 },
+  'mienn': { plan: 'scale', cycle: 'annual', limit: 9999 },
+  'scale-annual': { plan: 'scale', cycle: 'annual', limit: 9999 },
 };
 
 /**
@@ -40,17 +53,17 @@ export function buildGumroadCheckoutUrl(
   const baseUrl = process.env.GUMROAD_STORE_URL || GUMROAD_DEFAULT_STORE;
   const cleanBase = baseUrl.replace(/\/$/, '');
   
-  // Custom configured URLs from environment variables take top priority
-  if ((permalink === GUMROAD_PERMALINK_PRO || permalink === 'gumshop-pro') && process.env.GUMROAD_PRO_MONTHLY_URL) {
+  // Custom configured URLs from environment variables take top priority if set
+  if ((permalink === GUMROAD_PERMALINK_PRO_MONTHLY || permalink === 'htgiks') && process.env.GUMROAD_PRO_MONTHLY_URL) {
     return appendQueryParams(process.env.GUMROAD_PRO_MONTHLY_URL, email, tenantId);
   }
-  if (permalink === 'gumshop-pro-annual' && process.env.GUMROAD_PRO_ANNUAL_URL) {
+  if ((permalink === GUMROAD_PERMALINK_PRO_ANNUAL || permalink === 'kujvkd') && process.env.GUMROAD_PRO_ANNUAL_URL) {
     return appendQueryParams(process.env.GUMROAD_PRO_ANNUAL_URL, email, tenantId);
   }
-  if ((permalink === GUMROAD_PERMALINK_SCALE || permalink === 'gumshop-scale') && process.env.GUMROAD_SCALE_MONTHLY_URL) {
+  if ((permalink === GUMROAD_PERMALINK_SCALE_MONTHLY || permalink === 'ffvqsn') && process.env.GUMROAD_SCALE_MONTHLY_URL) {
     return appendQueryParams(process.env.GUMROAD_SCALE_MONTHLY_URL, email, tenantId);
   }
-  if (permalink === 'gumshop-scale-annual' && process.env.GUMROAD_SCALE_ANNUAL_URL) {
+  if ((permalink === GUMROAD_PERMALINK_SCALE_ANNUAL || permalink === 'mienn') && process.env.GUMROAD_SCALE_ANNUAL_URL) {
     return appendQueryParams(process.env.GUMROAD_SCALE_ANNUAL_URL, email, tenantId);
   }
 
@@ -77,11 +90,11 @@ export function getGumroadCheckoutUrlForPlan(
   email: string,
   tenantId: string
 ): string {
-  let permalink = GUMROAD_PERMALINK_PRO;
+  let permalink = GUMROAD_PERMALINK_PRO_MONTHLY;
   if (plan === 'pro') {
-    permalink = cycle === 'annual' && process.env.GUMROAD_PRO_ANNUAL_URL ? 'gumshop-pro-annual' : GUMROAD_PERMALINK_PRO;
+    permalink = cycle === 'annual' ? GUMROAD_PERMALINK_PRO_ANNUAL : GUMROAD_PERMALINK_PRO_MONTHLY;
   } else if (plan === 'scale') {
-    permalink = cycle === 'annual' && process.env.GUMROAD_SCALE_ANNUAL_URL ? 'gumshop-scale-annual' : GUMROAD_PERMALINK_SCALE;
+    permalink = cycle === 'annual' ? GUMROAD_PERMALINK_SCALE_ANNUAL : GUMROAD_PERMALINK_SCALE_MONTHLY;
   }
   return buildGumroadCheckoutUrl(permalink, email, tenantId);
 }
@@ -103,8 +116,9 @@ export function determinePlanFromGumroadPayload(body: any): {
     return GUMROAD_PERMALINK_MAP[permalink];
   }
 
-  const isScale = productName.includes('scale') || permalink.includes('ffvqsn') || permalink.includes('scale');
-  const isAnnual = recurrence.includes('year') || recurrence.includes('annual') || productName.includes('annual');
+  // Fallback pattern matching
+  const isScale = productName.includes('scale') || permalink.includes('scale') || permalink === 'ffvqsn' || permalink === 'mienn';
+  const isAnnual = recurrence.includes('year') || recurrence.includes('annual') || productName.includes('annual') || permalink.includes('annual') || permalink === 'kujvkd' || permalink === 'mienn';
 
   return {
     plan: isScale ? 'scale' : 'pro',
