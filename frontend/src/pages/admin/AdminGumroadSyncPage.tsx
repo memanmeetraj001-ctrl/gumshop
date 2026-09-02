@@ -14,11 +14,14 @@ import {
   Filter,
 } from 'lucide-react';
 
+import { GumroadSetupWizardModal } from '../../components/admin/GumroadSetupWizardModal';
+
 export const AdminGumroadSyncPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [accessToken, setAccessToken] = useState('');
   const [storeUrl, setStoreUrl] = useState('https://gumroad.com');
   const [loading, setLoading] = useState(true);
+  const [showWizard, setShowWizard] = useState(false);
 
   const [testingToken, setTestingToken] = useState(false);
   const [tokenStatus, setTokenStatus] = useState<{ valid: boolean; user?: any; error?: string } | null>(null);
@@ -192,16 +195,27 @@ export const AdminGumroadSyncPage: React.FC = () => {
 
       {/* Step 1: Connect Token Card */}
       <div className="bg-[#14141E] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
-        <div className="flex items-center gap-3 pb-4 border-b border-white/5">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
-            1
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+              1
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white">Connect Gumroad API</h3>
+              <p className="text-[11px] text-gray-400">
+                Get your Personal Access Token from Gumroad Settings &gt; Advanced &gt; Applications
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-base font-bold text-white">Connect Gumroad API</h3>
-            <p className="text-[11px] text-gray-400">
-              Get your Personal Access Token from Gumroad Settings &gt; Advanced &gt; Applications
-            </p>
-          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowWizard(true)}
+            className="px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shrink-0"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Open 4-Step Setup Wizard</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -635,6 +649,19 @@ export const AdminGumroadSyncPage: React.FC = () => {
           </a>
         </div>
       </div>
+
+      {/* Gumroad Setup Wizard Modal */}
+      <GumroadSetupWizardModal
+        isOpen={showWizard}
+        onClose={() => setShowWizard(false)}
+        initialStoreUrl={storeUrl}
+        initialToken={accessToken}
+        onConnected={(tok, url) => {
+          setAccessToken(tok);
+          setStoreUrl(url);
+          setShowWizard(false);
+        }}
+      />
     </div>
   );
 };

@@ -357,10 +357,10 @@ router.post('/html', authenticate, async (req: AuthRequest, res: Response): Prom
   }
 });
 
-// 5. Bulk Import Scraped Products into Store (Enforcing Product Limit)
+// 5. Bulk Import Scraped Products into Store (Enforcing Product Limit, Supports Replace Existing)
 router.post('/import', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { products = [], categoryId, discountPercent = 0, status = 'published' } = req.body;
+    const { products = [], categoryId, discountPercent = 0, status = 'published', replaceExisting = false } = req.body;
     const tenantId = req.user?.tenantId || 'tenant_demo';
 
     if (!Array.isArray(products) || products.length === 0) {
@@ -371,7 +371,11 @@ router.post('/import', authenticate, async (req: AuthRequest, res: Response): Pr
     const state = await db.getState();
     const tenant = (state.tenants || []).find((t) => t.id === tenantId);
     const productLimit = tenant?.productLimit || 10;
-    const currentProducts = state.products.filter((p) => p.tenantId === tenantId || (!p.tenantId && tenantId === 'tenant_demo'));
+    
+    // If replaceExisting is true, current product count becomes 0 for slot calculation
+    const currentProducts = replaceExisting
+      ? []
+      : state.products.filter((p) => p.tenantId === tenantId || (!p.tenantId && tenantId === 'tenant_demo'));
 
     const availableSlots = Math.max(0, productLimit - currentProducts.length);
     if (availableSlots === 0) {
@@ -409,8 +413,8 @@ router.post('/import', authenticate, async (req: AuthRequest, res: Response): Pr
         collectionIds: ['col_all'],
         tags: p.tags || ['imported'],
         status: status || 'published',
-        featured: false,
-        bestseller: false,
+        featured: idx === 0,
+        bestseller: idx === 1,
         newProduct: true,
         sale: discountPercent > 0,
         images: p.images && p.images.length > 0 ? p.images : [p.thumbnail || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80'],
@@ -420,13 +424,19 @@ router.post('/import', authenticate, async (req: AuthRequest, res: Response): Pr
         primaryCheckout: 'gumroad',
         directCheckout: true,
         buttonText: 'Buy Now - Free Shipping',
-        sortOrder: currentProducts.length + idx + 1,
+        sortOrder: idx + 1,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
     });
 
     await db.saveState((s) => {
+      if (replaceExisting) {
+        // Remove old demo or tenant products
+        s.products = (s.products || []).filter(
+          (p) => p.tenantId && p.tenantId !== tenantId && p.tenantId !== 'tenant_demo'
+        );
+      }
       s.products.push(...newProductObjects);
     });
 
@@ -435,7 +445,7 @@ router.post('/import', authenticate, async (req: AuthRequest, res: Response): Pr
       userName: req.user?.email || 'Admin',
       action: 'SCRAPER_IMPORT',
       resource: 'PRODUCTS',
-      details: `Imported ${newProductObjects.length} products via 1-Click Importer.`,
+      details: `Imported ${newProductObjects.length} products via 1-Click Importer ${replaceExisting ? '(replaced demo products)' : ''}.`,
     });
 
     res.json({
