@@ -63,6 +63,7 @@ export const AdminLayout: React.FC = () => {
     {
       title: 'Settings & Upgrades',
       items: [
+        { label: 'Upgrade Plan', path: '/admin/upgrade', emoji: '⚡' },
         { label: 'Store Settings', path: '/admin/settings', emoji: '⚙️' },
         { label: 'Store Guide & FAQ', path: '/admin/guide', emoji: '📖' },
       ],
@@ -129,7 +130,7 @@ export const AdminLayout: React.FC = () => {
             <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
               <div className={`h-full ${usageColor} rounded-full transition-all`} style={{ width: `${usagePercent}%` }} />
             </div>
-            <Link to="/admin/settings" className="block text-center py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors">
+            <Link to="/admin/upgrade" className="block text-center py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors">
               ⚡ Upgrade (50 Slots)
             </Link>
           </div>

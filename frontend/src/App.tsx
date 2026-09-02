@@ -62,6 +62,9 @@ import { AdminMediaPage } from './pages/admin/AdminMediaPage';
 import { AdminSeoPage } from './pages/admin/AdminSeoPage';
 import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
+import { UpgradePage } from './pages/admin/UpgradePage';
+import { BillingSuccessPage } from './pages/billing/BillingSuccessPage';
+import { BillingCancelPage } from './pages/billing/BillingCancelPage';
 
 const ProtectedAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -192,9 +195,14 @@ export function App() {
                 <Route path="seo" element={<AdminSeoPage />} />
                 <Route path="analytics" element={<AdminAnalyticsPage />} />
                 <Route path="settings" element={<AdminSettingsPage />} />
+                <Route path="upgrade" element={<UpgradePage />} />
               </Route>
 
-                            {/* Master Super Admin Platform */}
+              {/* Lemon Squeezy Hosted Billing Return Routes */}
+              <Route path="/billing/success" element={<BillingSuccessPage />} />
+              <Route path="/billing/cancel" element={<BillingCancelPage />} />
+
+              {/* Master Super Admin Platform */}
               <Route
                 path="/super-admin"
                 element={

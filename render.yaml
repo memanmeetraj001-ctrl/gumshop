@@ -1,4 +1,4 @@
-﻿services:
+services:
   # ─── Full-Stack SaaS Web Service (Frontend SPA + Express REST API) ───
   - type: web
     name: gumshop-saas
@@ -22,3 +22,19 @@
         value: admin123
       - key: GUMROAD_ACCOUNT
         value: manmeetraj6
+      - key: LEMONSQUEEZY_STORE_SLUG
+        value: gumshop
+      - key: LEMONSQUEEZY_STORE_ID
+        value: "465378"
+      - key: LEMONSQUEEZY_VARIANT_PRO_MONTHLY
+        value: "2082941"
+      - key: LEMONSQUEEZY_VARIANT_PRO_ANNUAL
+        value: "2082945"
+      - key: LEMONSQUEEZY_VARIANT_SCALE_MONTHLY
+        value: "2082951"
+      - key: LEMONSQUEEZY_VARIANT_SCALE_ANNUAL
+        value: "2082952"
+      - key: LEMONSQUEEZY_WEBHOOK_SECRET
+        sync: false
+      - key: LEMONSQUEEZY_API_KEY
+        sync: false

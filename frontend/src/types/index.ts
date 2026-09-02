@@ -13,6 +13,12 @@ export interface Tenant {
   primaryColor?: string;
   logoUrl?: string;
   currency: string;
+  lsSubscriptionId?: string;
+  lsCustomerId?: string;
+  lsVariantId?: string;
+  billingCycle?: 'monthly' | 'annual';
+  planExpiresAt?: string;
+  subscriptionStatus?: 'active' | 'cancelled' | 'expired' | 'paused' | 'past_due';
   createdAt: string;
   updatedAt: string;
   isActive: boolean;

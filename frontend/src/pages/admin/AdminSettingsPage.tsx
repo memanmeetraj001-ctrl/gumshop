@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../../api/client';
 import { SiteSettings } from '../../types';
 import {
@@ -151,15 +152,13 @@ export const AdminSettingsPage: React.FC = () => {
                   ✓ Active Plan
                 </div>
               ) : (
-                <a
-                  href={`https://gumshop.online/upgrade/pro`}
-                  target="_blank"
-                  rel="noreferrer"
+                <Link
+                  to="/admin/upgrade"
                   className="w-full mt-4 py-2 rounded-xl text-[11px] font-bold uppercase transition-all bg-indigo-600 hover:bg-indigo-500 text-white text-center shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-1.5"
                 >
-                  <span>Upgrade to Pro — $12/mo</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+                  <span>Upgrade to Pro</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
               )}
             </div>
 
@@ -175,15 +174,13 @@ export const AdminSettingsPage: React.FC = () => {
                   ✓ Active Plan
                 </div>
               ) : (
-                <a
-                  href={`https://gumshop.online/upgrade/scale`}
-                  target="_blank"
-                  rel="noreferrer"
+                <Link
+                  to="/admin/upgrade"
                   className="w-full mt-4 py-2 rounded-xl text-[11px] font-bold uppercase transition-all bg-purple-600 hover:bg-purple-500 text-white text-center shadow-lg shadow-purple-600/30 flex items-center justify-center gap-1.5"
                 >
-                  <span>Upgrade to Scale — $29/mo</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+                  <span>Upgrade to Scale</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
               )}
             </div>
           </div>
@@ -193,10 +190,10 @@ export const AdminSettingsPage: React.FC = () => {
           <div className="pt-5 border-t border-white/10 space-y-3">
             <div className="flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-amber-400" />
-              <h4 className="text-xs font-black text-white uppercase tracking-wider">Already Paid? Activate Your Plan Now</h4>
+              <h4 className="text-xs font-black text-white uppercase tracking-wider">Manual License Activation</h4>
             </div>
             <p className="text-[11px] text-gray-400 leading-relaxed">
-              After upgrading on Gumroad you'll receive a <strong className="text-white">License Key</strong> via email. Enter it below to instantly unlock your Pro or Scale plan.
+              If you purchased via direct invoice or lifetime key, enter your license key below to unlock your Pro or Scale tier.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input
@@ -210,7 +207,7 @@ export const AdminSettingsPage: React.FC = () => {
                 type="text"
                 value={licenseKey}
                 onChange={(e) => setLicenseKey(e.target.value)}
-                placeholder="Gumroad License Key (from your receipt email)"
+                placeholder="License Key"
                 className="w-full bg-[#0F1115] border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-amber-500 text-xs font-mono"
               />
             </div>
@@ -229,12 +226,11 @@ export const AdminSettingsPage: React.FC = () => {
                 {claimResult.message}
               </div>
             )}
-          </div>            </div>
           </div>
         </div>
 
         {/* Custom Domain Settings — Plan Gated */}
-        <div className="relative bg-[#14141E] border rounded-3xl overflow-hidden transition-all duration-300 ${activePlan !== 'free' ? 'border-indigo-500/30' : 'border-white/10'}">
+        <div className={`relative bg-[#14141E] border rounded-3xl overflow-hidden transition-all duration-300 ${activePlan !== 'free' ? 'border-indigo-500/30' : 'border-white/10'}`}>
 
           {/* FREE TIER LOCK OVERLAY */}
           {activePlan === 'free' && (
@@ -259,25 +255,21 @@ export const AdminSettingsPage: React.FC = () => {
 
               {/* Upgrade CTAs */}
               <div className="flex flex-col sm:flex-row gap-2">
-                <a
-                  href={`https://manmeetraj6.gumroad.com/l/gumshop-pro?wanted=true&email=${encodeURIComponent(settings.contactEmail || '')}`}
-                  target="_blank"
-                  rel="noreferrer"
+                <Link
+                  to="/admin/upgrade"
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-900/40 transition-all"
                 >
                   <Zap className="w-3.5 h-3.5" />
-                  Upgrade to Pro — $12/mo
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-                <a
-                  href={`https://manmeetraj6.gumroad.com/l/gumshop-scale?wanted=true&email=${encodeURIComponent(settings.contactEmail || '')}`}
-                  target="_blank"
-                  rel="noreferrer"
+                  Upgrade to Pro ($12/mo)
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+                <Link
+                  to="/admin/upgrade"
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 text-xs font-bold rounded-xl transition-all"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  Scale — $29/mo
-                </a>
+                  Scale ($29/mo)
+                </Link>
               </div>
             </div>
           )}

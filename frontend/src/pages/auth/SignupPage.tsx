@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { Sparkles, ArrowRight, ShieldCheck, CheckCircle2, Store } from 'lucide-react';
 
 export const SignupPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const targetPlan = searchParams.get('plan');
   const { setAuthData } = useAuth();
 
   const [storeName, setStoreName] = useState('');
@@ -39,7 +41,11 @@ export const SignupPage: React.FC = () => {
 
       if (res.token) {
         setAuthData(res.token, res.user);
-        navigate('/admin/onboarding');
+        if (targetPlan && (targetPlan === 'pro' || targetPlan === 'scale')) {
+          navigate(`/admin/upgrade?plan=${targetPlan}`);
+        } else {
+          navigate('/admin/onboarding');
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');

@@ -36,6 +36,10 @@ export function createServer(): Express {
       credentials: true,
     })
   );
+
+  // Raw body parser for Lemon Squeezy Webhook HMAC signature verification
+  app.use('/api/billing/ls/webhook', express.raw({ type: 'application/json' }));
+
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -98,8 +102,6 @@ export function createServer(): Express {
   app.use('/api/scraper', scraperRoutes);
   app.use('/api/stores', storesRoutes);
   app.use('/api/billing', billingRoutes);
-  app.use('/api/webhook', billingRoutes);
-  app.use('/webhook', billingRoutes);
 
   // Serve frontend static assets in production
   const frontendDistPath = path.join(process.cwd(), '..', 'frontend', 'dist');

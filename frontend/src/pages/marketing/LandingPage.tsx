@@ -677,7 +677,7 @@ const plans: Plan[] = [
     tagline: 'For serious sellers ready to grow.',
     popular: true,
     cta: 'Start Pro Plan',
-    href: 'https://manmeetraj6.gumroad.com/l/gumshop-pro',
+    href: '/signup?plan=pro',
     features: [
       { label: '1 Store', included: true },
       { label: 'Up to 50 Products', included: true },
@@ -694,7 +694,7 @@ const plans: Plan[] = [
     monthly: 29,
     tagline: 'Run an unlimited multi-store empire.',
     cta: 'Start Scale Plan',
-    href: 'https://manmeetraj6.gumroad.com/l/gumshop-scale',
+    href: '/signup?plan=scale',
     features: [
       { label: 'Unlimited Stores', included: true },
       { label: 'Unlimited Products', included: true },

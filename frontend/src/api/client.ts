@@ -155,8 +155,31 @@ export const api = {
   testGumroadToken: (accessToken: string) => request<{ success: boolean; user?: any; error?: string }>('/payments/gumroad/test', { method: 'POST', body: JSON.stringify({ accessToken }) }),
   syncGumroadCatalog: (accessToken: string, storeUrl?: string) => request<{ success: boolean; totalProducts: number; syncedCount: number; results: any[] }>('/payments/gumroad/sync', { method: 'POST', body: JSON.stringify({ accessToken, storeUrl }) }),
 
-  // SaaS Billing & Plan
-  getBillingPlan: () => request<{ plan: 'free' | 'pro' | 'scale'; productLimit: number; storeName: string }>('/billing/plan'),
+  // SaaS Billing & Plan (Lemon Squeezy Subscriptions)
+  getBillingPlan: () => request<{
+    plan: 'free' | 'pro' | 'scale';
+    productLimit: number;
+    storeName: string;
+    subscriptionStatus?: string;
+    billingCycle?: 'monthly' | 'annual';
+    planExpiresAt?: string;
+    lsSubscriptionId?: string;
+  }>('/billing/plan'),
+  getCheckoutUrl: (plan: 'pro' | 'scale', cycle: 'monthly' | 'annual') => request<{ checkoutUrl: string }>('/billing/checkout-url', {
+    method: 'POST',
+    body: JSON.stringify({ plan, cycle }),
+  }),
+  getSubscription: () => request<{
+    plan: 'free' | 'pro' | 'scale';
+    productLimit: number;
+    lsSubscriptionId?: string;
+    subscriptionStatus?: string;
+    billingCycle?: 'monthly' | 'annual';
+    planExpiresAt?: string;
+  }>('/billing/subscription'),
+  cancelSubscription: () => request<{ success: boolean; message: string }>('/billing/cancel', {
+    method: 'POST',
+  }),
   claimLicense: (email: string, licenseKey: string) => request<{ success: boolean; message: string; plan: string; limit: number }>('/billing/claim', { method: 'POST', body: JSON.stringify({ email, licenseKey }) }),
 
   // Auth & Analytics & Utility
