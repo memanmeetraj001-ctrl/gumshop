@@ -193,7 +193,10 @@ export const api = {
   register: (data: { storeName: string; email: string; password: string; ownerName?: string }) => request<{ token: string; user: User; tenant: Tenant }>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   getStoreBySlug: (slug: string) => request<{ store: Tenant; productsCount: number; categories: Category[]; bundles: Bundle[]; theme: ThemeSettings; siteSettings: SiteSettings }>(`/stores/${slug}`),
   getStoreProducts: (slug: string) => request<Product[]>(`/stores/${slug}/products`),
-  getSuperAdminStats: () => request<{ totalStores: number; totalProducts: number; totalOrders: number; stores: any[] }>('/stores/super/all'),
+  getSuperAdminStats: () => request<{ totalStores: number; totalProducts: number; totalOrders: number; totalRevenue?: number; stores: any[] }>('/stores/super/all'),
+  updateStorePlan: (id: string, plan: string, productLimit?: number) => request<{ success: boolean; message: string }>(`/stores/super/${id}/plan`, { method: 'PATCH', body: JSON.stringify({ plan, productLimit }) }),
+  toggleStoreStatus: (id: string) => request<{ success: boolean; isActive: boolean }>(`/stores/super/${id}/status`, { method: 'PATCH' }),
+  deleteStore: (id: string) => request<{ success: boolean; message: string }>(`/stores/super/${id}`, { method: 'DELETE' }),
 
   // Product Importer & Scraper
   detectPlatform: (url: string) => request<{ platform: 'shopify' | 'woocommerce' | 'html'; detected: boolean; message: string; baseUrl: string }>('/scraper/detect', { method: 'POST', body: JSON.stringify({ url }) }),
