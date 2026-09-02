@@ -155,6 +155,10 @@ export const api = {
   testGumroadToken: (accessToken: string) => request<{ success: boolean; user?: any; error?: string }>('/payments/gumroad/test', { method: 'POST', body: JSON.stringify({ accessToken }) }),
   syncGumroadCatalog: (accessToken: string, storeUrl?: string) => request<{ success: boolean; totalProducts: number; syncedCount: number; results: any[] }>('/payments/gumroad/sync', { method: 'POST', body: JSON.stringify({ accessToken, storeUrl }) }),
 
+  // SaaS Billing & Plan
+  getBillingPlan: () => request<{ plan: 'free' | 'pro' | 'scale'; productLimit: number; storeName: string }>('/billing/plan'),
+  claimLicense: (email: string, licenseKey: string) => request<{ success: boolean; message: string; plan: string; limit: number }>('/billing/claim', { method: 'POST', body: JSON.stringify({ email, licenseKey }) }),
+
   // Auth & Analytics & Utility
   login: (data: { email: string; password: string }) => request<{ token: string; user: User }>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   getMe: () => request<{ user: User }>('/auth/me'),

@@ -1,7 +1,25 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../db/database';
+import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = Router();
+
+// GET /api/billing/plan — returns the authenticated user's real plan from their tenant record
+router.get('/plan', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const state = await db.getState();
+    const tenant = (state.tenants || []).find(
+      (t) => t.id === req.user?.tenantId || t.ownerEmail === req.user?.email
+    );
+    if (!tenant) {
+      res.json({ plan: 'free', productLimit: 10, storeName: 'My Store' });
+      return;
+    }
+    res.json({ plan: tenant.plan || 'free', productLimit: tenant.productLimit || 10, storeName: tenant.storeName });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Gumroad Ping Verification (GET / HEAD / POST on all path permutations)
 router.all(['/', '/webhook', '/billing/webhook', '/api/webhook', '/api/billing/webhook'], async (req: Request, res: Response): Promise<void> => {

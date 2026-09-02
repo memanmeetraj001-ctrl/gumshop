@@ -13,6 +13,9 @@ import {
   Sparkles,
   ArrowRight,
   ExternalLink,
+  KeyRound,
+  RefreshCw,
+  AlertCircle,
 } from 'lucide-react';
 
 export const AdminSettingsPage: React.FC = () => {
@@ -21,10 +24,23 @@ export const AdminSettingsPage: React.FC = () => {
   const [saved, setSaved] = useState(false);
   const [activePlan, setActivePlan] = useState<'free' | 'pro' | 'scale'>('free');
   const [productCount, setProductCount] = useState(5);
+  const [productLimit, setProductLimit] = useState(10);
+  const [planLoading, setPlanLoading] = useState(true);
+
+  // License key claim state
+  const [licenseKey, setLicenseKey] = useState('');
+  const [claimEmail, setClaimEmail] = useState('');
+  const [claiming, setClaiming] = useState(false);
+  const [claimResult, setClaimResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     api.getSettings().then(setSettings).catch(() => {});
     api.getProducts({ status: 'all' }).then((p) => setProductCount(p.length)).catch(() => {});
+    // Load REAL plan from backend
+    api.getBillingPlan().then((data) => {
+      setActivePlan(data.plan);
+      setProductLimit(data.productLimit);
+    }).catch(() => {}).finally(() => setPlanLoading(false));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,12 +50,27 @@ export const AdminSettingsPage: React.FC = () => {
     setTimeout(() => setSaved(false), 3000);
   };
 
-  const handleSimulateUpgrade = (plan: 'free' | 'pro' | 'scale') => {
-    setActivePlan(plan);
-    alert(`Upgraded to ${plan.toUpperCase()} Plan! Your store now has extended product limits and custom domain permissions.`);
+  const handleClaimLicense = async () => {
+    if (!claimEmail.trim() || !licenseKey.trim()) {
+      setClaimResult({ success: false, message: 'Please enter both your account email and license key.' });
+      return;
+    }
+    setClaiming(true);
+    setClaimResult(null);
+    try {
+      const res = await api.claimLicense(claimEmail.trim(), licenseKey.trim());
+      setClaimResult({ success: true, message: res.message || 'Plan activated successfully!' });
+      // Refresh plan
+      const planData = await api.getBillingPlan();
+      setActivePlan(planData.plan);
+      setProductLimit(planData.productLimit);
+    } catch (err: any) {
+      setClaimResult({ success: false, message: err.message || 'Failed to activate license. Check your email and key.' });
+    } finally {
+      setClaiming(false);
+    }
   };
 
-  const productLimit = activePlan === 'free'  ? 10  : activePlan === 'pro'  ? 50  : 9999;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl">
@@ -90,59 +121,115 @@ export const AdminSettingsPage: React.FC = () => {
           </div>
 
           {/* Pricing Tier Selector */}
+          {planLoading ? (
+            <div className="flex items-center gap-2 text-xs text-gray-500 py-2">
+              <RefreshCw className="w-4 h-4 animate-spin" /> Loading your current plan...
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Free Card */}
-            <div className={`p-4 rounded-2xl border transition-all ${activePlan === 'free'  ? 'border-indigo-500 bg-indigo-500/5'  : 'border-white/10 bg-[#0A0A0F]'}`}>
+            <div className={`p-4 rounded-2xl border transition-all ${activePlan === 'free' ? 'border-indigo-500 bg-indigo-500/5' : 'border-white/10 bg-[#0A0A0F]'}`}>
               <div className="flex justify-between items-center">
                 <span className="font-bold text-white">Starter Free</span>
                 <span className="font-black text-sm text-white">$0</span>
               </div>
               <p className="text-[11px] text-gray-500 mt-1">10 Active Products</p>
-              <button
-                type="button"
-                onClick={() => handleSimulateUpgrade('free')}
-                disabled={activePlan === 'free'}
-                className="w-full mt-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-colors bg-white/5 text-gray-400 disabled:opacity-40"
-              >
-                {activePlan === 'free'  ? 'Current Plan'  : 'Select Free'}
-              </button>
+              <div className="w-full mt-4 py-1.5 rounded-lg text-[10px] font-bold uppercase text-center bg-white/5 text-gray-400 opacity-60">
+                {activePlan === 'free' ? '✓ Current Plan' : 'Free Tier'}
+              </div>
             </div>
 
             {/* Pro Card */}
-            <div className={`p-4 rounded-2xl border transition-all ${activePlan === 'pro'  ? 'border-indigo-500 bg-indigo-500/10'  : 'border-white/10 bg-[#0A0A0F]'}`}>
+            <div className={`p-4 rounded-2xl border transition-all ${activePlan === 'pro' ? 'border-indigo-500 bg-indigo-500/10' : 'border-white/10 bg-[#0A0A0F]'}`}>
               <div className="flex justify-between items-center">
                 <span className="font-bold text-indigo-400">Pro Creator</span>
                 <span className="font-black text-sm text-white">$12/mo</span>
               </div>
               <p className="text-[11px] text-gray-400 mt-1">50 Products + Custom Domain</p>
-              <a
-                href={`https://manmeetraj6.gumroad.com/l/gumshop-pro?wanted=true&email=${encodeURIComponent(settings.contactEmail || '')}`}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full mt-4 py-2 rounded-xl text-[11px] font-bold uppercase transition-all bg-indigo-600 hover:bg-indigo-500 text-white text-center shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-1.5 block"
-              >
-                <span>Upgrade via Gumroad ($12/mo)</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
+              {activePlan === 'pro' ? (
+                <div className="w-full mt-4 py-2 rounded-xl text-[11px] font-bold uppercase text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  ✓ Active Plan
+                </div>
+              ) : (
+                <a
+                  href={`https://gumshop.online/upgrade/pro`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full mt-4 py-2 rounded-xl text-[11px] font-bold uppercase transition-all bg-indigo-600 hover:bg-indigo-500 text-white text-center shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-1.5"
+                >
+                  <span>Upgrade to Pro — $12/mo</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
             </div>
 
             {/* Scale Card */}
-            <div className={`p-4 rounded-2xl border transition-all ${activePlan === 'scale'  ? 'border-purple-500 bg-purple-500/10'  : 'border-white/10 bg-[#0A0A0F]'}`}>
+            <div className={`p-4 rounded-2xl border transition-all ${activePlan === 'scale' ? 'border-purple-500 bg-purple-500/10' : 'border-white/10 bg-[#0A0A0F]'}`}>
               <div className="flex justify-between items-center">
                 <span className="font-bold text-purple-400">Unlimited Scale</span>
                 <span className="font-black text-sm text-white">$29/mo</span>
               </div>
               <p className="text-[11px] text-gray-400 mt-1">Unlimited Products + Webhooks</p>
-              <a
-                href={`https://manmeetraj6.gumroad.com/l/gumshop-scale?wanted=true&email=${encodeURIComponent(settings.contactEmail || '')}`}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full mt-4 py-2 rounded-xl text-[11px] font-bold uppercase transition-all bg-purple-600 hover:bg-purple-500 text-white text-center shadow-lg shadow-purple-600/30 flex items-center justify-center gap-1.5 block"
-              >
-                <span>Upgrade via Gumroad ($29/mo)</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
+              {activePlan === 'scale' ? (
+                <div className="w-full mt-4 py-2 rounded-xl text-[11px] font-bold uppercase text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  ✓ Active Plan
+                </div>
+              ) : (
+                <a
+                  href={`https://gumshop.online/upgrade/scale`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full mt-4 py-2 rounded-xl text-[11px] font-bold uppercase transition-all bg-purple-600 hover:bg-purple-500 text-white text-center shadow-lg shadow-purple-600/30 flex items-center justify-center gap-1.5"
+                >
+                  <span>Upgrade to Scale — $29/mo</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
             </div>
+          </div>
+          )}
+
+          {/* ── License Key Activation ── */}
+          <div className="pt-5 border-t border-white/10 space-y-3">
+            <div className="flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-amber-400" />
+              <h4 className="text-xs font-black text-white uppercase tracking-wider">Already Paid? Activate Your Plan Now</h4>
+            </div>
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              After upgrading on Gumroad you'll receive a <strong className="text-white">License Key</strong> via email. Enter it below to instantly unlock your Pro or Scale plan.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                type="email"
+                value={claimEmail}
+                onChange={(e) => setClaimEmail(e.target.value)}
+                placeholder="Your account email (used to sign up)"
+                className="w-full bg-[#0F1115] border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-amber-500 text-xs"
+              />
+              <input
+                type="text"
+                value={licenseKey}
+                onChange={(e) => setLicenseKey(e.target.value)}
+                placeholder="Gumroad License Key (from your receipt email)"
+                className="w-full bg-[#0F1115] border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-amber-500 text-xs font-mono"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleClaimLicense}
+              disabled={claiming}
+              className="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase tracking-wider rounded-xl flex items-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-amber-900/30"
+            >
+              {claiming ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              {claiming ? 'Activating…' : 'Activate License Key'}
+            </button>
+            {claimResult && (
+              <div className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold ${claimResult.success ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+                {claimResult.success ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                {claimResult.message}
+              </div>
+            )}
+          </div>            </div>
           </div>
         </div>
 
