@@ -11,7 +11,13 @@
 [![TypeScript 5](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![TailwindCSS 4](https://img.shields.io/badge/TailwindCSS-4.x-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Express](https://img.shields.io/badge/Express-5.x-000000?logo=express&logoColor=white)](https://expressjs.com/)
-[![Lemon Squeezy](https://img.shields.io/badge/Billing-Lemon%20Squeezy-FFC72C?logo=lemonsqueezy&logoColor=black)](https://lemonsqueezy.com)
+[![Gumroad](https://img.shields.io/badge/Billing-Gumroad%20Subscriptions-FF90E8?logo=gumroad&logoColor=black)](https://gumroad.com)
+
+---
+
+> [!CAUTION]
+> **Security & Secret Rotation Notice**:
+> If any API key, personal access token, webhook secret, or database connection string was previously committed to git history during local experimentation, that credential **must be rotated / revoked immediately** in your third-party provider dashboards (Gumroad, Lemon Squeezy, Neon Postgres, etc.). Never commit `.env` files to git. All production secrets must be configured via environment variables.
 
 ---
 
@@ -23,7 +29,7 @@
 | **Merchant Signup (60s)** | [gumshop.online/signup](https://gumshop.online/signup) | Self-serve seller store provisioning wizard. |
 | **Interactive Showcase Store** | [gumshop.online/store/demo](https://gumshop.online/store/demo) | Live customer-facing audio & minimalist EDC store. |
 | **Merchant Admin CMS** | [gumshop.online/admin/login](https://gumshop.online/admin/login) | Full-featured headless store management dashboard. |
-| **Plan Upgrades** | [gumshop.online/admin/upgrade](https://gumshop.online/admin/upgrade) | Automated Lemon Squeezy recurring subscription checkout. |
+| **Plan Upgrades** | [gumshop.online/admin/upgrade](https://gumshop.online/admin/upgrade) | Automated Gumroad recurring subscription checkout. |
 | **About Platform & Founder** | [gumshop.online/about](https://gumshop.online/about) | Platform architecture and founder profile (Manmeet Raj). |
 | **Contact & Help Desk** | [gumshop.online/contact](https://gumshop.online/contact) | 24/7 direct ticket submission & merchant support. |
 
@@ -37,7 +43,7 @@
 | **Annual Price** | **$0** / forever | **$9** / month *($108/yr · Save 25%)* | **$24** / month *($288/yr · Save 25%)* |
 | **Active Catalog Slots** | **10 Products** | **50 Products** | **Unlimited Products** (9,999+) |
 | **1-Click Universal Importer** | Included (10 cap) | Included (50 cap) | Unlimited Batch Scraping |
-| **Lemon Squeezy Billing** | — | Automatic Webhook Upgrades | Automatic Webhook Upgrades |
+| **Gumroad SaaS Billing** | — | Automatic Webhook Upgrades | Automatic Webhook Upgrades |
 | **8 Category Theme Presets** | Included | Included | Included + Custom CSS |
 | **Pre-Checkout Address Capture** | Full Modal | Full Modal | Full Modal + CSV Export |
 | **Storefront URL** | `gumshop.online/store/:slug` | **Custom Apex Domain** (`brand.com`) | **Custom Apex Domain** + Auto SSL |
