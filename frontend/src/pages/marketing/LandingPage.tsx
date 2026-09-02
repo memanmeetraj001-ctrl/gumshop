@@ -30,6 +30,7 @@ import {
   Crown,
   Check,
   FileText,
+  Sparkles,
 } from 'lucide-react';
 
 export function Reveal({
@@ -319,7 +320,7 @@ export function HeroSection() {
             className="-left-3 -top-4 md:-left-10"
             delay="0s"
             icon={<CheckCircle2 className="h-4 w-4 text-emerald-400" />}
-            text="Store Created"
+            text="✓ Store Launched in 60s"
           />
           <FloatingBadge
             className="-right-3 top-8 md:-right-12"
@@ -337,47 +338,65 @@ export function HeroSection() {
             className="-right-2 -bottom-4 md:-right-10"
             delay="0.6s"
             icon={<Truck className="h-4 w-4 text-emerald-400" />}
-            text="3 Orders Shipped"
+            text="3 Orders Received"
           />
 
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0F1118] shadow-2xl shadow-black/60">
-            <div className="flex items-center gap-2 border-b border-white/5 bg-[#14171F] px-4 py-3">
-              <span className="h-3 w-3 rounded-full bg-red-500/70" />
-              <span className="h-3 w-3 rounded-full bg-amber-500/70" />
-              <span className="h-3 w-3 rounded-full bg-emerald-500/70" />
-              <span className="ml-3 flex-1 rounded-md bg-white/5 px-3 py-1 text-left text-xs text-gray-500">
-                app.gumshop.online/dashboard
-              </span>
+            <div className="flex items-center justify-between border-b border-white/5 bg-[#14171F] px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-red-500/70" />
+                <span className="h-3 w-3 rounded-full bg-amber-500/70" />
+                <span className="h-3 w-3 rounded-full bg-emerald-500/70" />
+                <span className="ml-3 rounded-md bg-white/5 px-3 py-1 text-left text-xs font-mono text-gray-400">
+                  app.gumshop.online/admin/dashboard
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Live Online</span>
+              </div>
             </div>
 
             <div className="grid grid-cols-[140px_1fr] md:grid-cols-[200px_1fr]">
-              <aside className="border-r border-white/5 bg-[#0B0D13] p-3 text-left md:p-4">
-                <p className="mb-3 px-2 text-[10px] font-bold uppercase tracking-widest text-gray-600">
-                  Store CMS
-                </p>
-                <nav className="flex flex-col gap-1">
-                  {sidebarItems.map((item) => (
-                    <span
-                      key={item.label}
-                      className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold md:text-sm ${
-                        item.active
-                          ? 'bg-indigo-500/15 text-indigo-300'
-                          : 'text-gray-500'
-                      }`}
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      <span className="truncate">{item.label}</span>
-                    </span>
-                  ))}
-                </nav>
+              <aside className="border-r border-white/5 bg-[#0B0D13] p-3 text-left md:p-4 flex flex-col justify-between">
+                <div>
+                  <p className="mb-3 px-2 text-[10px] font-bold uppercase tracking-widest text-gray-600">
+                    Store CMS
+                  </p>
+                  <nav className="flex flex-col gap-1">
+                    {sidebarItems.map((item) => (
+                      <span
+                        key={item.label}
+                        className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold md:text-sm ${
+                          item.active
+                            ? 'bg-indigo-500/15 text-indigo-300'
+                            : 'text-gray-500'
+                        }`}
+                      >
+                        <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        <span className="truncate">{item.label}</span>
+                      </span>
+                    ))}
+                  </nav>
+                </div>
+
+                <div className="pt-4 border-t border-white/5 hidden md:block">
+                  <Link
+                    to="/store/demo"
+                    className="flex items-center justify-between text-[11px] text-indigo-400 font-bold hover:text-white transition-colors"
+                  >
+                    <span>View Storefront</span>
+                    <span>↗</span>
+                  </Link>
+                </div>
               </aside>
 
-              <div className="p-4 text-left md:p-6">
+              <div className="p-4 text-left md:p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                   {[
-                    { label: 'Revenue', value: '$1,249', tone: 'text-emerald-400' },
-                    { label: 'Orders', value: '38', tone: 'text-indigo-300' },
-                    { label: 'Products', value: '24', tone: 'text-purple-300' },
+                    { label: 'Revenue', value: '$1,249', note: '+24% today', tone: 'text-emerald-400' },
+                    { label: 'Orders', value: '38', note: 'All captured', tone: 'text-indigo-300' },
+                    { label: 'Products', value: '24', note: 'Active in catalog', tone: 'text-purple-300' },
                   ].map((stat) => (
                     <div
                       key={stat.label}
@@ -389,32 +408,58 @@ export function HeroSection() {
                       <p className={`mt-1 text-lg font-black md:text-2xl ${stat.tone}`}>
                         {stat.value}
                       </p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">{stat.note}</p>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-4 rounded-xl border border-white/8 bg-[#14171F] p-4">
+                <div className="rounded-xl border border-white/8 bg-[#14171F] p-4">
                   <div className="mb-3 flex items-center justify-between">
-                    <p className="text-sm font-bold text-white">Recent Orders</p>
+                    <p className="text-sm font-bold text-white">Recent Customer Orders</p>
                     <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-                      Live
+                      Live Stream
                     </span>
                   </div>
                   <div className="flex flex-col gap-2.5">
                     {[
-                      { id: '#1042', name: 'AudioGear Pro', amt: '$129' },
-                      { id: '#1041', name: 'MechKeys Store', amt: '$89' },
-                      { id: '#1040', name: 'NomadPacks', amt: '$54' },
+                      { id: '#1042', product: 'ANC Wireless Headphones', customer: 'Alex M.', amt: '$129' },
+                      { id: '#1041', product: 'Custom Mechanical Keyboard', customer: 'David K.', amt: '$89' },
+                      { id: '#1040', product: 'Minimalist Leather Wallet', customer: 'Elena R.', amt: '$54' },
                     ].map((row) => (
                       <div
                         key={row.id}
                         className="flex items-center justify-between border-b border-white/5 pb-2 text-xs last:border-0 last:pb-0 md:text-sm"
                       >
-                        <span className="text-gray-500">{row.id}</span>
-                        <span className="flex-1 truncate px-3 text-gray-300">{row.name}</span>
-                        <span className="font-bold text-white">{row.amt}</span>
+                        <span className="text-gray-500 font-mono">{row.id}</span>
+                        <div className="flex-1 truncate px-3">
+                          <span className="text-gray-200 font-medium">{row.product}</span>
+                          <span className="text-gray-500 text-[11px] ml-2 hidden sm:inline">· {row.customer}</span>
+                        </div>
+                        <span className="font-bold text-emerald-400">{row.amt}</span>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* Direct Demo Callout Strip */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-xl bg-white/5 border border-white/5 text-xs">
+                  <div className="flex items-center gap-2 text-gray-300">
+                    <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+                    <span>Want to test this live dashboard &amp; demo store?</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Link
+                      to="/store/demo"
+                      className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md"
+                    >
+                      Demo Storefront ↗
+                    </Link>
+                    <Link
+                      to="/admin/login"
+                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white font-bold text-xs uppercase tracking-wider transition-all"
+                    >
+                      Admin Login
+                    </Link>
                   </div>
                 </div>
               </div>
