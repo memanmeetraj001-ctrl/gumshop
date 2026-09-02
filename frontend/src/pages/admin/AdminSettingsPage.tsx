@@ -17,6 +17,7 @@ import {
   KeyRound,
   RefreshCw,
   AlertCircle,
+  Lock,
 } from 'lucide-react';
 
 export const AdminSettingsPage: React.FC = () => {
@@ -33,6 +34,13 @@ export const AdminSettingsPage: React.FC = () => {
   const [claimEmail, setClaimEmail] = useState('');
   const [claiming, setClaiming] = useState(false);
   const [claimResult, setClaimResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdResult, setPwdResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     api.getSettings().then(setSettings).catch(() => {});
@@ -72,6 +80,34 @@ export const AdminSettingsPage: React.FC = () => {
     }
   };
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword || !newPassword) {
+      setPwdResult({ success: false, message: 'Please enter both current and new password.' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwdResult({ success: false, message: 'New password and confirmation do not match.' });
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPwdResult({ success: false, message: 'New password must be at least 6 characters long.' });
+      return;
+    }
+    setPwdLoading(true);
+    setPwdResult(null);
+    try {
+      const res = await api.changePassword({ currentPassword, newPassword });
+      setPwdResult({ success: true, message: res.message || 'Password updated successfully!' });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      setPwdResult({ success: false, message: err.message || 'Failed to update password. Please check your current password.' });
+    } finally {
+      setPwdLoading(false);
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl">
@@ -386,8 +422,73 @@ export const AdminSettingsPage: React.FC = () => {
                 onChange={(e) => setSettings({ ...settings, maintenanceMode: e.target.checked })}
                 className="w-4 h-4 rounded accent-indigo-600"
               />
-              <span className="text-white font-bold">{settings.maintenanceMode  ? 'Enabled'  : 'Disabled'}</span>
+              <span className="text-white font-bold">{settings.maintenanceMode ? 'Enabled' : 'Disabled'}</span>
             </label>
+          </div>
+        </div>
+
+        {/* Account Security & Password */}
+        <div className="bg-[#14141E] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-4">
+          <div className="flex items-center gap-3 pb-3 border-b border-white/5">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+              <Lock className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white">Admin Account Security</h3>
+              <p className="text-gray-400 text-[11px]">Change your merchant login password</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+            <div>
+              <label className="block text-gray-300 font-semibold mb-1.5">Current Password</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A0A0F] border border-white/10 text-white focus:outline-none focus:border-indigo-500 text-xs"
+              />
+            </div>
+            <div>
+              <label className="block text-gray-300 font-semibold mb-1.5">New Password (6+ chars)</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A0A0F] border border-white/10 text-white focus:outline-none focus:border-indigo-500 text-xs"
+              />
+            </div>
+            <div>
+              <label className="block text-gray-300 font-semibold mb-1.5">Confirm New Password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-type new password"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A0A0F] border border-white/10 text-white focus:outline-none focus:border-indigo-500 text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={handlePasswordChange}
+              disabled={pwdLoading}
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-50"
+            >
+              {pwdLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+              <span>{pwdLoading ? 'Updating…' : 'Update Password'}</span>
+            </button>
+
+            {pwdResult && (
+              <div className={`flex items-center gap-2 p-2.5 px-3.5 rounded-xl border text-xs font-semibold ${pwdResult.success ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+                {pwdResult.success ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                <span>{pwdResult.message}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

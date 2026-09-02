@@ -152,6 +152,57 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise
   res.json({ user: safeUser, tenant });
 });
 
+router.post('/change-password', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ error: 'Current password and new password are required.' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({ error: 'New password must be at least 6 characters long.' });
+      return;
+    }
+
+    const state = await db.getState();
+    const user = state.users.find((u) => u.id === req.user?.id || u.email.toLowerCase() === req.user?.email.toLowerCase());
+
+    if (!user || !user.password) {
+      res.status(404).json({ error: 'User not found.' });
+      return;
+    }
+
+    const isMatch = bcrypt.compareSync(currentPassword, user.password);
+    if (!isMatch) {
+      res.status(400).json({ error: 'Current password is incorrect.' });
+      return;
+    }
+
+    const newHash = bcrypt.hashSync(newPassword, 10);
+
+    await db.saveState((s) => {
+      const target = s.users.find((u) => u.id === user.id);
+      if (target) {
+        target.password = newHash;
+        target.updatedAt = new Date().toISOString();
+      }
+    });
+
+    await db.logActivity({
+      userId: user.id,
+      userName: user.name,
+      action: 'UPDATE',
+      resource: 'AUTH',
+      details: `Password changed for user ${user.email}`,
+    });
+
+    res.json({ success: true, message: 'Password updated successfully!' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to change password.' });
+  }
+});
+
 router.post('/logout', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   if (req.user) {
     await db.logActivity({

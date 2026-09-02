@@ -184,6 +184,7 @@ export const api = {
 
   // Auth & Analytics & Utility
   login: (data: { email: string; password: string }) => request<{ token: string; user: User }>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+  changePassword: (data: { currentPassword: string; newPassword: string }) => request<{ success: boolean; message: string }>('/auth/change-password', { method: 'POST', body: JSON.stringify(data) }),
   getMe: () => request<{ user: User }>('/auth/me'),
   getAnalyticsSummary: () => request<any>('/analytics/summary'),
   duplicateProduct: (id: string) => request<Product>(`/products/${id}/duplicate`, { method: 'POST' }),
