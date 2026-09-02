@@ -4,7 +4,7 @@
   "description": "GumShop SaaS - 1-Click Gumroad Storefront Platform",
   "private": true,
   "scripts": {
-    "build": "npm run build --prefix frontend && npm run build --prefix backend",
+    "build": "npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix backend && npm run build --prefix backend",
     "start": "node backend/dist/index.js",
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend"
