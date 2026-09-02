@@ -608,6 +608,8 @@ export function getInitialSeedData(): {
     ogImage: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80',
     twitterCard: 'summary_large_image',
     canonicalUrl: 'https://gumshop.online',
+    googleAnalyticsId: 'G-70Y6ESKK1X',
+    googleSearchConsoleTag: 'googleb95b120fbad0cb5e',
   };
 
   return {
