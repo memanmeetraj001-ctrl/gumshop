@@ -27,7 +27,21 @@ export const MasterAdminLayout: React.FC = () => {
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0F1118] border-r border-indigo-500/20 flex flex-col justify-between transition-transform lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div>
           <div className="h-20 flex items-center px-6 border-b border-indigo-500/20 gap-3 bg-gradient-to-r from-indigo-950/50 to-transparent">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 flex items-center justify-center text-white shadow-xl shadow-indigo-900/50 text-lg">👑</div>
+            <div className="w-10 h-10 shrink-0">
+              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-xl">
+                <defs>
+                  <linearGradient id="gsMasterBg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#6366f1"/>
+                    <stop offset="50%" stopColor="#9333ea"/>
+                    <stop offset="100%" stopColor="#ec4899"/>
+                  </linearGradient>
+                </defs>
+                <rect width="48" height="48" rx="12" fill="url(#gsMasterBg)"/>
+                <path d="M15 20h18l-2 14H17L15 20z" stroke="white" strokeWidth="2.2" strokeLinejoin="round" fill="none"/>
+                <path d="M19 20c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+                <path d="M25.5 24l-3.5 4.5h3l-1 5 4-5.5h-3l0.5-4z" fill="white"/>
+              </svg>
+            </div>
             <div>
               <span className="text-base font-black text-white tracking-wider uppercase flex items-center gap-1.5">
                 <span>GumShop</span>

@@ -79,7 +79,21 @@ export const AdminLayout: React.FC = () => {
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#14171F] border-r border-white/10 flex flex-col justify-between transition-transform lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col h-full">
           <div className="h-20 flex items-center px-6 border-b border-white/10 gap-3 shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-900/40 font-black text-base">G</div>
+            {/* GumShop Logo Mark */}
+            <div className="w-9 h-9 shrink-0">
+              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-lg">
+                <defs>
+                  <linearGradient id="gsAdminBg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#6366f1"/>
+                    <stop offset="100%" stopColor="#9333ea"/>
+                  </linearGradient>
+                </defs>
+                <rect width="48" height="48" rx="12" fill="url(#gsAdminBg)"/>
+                <path d="M15 20h18l-2 14H17L15 20z" stroke="white" strokeWidth="2.2" strokeLinejoin="round" fill="none"/>
+                <path d="M19 20c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+                <path d="M25.5 24l-3.5 4.5h3l-1 5 4-5.5h-3l0.5-4z" fill="white"/>
+              </svg>
+            </div>
             <div>
               <span className="text-base font-black text-white tracking-wider uppercase">GumShop CMS</span>
               <span className="block text-[10px] text-indigo-400 font-bold uppercase tracking-widest -mt-0.5">Merchant Store Admin</span>
@@ -148,7 +162,20 @@ export const AdminLayout: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
         <header className="h-16 border-b border-white/10 bg-[#14171F] flex items-center justify-between px-4 lg:hidden sticky top-0 z-40">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded bg-indigo-600 flex items-center justify-center text-white font-bold">G</div>
+            <div className="w-8 h-8 shrink-0">
+              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow">
+                <defs>
+                  <linearGradient id="gsMobileBg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#6366f1"/>
+                    <stop offset="100%" stopColor="#9333ea"/>
+                  </linearGradient>
+                </defs>
+                <rect width="48" height="48" rx="12" fill="url(#gsMobileBg)"/>
+                <path d="M15 20h18l-2 14H17L15 20z" stroke="white" strokeWidth="2.2" strokeLinejoin="round" fill="none"/>
+                <path d="M19 20c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+                <path d="M25.5 24l-3.5 4.5h3l-1 5 4-5.5h-3l0.5-4z" fill="white"/>
+              </svg>
+            </div>
             <span className="font-bold text-white uppercase text-sm">GumShop Store CMS</span>
           </div>
           <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 text-gray-400 hover:text-white rounded-lg bg-white/5">
