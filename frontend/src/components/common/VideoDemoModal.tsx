@@ -5,91 +5,89 @@ import {
   Play,
   Pause,
   RotateCcw,
-  Volume2,
-  VolumeX,
   Maximize2,
   Minimize2,
   Sparkles,
   ArrowRight,
-  CheckCircle2,
-  LayoutDashboard,
   Download,
+  RefreshCw,
+  ExternalLink,
   Palette,
-  Smartphone,
   ShoppingBag,
-  PackageCheck,
+  Truck,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface VideoDemoModalProps {
   isOpen: boolean;
   onClose: () => void;
-  videoUrl?: string; // Optional custom external MP4 / YouTube URL
+  videoUrl?: string;
 }
 
 const chapters = [
   {
     id: 1,
     time: '0:00',
-    title: '1. Store Creation in 60s',
-    badge: 'Instant Setup',
-    icon: LayoutDashboard,
-    image: '/images/showcase-dashboard.jpg',
-    narration: 'Sign up in seconds. GumShop instantly provisions your isolated multi-tenant store with zero credit card required.',
-    duration: 8,
-  },
-  {
-    id: 2,
-    time: '0:08',
-    title: '2. 1-Click Product Importer',
-    badge: 'Universal Scraper',
+    title: '1. 1-Click Universal Product Importer',
+    badge: 'Step 1: Scrape & Import',
     icon: Download,
     image: '/images/showcase-importer.jpg',
-    narration: 'Paste any Shopify, WooCommerce, or website link. GumShop extracts 24+ products with automatic 50% discount price modifiers.',
+    narration: 'Paste any Shopify, WooCommerce, or web URL. GumShop automatically detects the store, extracts 24+ items, and applies 50% discount price modifiers.',
     duration: 9,
   },
   {
+    id: 2,
+    time: '0:09',
+    title: '2. One-Click Gumroad Catalog Sync',
+    badge: 'Step 2: Connect Gumroad',
+    icon: RefreshCw,
+    image: '/images/showcase-gumroad-sync.jpg',
+    narration: 'Enter your Gumroad API Access Token & Store URL (e.g. manmeetraj6.gumroad.com). Click "⚡ Sync All Products" to automatically create drafts on Gumroad.',
+    duration: 10,
+  },
+  {
     id: 3,
-    time: '0:17',
-    title: '3. Theme & Appearance Studio',
-    badge: '8 Presets',
-    icon: Palette,
-    image: '/images/showcase-themes.jpg',
-    narration: 'Choose from 8 industry themes (Tech, Fashion, Wellness, Coffee, Streetwear) and fine-tune colors, fonts, and corner radii.',
-    duration: 8,
+    time: '0:19',
+    title: '3. Publish on Gumroad & Close the Loop',
+    badge: 'Step 3: Live Checkout URL',
+    icon: ExternalLink,
+    image: '/images/showcase-gumroad-publish.jpg',
+    narration: 'Open Gumroad Products Dashboard, upload cover photos, and toggle "Publish". Copy each checkout URL (e.g. manmeetraj6.gumroad.com/l/product) back to GumShop.',
+    duration: 10,
   },
   {
     id: 4,
-    time: '0:25',
-    title: '4. Live Multi-Device Simulator',
-    badge: 'Instant Preview',
-    icon: Smartphone,
+    time: '0:29',
+    title: '4. Theme Studio & Live Device Preview',
+    badge: 'Step 4: Style & Test',
+    icon: Palette,
     image: '/images/showcase-themes.jpg',
-    narration: 'Test your responsive storefront directly in Admin using the interactive Desktop (100%) and iPhone (390px) simulator.',
-    duration: 8,
+    narration: 'Pick from 8 industry themes (Cyber Tech, Luxury Fashion, Wellness, Coffee) and test your responsive store in real time on the simulated Desktop & iPhone frame.',
+    duration: 9,
   },
   {
     id: 5,
-    time: '0:33',
-    title: '5. Pre-Checkout Shipping Capture',
-    badge: 'Lead Generation',
+    time: '0:38',
+    title: '5. Pre-Checkout Shipping Address Capture',
+    badge: 'Step 5: Customer Buys',
     icon: ShoppingBag,
     image: '/images/showcase-storefront.jpg',
-    narration: 'Capture full customer delivery addresses before redirecting to encrypted Lemon Squeezy or Gumroad international checkout.',
+    narration: 'When a customer checks out on your GumShop store, the pre-checkout modal captures their full physical shipping address before sending them to payment.',
     duration: 9,
   },
   {
     id: 6,
-    time: '0:42',
-    title: '6. Orders & Revenue Dashboard',
-    badge: 'Fulfillment Desk',
-    icon: PackageCheck,
-    image: '/images/showcase-orders.jpg',
-    narration: 'Track live orders, update fulfillment tags (Processing, In Transit, Fulfilled), and export batch CSV shipping slips in 1 click.',
-    duration: 9,
+    time: '0:47',
+    title: '6. Collect Shipping Info & Ship Manually',
+    badge: 'Step 6: Manual Fulfillment',
+    icon: Truck,
+    image: '/images/showcase-shipping-fulfillment.jpg',
+    narration: 'In Admin → Orders, review captured delivery addresses (Name, Street, City, State, ZIP, Phone). Print packing slips, enter USPS/FedEx tracking IDs, and fulfill manually!',
+    duration: 11,
   },
 ];
 
-const TOTAL_DURATION = chapters.reduce((acc, c) => acc + c.duration, 0); // 51 seconds total
+const TOTAL_DURATION = chapters.reduce((acc, c) => acc + c.duration, 0); // 58 seconds total
 
 export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({
   isOpen,
@@ -99,7 +97,6 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentChapterIdx, setCurrentChapterIdx] = useState(0);
   const [elapsed, setElapsed] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -180,12 +177,12 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-xl animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-2xl animate-in fade-in duration-200">
       <div
         ref={containerRef}
         className="relative w-full max-w-5xl bg-[#090B0E] border border-white/15 rounded-3xl overflow-hidden shadow-2xl shadow-black flex flex-col max-h-[92vh]"
       >
-        {/* ── Modal Header ── */}
+        {/* ── Modal Top Header ── */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-[#12141C]">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
@@ -196,11 +193,11 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({
             <div className="h-4 w-px bg-white/10" />
             <div className="flex items-center gap-2">
               <span className="text-xs font-black text-white uppercase tracking-wider font-heading">
-                GumShop Interactive Platform Tour
+                GumShop Complete Workflow Demo
               </span>
-              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold">
-                <Sparkles className="w-3 h-3" />
-                60s Walkthrough
+              <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold border border-indigo-500/30">
+                <Sparkles className="w-3 h-3 text-indigo-400" />
+                Import → Gumroad Sync → Capture Address → Ship Manually
               </span>
             </div>
           </div>
@@ -246,13 +243,13 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({
               />
 
               {/* Subtitle / Narration Teleprompter Overlay */}
-              <div className="absolute inset-x-0 bottom-14 px-4 sm:px-8 py-3 bg-gradient-to-t from-black/95 via-black/80 to-transparent flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+              <div className="absolute inset-x-0 bottom-12 px-4 sm:px-8 py-3.5 bg-gradient-to-t from-black/95 via-black/85 to-transparent flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
                 <div className="space-y-1 max-w-2xl">
                   <div className="flex items-center justify-center sm:justify-start gap-2">
-                    <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-bold text-[10px] uppercase tracking-wider">
+                    <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-bold text-[10px] uppercase tracking-wider shadow-sm">
                       {currentChapter.badge}
                     </span>
-                    <span className="text-white font-bold text-xs sm:text-sm">
+                    <span className="text-white font-bold text-xs sm:text-sm font-heading">
                       {currentChapter.title}
                     </span>
                   </div>
@@ -265,15 +262,15 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({
                   <Link
                     to="/signup"
                     onClick={onClose}
-                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-900/40 flex items-center gap-1.5"
                   >
-                    <span>Start Free (60s)</span>
+                    <span>Launch Free (60s)</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
               </div>
 
-              {/* Big Center Play/Pause Overlay Indicator on click */}
+              {/* Center Play/Pause Overlay Indicator on click */}
               <button
                 type="button"
                 onClick={() => setIsPlaying((p) => !p)}
@@ -281,7 +278,7 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({
                 aria-label={isPlaying ? 'Pause Demo' : 'Play Demo'}
               >
                 {!isPlaying && (
-                  <div className="w-16 h-16 rounded-full bg-indigo-600/90 text-white flex items-center justify-center shadow-2xl shadow-indigo-950 scale-110 transition-transform">
+                  <div className="w-16 h-16 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-2xl shadow-indigo-950 scale-110 transition-transform">
                     <Play className="w-7 h-7 fill-current ml-1" />
                   </div>
                 )}
@@ -338,9 +335,9 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({
                   key={ch.id}
                   type="button"
                   onClick={() => jumpToChapter(idx)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all ${
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                     isCurrent
-                      ? 'bg-white/20 text-white border border-white/20'
+                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
                       : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-200'
                   }`}
                 >
@@ -350,15 +347,16 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({
             })}
           </div>
 
-          {/* CTA Links */}
+          {/* External Links */}
           <div className="flex items-center gap-2">
-            <Link
-              to="/store/demo"
-              onClick={onClose}
-              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-bold transition-all border border-white/10"
+            <a
+              href="https://manmeetraj6.gumroad.com"
+              target="_blank"
+              rel="noreferrer"
+              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-bold transition-all border border-white/10 flex items-center gap-1"
             >
-              Live Demo Store ↗
-            </Link>
+              <span>Gumroad Store ↗</span>
+            </a>
             <Link
               to="/signup"
               onClick={onClose}
