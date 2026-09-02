@@ -152,11 +152,6 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/blog" className="hover:text-white transition-colors">
-                  Guides &amp; Articles
-                </Link>
-              </li>
-              <li>
                 <Link to={storePrefix ? `${storePrefix}/account` : '/account'} className="hover:text-white transition-colors">
                   Customer Orders
                 </Link>

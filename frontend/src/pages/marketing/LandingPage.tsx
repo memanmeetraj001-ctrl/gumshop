@@ -1021,7 +1021,6 @@ const columns = [
     links: [
       { label: 'About Us', href: '/about', internal: true },
       { label: 'Customer Support', href: '/contact', internal: true },
-      { label: 'Journal & Guides', href: '/blog', internal: true },
     ],
   },
   {

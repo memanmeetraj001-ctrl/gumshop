@@ -51,7 +51,6 @@ const saasColumns = [
     links: [
       { label: 'About GumShop', href: '/about', internal: true },
       { label: 'Contact Support', href: '/contact', internal: true },
-      { label: 'Journal & Guides', href: '/blog', internal: true },
     ],
   },
   {
