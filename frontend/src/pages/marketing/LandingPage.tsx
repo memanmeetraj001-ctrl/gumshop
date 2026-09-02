@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, type ReactNode, type SVGProps } from 'react';
 import { Link } from 'react-router-dom';
+import { SaaSFooter } from '../../components/common/SaaSFooter';
 import {
   ShieldCheck,
   ArrowRight,
@@ -1138,7 +1139,7 @@ export const LandingPage: React.FC = () => {
         <TestimonialsSection />
         <FinalCTA />
       </main>
-      <LandingFooter />
+      <SaaSFooter />
     </div>
   );
 };
