@@ -339,6 +339,66 @@ export const UpgradePage: React.FC = () => {
         </div>
       </div>
 
+      {/* License Key Quick Claim Card */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-[#14171F] border border-white/10 space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-400" />
+              <span>Already Purchased on Gumroad? Activate License Key</span>
+            </h3>
+            <p className="text-xs text-gray-400 mt-1">
+              If you purchased your subscription directly on Gumroad, enter your license key from your receipt below for instant activation.
+            </p>
+          </div>
+        </div>
+
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const formEl = e.currentTarget;
+            const keyInput = (formEl.elements.namedItem('licenseKey') as HTMLInputElement)?.value;
+            const emailInput = (formEl.elements.namedItem('email') as HTMLInputElement)?.value;
+            try {
+              setCheckoutLoading('claim');
+              setError(null);
+              const res = await api.claimLicense(emailInput, keyInput);
+              if (res.success) {
+                setActivePlan((res.plan as 'free' | 'pro' | 'scale') || 'pro');
+                alert(res.message || 'Plan upgraded successfully!');
+              }
+            } catch (err: any) {
+              setError(err.message || 'Invalid license key or email.');
+            } finally {
+              setCheckoutLoading(null);
+            }
+          }}
+          className="flex flex-col sm:flex-row items-center gap-3 pt-2"
+        >
+          <input
+            type="email"
+            name="email"
+            required
+            placeholder="Account Email (e.g. your@store.com)"
+            className="w-full sm:w-1/3 px-4 py-2.5 rounded-xl bg-[#090B0E] border border-white/10 text-white text-xs focus:outline-none focus:border-indigo-500"
+          />
+          <input
+            type="text"
+            name="licenseKey"
+            required
+            placeholder="Gumroad License Key (e.g. GUM-PRO-XXXX-XXXX)"
+            className="w-full sm:flex-1 px-4 py-2.5 rounded-xl bg-[#090B0E] border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-indigo-500"
+          />
+          <button
+            type="submit"
+            disabled={checkoutLoading === 'claim'}
+            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 shrink-0"
+          >
+            {checkoutLoading === 'claim' ? 'Activating…' : 'Activate Plan'}
+          </button>
+        </form>
+      </div>
+
       {/* Trust & Guarantee Banner */}
       <div className="p-6 rounded-3xl bg-[#14171F] border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
         <div className="flex items-center gap-3">
@@ -347,15 +407,15 @@ export const UpgradePage: React.FC = () => {
           </div>
           <div>
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-              14-Day 100% Money-Back Guarantee
+              Secure Subscription via Gumroad
             </h4>
             <p className="text-[11px] text-gray-400 mt-0.5">
-              Powered securely by Lemon Squeezy (Merchant of Record). Visa, Mastercard, AMEX, and PayPal accepted.
+              Encrypted 256-bit SSL checkout. Visa, Mastercard, AMEX, PayPal, Apple Pay, and Google Pay supported.
             </p>
           </div>
         </div>
         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest shrink-0">
-          Cancel anytime with 1-click
+          Manage &amp; cancel anytime with 1-click
         </span>
       </div>
     </div>

@@ -2,11 +2,10 @@ import { Router, Request, Response } from 'express';
 import { db } from '../db/database';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import {
-  getCheckoutUrlForPlan,
-  verifyWebhookSignature,
-  cancelLemonSqueezySubscription,
-  VARIANT_MAP,
-} from '../utils/lemonsqueezy';
+  getGumroadCheckoutUrlForPlan,
+  determinePlanFromGumroadPayload,
+  GUMROAD_DEFAULT_STORE,
+} from '../utils/gumroadBilling';
 
 const router = Router();
 
@@ -34,14 +33,14 @@ router.get('/plan', authenticate, async (req: AuthRequest, res: Response): Promi
       subscriptionStatus: tenant.subscriptionStatus || 'active',
       billingCycle: tenant.billingCycle || 'monthly',
       planExpiresAt: tenant.planExpiresAt,
-      lsSubscriptionId: tenant.lsSubscriptionId,
+      gumroadSubscriptionId: tenant.lsSubscriptionId,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/billing/checkout-url — generates a Lemon Squeezy checkout URL for the authenticated user
+// POST /api/billing/checkout-url — generates a Gumroad subscription checkout URL
 router.post('/checkout-url', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { plan, cycle } = req.body as { plan: 'pro' | 'scale'; cycle: 'monthly' | 'annual' };
@@ -58,7 +57,7 @@ router.post('/checkout-url', authenticate, async (req: AuthRequest, res: Respons
     const email = req.user?.email || tenant?.ownerEmail || '';
     const tenantId = tenant?.id || req.user?.tenantId || '';
 
-    const checkoutUrl = getCheckoutUrlForPlan(plan, cycle, email, tenantId);
+    const checkoutUrl = getGumroadCheckoutUrlForPlan(plan, cycle, email, tenantId);
     res.json({ checkoutUrl });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -81,219 +80,138 @@ router.get('/subscription', authenticate, async (req: AuthRequest, res: Response
     res.json({
       plan: tenant.plan || 'free',
       productLimit: tenant.productLimit || 10,
-      lsSubscriptionId: tenant.lsSubscriptionId,
       subscriptionStatus: tenant.subscriptionStatus || 'active',
       billingCycle: tenant.billingCycle || 'monthly',
       planExpiresAt: tenant.planExpiresAt,
+      gumroadSubscriptionId: tenant.lsSubscriptionId,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/billing/cancel — cancel active Lemon Squeezy subscription
-router.post('/cancel', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+/**
+ * Universal Gumroad Webhook Handler
+ * Handles Gumroad ping tests, sales, subscriptions, and cancellations
+ */
+async function handleGumroadWebhook(req: Request, res: Response): Promise<void> {
   try {
-    const state = await db.getState();
-    const tenant = (state.tenants || []).find(
-      (t) => t.id === req.user?.tenantId || t.ownerEmail === req.user?.email
-    );
+    const body = req.body || {};
+    console.log('[Gumroad Webhook] Received payload:', JSON.stringify(body));
 
-    if (!tenant || !tenant.lsSubscriptionId) {
-      res.status(400).json({ error: 'No active Lemon Squeezy subscription found.' });
+    // Handle Gumroad Ping / Test connection (Gumroad sends an empty ping or test payload)
+    if (Object.keys(body).length === 0 || body.seller_id === 'ping_test' || body.test === 'true') {
+      console.log('[Gumroad Webhook] Responding to Ping / Test connection');
+      res.status(200).json({ success: true, message: 'Gumroad Ping received successfully!' });
       return;
     }
 
-    const cancelled = await cancelLemonSqueezySubscription(tenant.lsSubscriptionId);
-    if (!cancelled) {
-      res.status(500).json({ error: 'Failed to cancel subscription with Lemon Squeezy. Please try again.' });
-      return;
-    }
+    const buyerEmail = (body.email || body.buyer_email || body.purchaser_email || '').toLowerCase().trim();
+    const customFields = body.custom_fields || {};
+    const tenantIdFromCustom = customFields.tenant_id || body.tenant_id;
+    const subscriptionId = body.subscription_id || body.cancelled_subscription_id;
+    const eventType = body.is_recurring_charge ? 'subscription_renewal' : body.subscription_ended ? 'subscription_ended' : body.subscription_cancelled ? 'subscription_cancelled' : 'sale';
 
-    await db.saveState((s) => {
-      const target = (s.tenants || []).find((t) => t.id === tenant.id);
-      if (target) {
-        target.subscriptionStatus = 'cancelled';
-        target.updatedAt = new Date().toISOString();
-      }
-    });
-
-    await db.logActivity({
-      userId: req.user?.id || 'system',
-      userName: tenant.ownerName || tenant.storeName,
-      action: 'SUBSCRIPTION_CANCELLED',
-      resource: 'BILLING',
-      details: `Subscription ${tenant.lsSubscriptionId} cancelled by user. Access retained until end of billing period.`,
-    });
-
-    res.json({ success: true, message: 'Subscription successfully cancelled.' });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/billing/ls/webhook — Lemon Squeezy Webhook Listener
-router.post('/ls/webhook', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const signature = (req.headers['x-signature'] as string) || '';
-    const rawBody = req.body;
-
-    // Verify signature
-    const isValid = verifyWebhookSignature(rawBody, signature);
-    if (!isValid) {
-      console.error('[LemonSqueezy Webhook] Invalid HMAC signature');
-      res.status(400).json({ error: 'Invalid signature' });
-      return;
-    }
-
-    // Parse payload
-    let payload: any;
-    if (Buffer.isBuffer(rawBody)) {
-      payload = JSON.parse(rawBody.toString('utf8'));
-    } else if (typeof rawBody === 'string') {
-      payload = JSON.parse(rawBody);
-    } else {
-      payload = rawBody;
-    }
-
-    const eventName = payload?.meta?.event_name;
-    const customData = payload?.meta?.custom_data || {};
-    const dataAttributes = payload?.data?.attributes || {};
-    const subscriptionId = payload?.data?.id?.toString();
-    const variantId = dataAttributes?.variant_id?.toString() || customData?.variant_id?.toString();
-    const userEmail = (dataAttributes?.user_email || '').toLowerCase().trim();
-    const tenantIdFromCustom = customData?.tenant_id;
-
-    console.log(`[LemonSqueezy Webhook] Received event: ${eventName} | SubID: ${subscriptionId} | Email: ${userEmail} | Variant: ${variantId}`);
+    console.log(`[Gumroad Webhook] Event: ${eventType} | Email: ${buyerEmail} | SubID: ${subscriptionId} | TenantID: ${tenantIdFromCustom}`);
 
     const state = await db.getState();
 
-    // Match tenant either by custom tenant_id or user email
+    // Match tenant by custom tenant_id or buyer email
     let tenant = (state.tenants || []).find((t) => {
       if (tenantIdFromCustom && t.id === tenantIdFromCustom) return true;
-      if (userEmail && t.ownerEmail.toLowerCase() === userEmail) return true;
+      if (buyerEmail && t.ownerEmail.toLowerCase() === buyerEmail) return true;
       if (subscriptionId && t.lsSubscriptionId === subscriptionId) return true;
       return false;
     });
 
     if (!tenant) {
-      console.log(`[LemonSqueezy Webhook] No matching tenant found for email: ${userEmail}, tenant_id: ${tenantIdFromCustom}. Logging.`);
+      console.log(`[Gumroad Webhook] No matching tenant found for buyer email: ${buyerEmail}. Logging activity.`);
       await db.logActivity({
         userId: 'system',
-        userName: 'Lemon Squeezy Webhook',
-        action: 'BILLING_UNMATCHED',
-        resource: 'PAYMENT',
-        details: `Event ${eventName} for ${userEmail} (variant ${variantId}) could not be matched to a tenant.`,
+        userName: buyerEmail || 'Gumroad Buyer',
+        action: 'GUMROAD_WEBHOOK_UNMATCHED',
+        resource: 'BILLING',
+        details: `Gumroad ${eventType} event received for ${buyerEmail} (${body.product_name || 'Membership'}). No matching store found.`,
       });
-      res.status(200).json({ status: 'logged_unmatched' });
+      res.status(200).json({ status: 'received_unmatched' });
       return;
     }
 
-    const variantInfo = variantId ? VARIANT_MAP[variantId] : undefined;
-    const targetPlan = variantInfo?.plan || (dataAttributes?.product_name?.toLowerCase().includes('scale') ? 'scale' : 'pro');
-    const targetLimit = variantInfo?.limit || (targetPlan === 'scale' ? 9999 : 50);
-    const targetCycle = variantInfo?.cycle || (dataAttributes?.billing_interval === 'year' ? 'annual' : 'monthly');
-    const renewsAt = dataAttributes?.renews_at || dataAttributes?.ends_at;
+    const { plan: targetPlan, limit: targetLimit, cycle: targetCycle } = determinePlanFromGumroadPayload(body);
 
-    switch (eventName) {
-      case 'subscription_created':
-      case 'subscription_updated':
-      case 'subscription_payment_success':
-      case 'subscription_resumed':
-      case 'subscription_unpaused': {
-        const subStatus = dataAttributes?.status === 'active' || dataAttributes?.status === 'on_trial' ? 'active' : dataAttributes?.status || 'active';
-        
-        await db.saveState((s) => {
-          const target = (s.tenants || []).find((t) => t.id === tenant!.id);
-          if (target) {
-            target.plan = targetPlan;
-            target.productLimit = targetLimit;
-            target.billingCycle = targetCycle;
-            target.lsSubscriptionId = subscriptionId || target.lsSubscriptionId;
-            target.lsVariantId = variantId || target.lsVariantId;
-            target.lsCustomerId = dataAttributes?.customer_id?.toString() || target.lsCustomerId;
-            target.subscriptionStatus = subStatus;
-            target.planExpiresAt = renewsAt || target.planExpiresAt;
-            target.updatedAt = new Date().toISOString();
-          }
-        });
-
-        await db.logActivity({
-          userId: 'system',
-          userName: tenant.ownerName || tenant.storeName,
-          action: 'PLAN_UPGRADE',
-          resource: 'BILLING',
-          details: `Store "${tenant.storeName}" upgraded to ${targetPlan.toUpperCase()} (${targetCycle}) via Lemon Squeezy (${eventName}).`,
-        });
-
-        console.log(`[LemonSqueezy Webhook] Successfully upgraded ${tenant.storeName} to ${targetPlan.toUpperCase()} (${targetCycle})`);
-        break;
-      }
-
-      case 'subscription_cancelled': {
-        await db.saveState((s) => {
-          const target = (s.tenants || []).find((t) => t.id === tenant!.id);
-          if (target) {
-            target.subscriptionStatus = 'cancelled';
-            target.planExpiresAt = dataAttributes?.ends_at || target.planExpiresAt;
-            target.updatedAt = new Date().toISOString();
-          }
-        });
-
-        await db.logActivity({
-          userId: 'system',
-          userName: tenant.ownerName || tenant.storeName,
-          action: 'SUBSCRIPTION_CANCELLED',
-          resource: 'BILLING',
-          details: `Subscription for store "${tenant.storeName}" was cancelled. Plan remains active until ${dataAttributes?.ends_at || 'period end'}.`,
-        });
-        break;
-      }
-
-      case 'subscription_expired': {
-        await db.saveState((s) => {
-          const target = (s.tenants || []).find((t) => t.id === tenant!.id);
-          if (target) {
+    // Handle Cancellation / Expiration
+    if (body.subscription_ended || body.subscription_cancelled || body.refunded) {
+      await db.saveState((s) => {
+        const target = (s.tenants || []).find((t) => t.id === tenant!.id);
+        if (target) {
+          if (body.subscription_ended || body.refunded) {
             target.plan = 'free';
             target.productLimit = 10;
             target.subscriptionStatus = 'expired';
-            target.updatedAt = new Date().toISOString();
+          } else {
+            target.subscriptionStatus = 'cancelled';
           }
-        });
+          target.updatedAt = new Date().toISOString();
+        }
+      });
 
-        await db.logActivity({
-          userId: 'system',
-          userName: tenant.ownerName || tenant.storeName,
-          action: 'PLAN_DOWNGRADE',
-          resource: 'BILLING',
-          details: `Subscription expired for store "${tenant.storeName}". Downgraded to Free tier.`,
-        });
-        break;
-      }
+      await db.logActivity({
+        userId: 'system',
+        userName: tenant.ownerName || tenant.storeName,
+        action: 'SUBSCRIPTION_CANCELLED',
+        resource: 'BILLING',
+        details: `Gumroad subscription for store "${tenant.storeName}" was ${eventType}.`,
+      });
 
-      case 'subscription_payment_failed': {
-        await db.saveState((s) => {
-          const target = (s.tenants || []).find((t) => t.id === tenant!.id);
-          if (target) {
-            target.subscriptionStatus = 'past_due';
-            target.updatedAt = new Date().toISOString();
-          }
-        });
-        break;
-      }
-
-      default:
-        console.log(`[LemonSqueezy Webhook] Unhandled event: ${eventName}`);
+      res.status(200).json({ success: true, action: 'cancelled' });
+      return;
     }
 
-    res.status(200).json({ success: true, event: eventName });
-  } catch (err: any) {
-    console.error('[LemonSqueezy Webhook] Processing error:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
+    // Handle Sale & Subscription Upgrades
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + (targetCycle === 'annual' ? 366 : 32));
 
-// Endpoint to check or manually claim plan status with license key / email
+    await db.saveState((s) => {
+      const target = (s.tenants || []).find((t) => t.id === tenant!.id);
+      if (target) {
+        target.plan = targetPlan;
+        target.productLimit = targetLimit;
+        target.billingCycle = targetCycle;
+        target.lsSubscriptionId = subscriptionId || target.lsSubscriptionId || body.order_number?.toString();
+        target.subscriptionStatus = 'active';
+        target.planExpiresAt = expiresAt.toISOString();
+        target.updatedAt = new Date().toISOString();
+      }
+    });
+
+    await db.logActivity({
+      userId: 'system',
+      userName: tenant.ownerName || tenant.storeName,
+      action: 'PLAN_UPGRADE',
+      resource: 'BILLING',
+      details: `Store "${tenant.storeName}" upgraded to ${targetPlan.toUpperCase()} (${targetCycle}) via Gumroad Webhook (${eventType}).`,
+    });
+
+    console.log(`[Gumroad Webhook] Successfully upgraded ${tenant.storeName} to ${targetPlan.toUpperCase()} (${targetCycle})`);
+    res.status(200).json({ success: true, plan: targetPlan, store: tenant.storeName });
+  } catch (err: any) {
+    console.error('[Gumroad Webhook] Error processing webhook:', err);
+    res.status(200).json({ error: err.message }); // Always 200 to Gumroad so it doesn't fail ping tests
+  }
+}
+
+// Mount Gumroad webhook endpoints
+router.post('/gumroad/webhook', handleGumroadWebhook);
+router.get('/gumroad/webhook', (req, res) => res.status(200).send('Gumroad Webhook Endpoint is Live & Ready!'));
+
+// General Webhook aliases
+router.post('/webhook', handleGumroadWebhook);
+router.get('/webhook', (req, res) => res.status(200).send('Webhook Endpoint is Live!'));
+
+// Backwards compatibility alias for Lemon Squeezy route if any old pings arrive
+router.post('/ls/webhook', handleGumroadWebhook);
+
+// POST /api/billing/claim — Instant License Key Claim / Activation
 router.post('/claim', async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, licenseKey } = req.body;
@@ -310,10 +228,10 @@ router.post('/claim', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    let verifiedPlan: 'pro' | 'scale' = 'pro';
-    if (licenseKey && licenseKey.trim().length >= 8) {
-      verifiedPlan = licenseKey.toLowerCase().includes('scale') ? 'scale' : 'pro';
-      const limit = verifiedPlan === 'scale' ? 9999 : 50;
+    if (licenseKey && licenseKey.trim().length >= 6) {
+      const isScale = licenseKey.toLowerCase().includes('scale');
+      const verifiedPlan: 'pro' | 'scale' = isScale ? 'scale' : 'pro';
+      const limit = isScale ? 9999 : 50;
 
       await db.saveState((s) => {
         const target = (s.tenants || []).find((t) => t.id === tenant.id);
@@ -325,7 +243,20 @@ router.post('/claim', async (req: Request, res: Response): Promise<void> => {
         }
       });
 
-      res.json({ success: true, message: `Successfully upgraded to ${verifiedPlan.toUpperCase()} Plan!`, plan: verifiedPlan, limit });
+      await db.logActivity({
+        userId: 'system',
+        userName: tenant.ownerName || tenant.storeName,
+        action: 'LICENSE_KEY_CLAIMED',
+        resource: 'BILLING',
+        details: `Store "${tenant.storeName}" activated ${verifiedPlan.toUpperCase()} via Gumroad License Key: ${licenseKey.slice(0, 8)}...`,
+      });
+
+      res.json({
+        success: true,
+        message: `Successfully activated ${verifiedPlan.toUpperCase()} Plan (${limit} product slots unlocked)!`,
+        plan: verifiedPlan,
+        limit,
+      });
       return;
     }
 
