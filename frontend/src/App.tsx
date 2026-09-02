@@ -30,6 +30,8 @@ import { PrivacyPolicyPage } from './pages/storefront/PrivacyPolicyPage';
 import { TermsOfServicePage } from './pages/storefront/TermsOfServicePage';
 import { CookiePolicyPage } from './pages/storefront/CookiePolicyPage';
 
+import { MultiTenantStorefrontPage } from './pages/storefront/MultiTenantStorefrontPage';
+
 // Admin layout and pages
 import { AdminLayout } from './components/admin/AdminLayout';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
@@ -123,10 +125,10 @@ export function App() {
               <Route path="/signup" element={<SignupPage />} />
 
               {/* Public Multi-Tenant Storefront Routes */}
-              <Route path="/store/:slug" element={<StorefrontLayout><HomePage /></StorefrontLayout>} />
-              <Route path="/store/:slug/products/:slug" element={<StorefrontLayout><ProductDetailPage /></StorefrontLayout>} />
-              <Route path="/store/:slug/collections/:slug" element={<StorefrontLayout><CollectionPage /></StorefrontLayout>} />
-              <Route path="/store/:slug/bundles" element={<StorefrontLayout><BundlesPage /></StorefrontLayout>} />
+              <Route path="/store/:slug" element={<MultiTenantStorefrontPage />} />
+              <Route path="/store/:storeSlug/products/:slug" element={<MultiTenantStorefrontPage />} />
+              <Route path="/store/:storeSlug/collections/:slug" element={<MultiTenantStorefrontPage />} />
+              <Route path="/store/:storeSlug/bundles" element={<MultiTenantStorefrontPage />} />
 
               {/* Standard Storefront Routes */}
               <Route path="/products/:slug" element={<StorefrontLayout><ProductDetailPage /></StorefrontLayout>} />
