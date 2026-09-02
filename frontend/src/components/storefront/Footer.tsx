@@ -27,41 +27,6 @@ export const Footer: React.FC = () => {
 
   return (
     <footer className="bg-[#0A0C10] border-t border-white/10 text-gray-400 text-sm">
-      {/* ── Storefront Customer Trust Bar ── */}
-      <div className="border-b border-white/5 bg-[#0D0F15] py-6 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4 text-center sm:text-left">
-          <div className="flex items-center justify-center sm:justify-start gap-3 p-2">
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
-              <Truck className="w-4 h-4" />
-            </div>
-            <div>
-              <h5 className="text-xs font-bold text-white uppercase tracking-wider">Free Global Express</h5>
-              <p className="text-[11px] text-gray-400">Tracked worldwide dispatch on all orders</p>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center sm:justify-start gap-3 p-2">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-              <Lock className="w-4 h-4" />
-            </div>
-            <div>
-              <h5 className="text-xs font-bold text-white uppercase tracking-wider">256-Bit SSL Checkout</h5>
-              <p className="text-[11px] text-gray-400">Direct encrypted payment via Gumroad</p>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center sm:justify-start gap-3 p-2">
-            <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <div>
-              <h5 className="text-xs font-bold text-white uppercase tracking-wider">30-Day Guarantee</h5>
-              <p className="text-[11px] text-gray-400">Hassle-free replacement &amp; support</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* ── Main Storefront Navigation ── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 lg:py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
