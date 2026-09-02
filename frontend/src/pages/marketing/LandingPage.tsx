@@ -710,9 +710,17 @@ const plans: Plan[] = [
 export function PricingSection() {
   const [annual, setAnnual] = useState(false);
 
-  const priceFor = (monthly: number) => {
+  const priceFor = (planName: string, monthly: number) => {
     if (monthly === 0) return 0;
-    return annual ? Math.round((monthly * 10) / 12) : monthly;
+    if (planName === 'Pro') return annual ? 9 : 12;
+    if (planName === 'Scale') return annual ? 24 : 29;
+    return monthly;
+  };
+
+  const annualTotalFor = (planName: string) => {
+    if (planName === 'Pro') return 108;
+    if (planName === 'Scale') return 288;
+    return 0;
   };
 
   return (
@@ -754,7 +762,7 @@ export function PricingSection() {
             Annual
           </span>
           <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-bold text-emerald-400">
-            2 months free
+            2 months free (Save 25%)
           </span>
         </Reveal>
 
@@ -781,13 +789,13 @@ export function PricingSection() {
 
                   <div className="mt-6 flex items-end gap-1">
                     <span className="text-5xl font-black tracking-tighter text-white">
-                      ${priceFor(plan.monthly)}
+                      ${priceFor(plan.name, plan.monthly)}
                     </span>
                     <span className="mb-1.5 text-sm font-semibold text-gray-500">/mo</span>
                   </div>
                   {annual && plan.monthly > 0 && (
-                    <p className="mt-1 text-xs text-gray-500">
-                      Billed ${priceFor(plan.monthly) * 12}/year
+                    <p className="mt-1 text-xs text-emerald-400 font-semibold">
+                      Billed ${annualTotalFor(plan.name)}/year
                     </p>
                   )}
 
@@ -1038,12 +1046,23 @@ export function LandingFooter() {
       <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-1">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600">
-                <ShieldCheck className="h-5 w-5 text-white" aria-hidden="true" />
+            <Link to="/" className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center shrink-0">
+                <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-lg">
+                  <defs>
+                    <linearGradient id="gsFootBg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stopColor="#6366f1"/>
+                      <stop offset="100%" stopColor="#9333ea"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="48" height="48" rx="12" fill="url(#gsFootBg)"/>
+                  <path d="M15 20h18l-2 14H17L15 20z" stroke="white" strokeWidth="2.2" strokeLinejoin="round" fill="none"/>
+                  <path d="M19 20c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+                  <path d="M25.5 24l-3.5 4.5h3l-1 5 4-5.5h-3l0.5-4z" fill="white"/>
+                </svg>
               </span>
               <span className="text-lg font-black tracking-tight text-white">GumShop</span>
-            </div>
+            </Link>
             <p className="mt-4 text-sm leading-relaxed text-gray-400">
               The 60-Second Headless E-Commerce Platform.
             </p>
