@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, type ReactNode, type SVGProps } from 'react';
 import { Link } from 'react-router-dom';
 import { SaaSFooter } from '../../components/common/SaaSFooter';
+import { VideoDemoModal } from '../../components/common/VideoDemoModal';
 import {
   ShieldCheck,
   ArrowRight,
@@ -232,7 +233,7 @@ const sidebarItems = [
   { icon: RefreshCw, label: 'Gumroad Sync', active: false },
 ];
 
-export function HeroSection() {
+export function HeroSection({ onWatchDemo }: { onWatchDemo?: () => void }) {
   return (
     <section
       id="top"
@@ -289,13 +290,16 @@ export function HeroSection() {
             <Rocket className="h-5 w-5" aria-hidden="true" />
             Launch My Free Store
           </Link>
-          <a
-            href="#how-it-works"
-            className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-8 py-4 text-lg font-bold text-white transition-colors hover:bg-white/10"
+          <button
+            type="button"
+            onClick={onWatchDemo}
+            className="inline-flex items-center gap-2.5 rounded-2xl border border-white/15 bg-white/5 px-8 py-4 text-lg font-bold text-white transition-all hover:bg-white/10 hover:border-indigo-500/40 hover:scale-[1.02] shadow-lg shadow-black/40 group cursor-pointer"
           >
-            <Play className="h-4 w-4 fill-current" aria-hidden="true" />
-            Watch Demo
-          </a>
+            <span className="w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+              <Play className="h-3.5 w-3.5 fill-current ml-0.5" aria-hidden="true" />
+            </span>
+            <span>Watch Demo (60s)</span>
+          </button>
         </div>
 
         <div
@@ -1341,11 +1345,17 @@ export function LandingFooter() {
 }
 
 export const LandingPage: React.FC = () => {
+  const [showDemoModal, setShowDemoModal] = useState(false);
+
   return (
     <div className="min-h-screen scroll-smooth bg-[#07080B] text-white selection:bg-indigo-500 selection:text-white">
+      <VideoDemoModal
+        isOpen={showDemoModal}
+        onClose={() => setShowDemoModal(false)}
+      />
       <LandingNav />
       <main>
-        <HeroSection />
+        <HeroSection onWatchDemo={() => setShowDemoModal(true)} />
         <LogoStrip />
         <ShowcaseCarouselSection />
         <FeaturesSection />
