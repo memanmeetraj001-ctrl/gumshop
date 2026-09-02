@@ -69,18 +69,71 @@ class DatabaseManager {
   }
 
   private loadFromFileOrSeed(): DatabaseState {
+    const seed = getInitialSeedData();
+    const defaultTenant: Tenant = seed.tenants[0] || {
+      id: 'tenant_demo',
+      slug: 'demo',
+      storeName: 'My GumShop Store',
+      tagline: 'Premium Lifestyle & Tech Gear',
+      ownerEmail: 'admin@gumshop.online',
+      ownerName: 'Store Admin',
+      plan: 'free',
+      productLimit: 10,
+      gumroadStoreUrl: 'https://manmeetraj6.gumroad.com',
+      primaryColor: '#6366F1',
+      currency: 'USD',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isActive: true,
+    };
+
     try {
       if (fs.existsSync(this.dataFilePath)) {
         const raw = fs.readFileSync(this.dataFilePath, 'utf-8');
         const parsed = JSON.parse(raw);
         if (parsed && Array.isArray(parsed.users) && parsed.users.length > 0) {
+          const loadedTenants: Tenant[] = Array.isArray(parsed.tenants) ? [...parsed.tenants] : [];
+          
+          // Ensure default demo tenant exists
+          if (!loadedTenants.some((t) => t.id === 'tenant_demo' || t.slug === 'demo')) {
+            loadedTenants.unshift(defaultTenant);
+          }
+
+          // Ensure any registered user has a corresponding tenant
+          for (const user of parsed.users) {
+            if (user.tenantId && user.tenantId !== 'tenant_demo') {
+              if (!loadedTenants.some((t) => t.id === user.tenantId)) {
+                const userSlug = (user.name || user.email.split('@')[0])
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, '-')
+                  .replace(/(^-|-$)/g, '') || `store-${user.tenantId.slice(-4)}`;
+                loadedTenants.push({
+                  id: user.tenantId,
+                  slug: userSlug,
+                  storeName: user.name || 'Merchant Store',
+                  tagline: 'Sell anything. Get paid instantly.',
+                  ownerEmail: user.email,
+                  ownerName: user.name || 'Store Owner',
+                  plan: 'free',
+                  productLimit: 10,
+                  gumroadStoreUrl: 'https://gumroad.com',
+                  primaryColor: '#6366F1',
+                  currency: 'USD',
+                  createdAt: user.createdAt || new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  isActive: true,
+                });
+              }
+            }
+          }
+
           return {
-            tenants: [],
             orders: [],
             analyticsEvents: [],
             mediaItems: [],
             adminActivity: [],
             ...parsed,
+            tenants: loadedTenants,
           };
         }
       }
@@ -88,10 +141,9 @@ class DatabaseManager {
       console.warn('Could not read existing local DB file, re-seeding:', err);
     }
 
-    const seed = getInitialSeedData();
     const state: DatabaseState = {
       ...seed,
-      tenants: [],
+      tenants: seed.tenants && seed.tenants.length > 0 ? seed.tenants : [defaultTenant],
       orders: [],
       analyticsEvents: [],
       mediaItems: [
