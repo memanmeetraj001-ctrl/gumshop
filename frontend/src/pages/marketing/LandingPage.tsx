@@ -542,7 +542,7 @@ const showcaseSlides = [
     highlights: [
       'Sub-second page loads powered by React 19 and modern CSS variables',
       'Multi-currency switcher (USD, EUR, GBP, CAD, AUD, INR, JPY)',
-      'Direct 1-click encrypted international checkout via Lemon Squeezy or Gumroad',
+      'Direct 1-click encrypted international checkout via Gumroad with zero transaction cuts',
     ],
     ctaText: 'Open Live Demo Store ↗',
     ctaLink: '/store/demo',

@@ -102,13 +102,13 @@ export const CookiePolicyPage: React.FC = () => {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2">
-                <h3 className="font-bold text-white text-xs uppercase tracking-wider">Lemon Squeezy (Merchant of Record)</h3>
+                <h3 className="font-bold text-white text-xs uppercase tracking-wider">Gumroad Subscriptions</h3>
                 <p className="text-xs text-gray-400">
                   Handles automated recurring subscription billing and international tax compliance with 256-bit SSL encryption.
                 </p>
               </div>
               <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2">
-                <h3 className="font-bold text-white text-xs uppercase tracking-wider">Gumroad Payments</h3>
+                <h3 className="font-bold text-white text-xs uppercase tracking-wider">Gumroad Direct Checkout</h3>
                 <p className="text-xs text-gray-400">
                   Processes direct consumer checkouts via credit card, PayPal, Apple Pay, and Google Pay with fraud prevention cookies.
                 </p>

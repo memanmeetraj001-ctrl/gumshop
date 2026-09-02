@@ -49,7 +49,7 @@ export const AboutPage: React.FC = () => {
               E-Commerce Should Take 60 Seconds, Not 6 Weeks
             </h2>
             <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-              Traditional e-commerce platforms force creators to endure complex setups, clunky plugin ecosystems, painful gateway approval paperwork, and exorbitant transaction cuts. GumShop was engineered to tear down these barriers: connect your Gumroad or Lemon Squeezy account, import your catalog in 1 click, and launch a branded storefront with modern aesthetic restraint.
+              Traditional e-commerce platforms force creators to endure complex setups, clunky plugin ecosystems, painful gateway approval paperwork, and exorbitant transaction cuts. GumShop was engineered to tear down these barriers: connect your Gumroad account, import your catalog in 1 click, and launch a branded storefront with modern aesthetic restraint.
             </p>
           </div>
 

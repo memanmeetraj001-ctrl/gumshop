@@ -48,7 +48,7 @@ export const ContactPage: React.FC = () => {
     },
     {
       q: 'How do international payments work?',
-      a: 'Your customers checkout directly via Lemon Squeezy or Gumroad with Visa, MasterCard, PayPal, Apple Pay, and Google Pay in 180+ countries with zero complex gateway paperwork.',
+      a: 'Your customers checkout directly via Gumroad with Visa, MasterCard, PayPal, Apple Pay, and Google Pay in 180+ countries with zero complex gateway paperwork.',
     },
     {
       q: 'Can I connect a custom apex domain (e.g. yourbrand.com)?',
@@ -230,7 +230,7 @@ export const ContactPage: React.FC = () => {
                   >
                     <option value="General Question">General Platform Question</option>
                     <option value="Store Setup & Onboarding">Store Setup &amp; Onboarding Help</option>
-                    <option value="Lemon Squeezy & SaaS Billing">Lemon Squeezy &amp; SaaS Billing</option>
+                    <option value="Gumroad & SaaS Billing">Gumroad Subscriptions &amp; Billing</option>
                     <option value="Gumroad Catalog Sync">Gumroad Catalog Sync</option>
                     <option value="Custom Domain & SSL">Custom Domain &amp; SSL Configuration</option>
                     <option value="Partnership & Inquiries">Partnership &amp; Press Inquiries</option>

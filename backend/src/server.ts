@@ -57,11 +57,12 @@ export function createServer(): Express {
     const { productId } = req.params;
     try {
       const state = await db.getState();
-      const product = state.products.find((p) => p.id === productId || p.slug === productId);
-      let targetUrl = product?.gumroadUrl || `https://gumroad.com/l/${productId}`;
+      const product = (state.products || []).find((p) => p.id === productId || p.slug === productId);
+      const defaultBase = process.env.GUMROAD_STORE_URL || 'https://manmeetraj6.gumroad.com';
+      let targetUrl = product?.gumroadUrl || `${defaultBase.replace(/\/$/, '')}/l/${productId}`;
       
       if (product?.directCheckout && !targetUrl.includes('wanted=true')) {
-        targetUrl += targetUrl.includes('-')  ? '&wanted=true' : '-wanted=true';
+        targetUrl += targetUrl.includes('?') ? '&wanted=true' : '?wanted=true';
       }
 
       await db.logEvent({

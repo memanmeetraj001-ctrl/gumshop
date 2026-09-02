@@ -155,7 +155,7 @@ export const api = {
   testGumroadToken: (accessToken: string) => request<{ success: boolean; user?: any; error?: string }>('/payments/gumroad/test', { method: 'POST', body: JSON.stringify({ accessToken }) }),
   syncGumroadCatalog: (accessToken: string, storeUrl?: string) => request<{ success: boolean; totalProducts: number; syncedCount: number; results: any[] }>('/payments/gumroad/sync', { method: 'POST', body: JSON.stringify({ accessToken, storeUrl }) }),
 
-  // SaaS Billing & Plan (Lemon Squeezy Subscriptions)
+  // SaaS Billing & Plan (Gumroad Subscriptions)
   getBillingPlan: () => request<{
     plan: 'free' | 'pro' | 'scale';
     productLimit: number;

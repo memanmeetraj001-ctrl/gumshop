@@ -95,7 +95,8 @@ router.post('/create', async (req: Request, res: Response): Promise<void> => {
     }
 
     if (targetProduct) {
-      let base = targetProduct.gumroadUrl || `https://gumroad.com/l/${targetProduct.slug}`;
+      const defaultBase = process.env.GUMROAD_STORE_URL || 'https://manmeetraj6.gumroad.com';
+      let base = targetProduct.gumroadUrl || `${defaultBase.replace(/\/$/, '')}/l/${targetProduct.slug}`;
       const params = new URLSearchParams();
       params.set('wanted', 'true');
       params.set('email', customerEmail.trim());

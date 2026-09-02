@@ -32,7 +32,7 @@ export const BillingSuccessPage: React.FC = () => {
             Welcome to {plan.toUpperCase()}!
           </h1>
           <p className="text-xs text-gray-400 leading-relaxed">
-            Your subscription has been activated via Lemon Squeezy. Your new product limits and features are available immediately.
+            Your subscription has been activated via Gumroad. Your new product limits and features are available immediately.
           </p>
         </div>
 
@@ -47,7 +47,7 @@ export const BillingSuccessPage: React.FC = () => {
           </div>
           <div className="flex justify-between items-center text-gray-300">
             <span>Provider</span>
-            <span className="font-semibold text-white">Lemon Squeezy</span>
+            <span className="font-semibold text-white">Gumroad Subscriptions</span>
           </div>
         </div>
 

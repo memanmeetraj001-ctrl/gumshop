@@ -198,7 +198,7 @@ export function App() {
                 <Route path="upgrade" element={<UpgradePage />} />
               </Route>
 
-              {/* Lemon Squeezy Hosted Billing Return Routes */}
+              {/* Gumroad Hosted Billing Return Routes */}
               <Route path="/billing/success" element={<BillingSuccessPage />} />
               <Route path="/billing/cancel" element={<BillingCancelPage />} />
 
