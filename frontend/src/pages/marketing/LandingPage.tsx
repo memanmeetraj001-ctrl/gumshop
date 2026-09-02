@@ -31,6 +31,8 @@ import {
   Check,
   FileText,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 export function Reveal({
@@ -341,126 +343,36 @@ export function HeroSection() {
             text="3 Orders Received"
           />
 
-          <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0F1118] shadow-2xl shadow-black/60">
-            <div className="flex items-center justify-between border-b border-white/5 bg-[#14171F] px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-red-500/70" />
-                <span className="h-3 w-3 rounded-full bg-amber-500/70" />
-                <span className="h-3 w-3 rounded-full bg-emerald-500/70" />
-                <span className="ml-3 rounded-md bg-white/5 px-3 py-1 text-left text-xs font-mono text-gray-400">
-                  app.gumshop.online/admin/dashboard
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Live Online</span>
-              </div>
-            </div>
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0F1118] shadow-2xl shadow-black/60 group relative">
+            {/* Real Dashboard Image Showcase */}
+            <div className="relative overflow-hidden">
+              <img
+                src="/dashboard-preview.jpg"
+                alt="GumShop CMS Merchant Store Dashboard"
+                className="w-full h-auto object-cover rounded-2xl shadow-2xl transition-transform duration-500 group-hover:scale-[1.01]"
+              />
 
-            <div className="grid grid-cols-[140px_1fr] md:grid-cols-[200px_1fr]">
-              <aside className="border-r border-white/5 bg-[#0B0D13] p-3 text-left md:p-4 flex flex-col justify-between">
-                <div>
-                  <p className="mb-3 px-2 text-[10px] font-bold uppercase tracking-widest text-gray-600">
-                    Store CMS
-                  </p>
-                  <nav className="flex flex-col gap-1">
-                    {sidebarItems.map((item) => (
-                      <span
-                        key={item.label}
-                        className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold md:text-sm ${
-                          item.active
-                            ? 'bg-indigo-500/15 text-indigo-300'
-                            : 'text-gray-500'
-                        }`}
-                      >
-                        <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                        <span className="truncate">{item.label}</span>
-                      </span>
-                    ))}
-                  </nav>
+              {/* Hover Interactive Overlay Bar */}
+              <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6 bg-gradient-to-t from-[#090B0E]/95 via-[#090B0E]/70 to-transparent flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 text-xs text-white">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-bold">Live Multi-Store Dashboard &amp; CMS</span>
+                  <span className="text-gray-400 hidden md:inline">· Real-time order capture &amp; sync</span>
                 </div>
 
-                <div className="pt-4 border-t border-white/5 hidden md:block">
+                <div className="flex items-center gap-2.5 shrink-0">
                   <Link
                     to="/store/demo"
-                    className="flex items-center justify-between text-[11px] text-indigo-400 font-bold hover:text-white transition-colors"
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-900/50 flex items-center gap-1.5"
                   >
-                    <span>View Storefront</span>
-                    <span>↗</span>
+                    <span>View Demo Store ↗</span>
                   </Link>
-                </div>
-              </aside>
-
-              <div className="p-4 text-left md:p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-                  {[
-                    { label: 'Revenue', value: '$1,249', note: '+24% today', tone: 'text-emerald-400' },
-                    { label: 'Orders', value: '38', note: 'All captured', tone: 'text-indigo-300' },
-                    { label: 'Products', value: '24', note: 'Active in catalog', tone: 'text-purple-300' },
-                  ].map((stat) => (
-                    <div
-                      key={stat.label}
-                      className="rounded-xl border border-white/8 bg-[#14171F] p-3 md:p-4"
-                    >
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">
-                        {stat.label}
-                      </p>
-                      <p className={`mt-1 text-lg font-black md:text-2xl ${stat.tone}`}>
-                        {stat.value}
-                      </p>
-                      <p className="text-[10px] text-gray-500 mt-0.5">{stat.note}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="rounded-xl border border-white/8 bg-[#14171F] p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <p className="text-sm font-bold text-white">Recent Customer Orders</p>
-                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-                      Live Stream
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-2.5">
-                    {[
-                      { id: '#1042', product: 'ANC Wireless Headphones', customer: 'Alex M.', amt: '$129' },
-                      { id: '#1041', product: 'Custom Mechanical Keyboard', customer: 'David K.', amt: '$89' },
-                      { id: '#1040', product: 'Minimalist Leather Wallet', customer: 'Elena R.', amt: '$54' },
-                    ].map((row) => (
-                      <div
-                        key={row.id}
-                        className="flex items-center justify-between border-b border-white/5 pb-2 text-xs last:border-0 last:pb-0 md:text-sm"
-                      >
-                        <span className="text-gray-500 font-mono">{row.id}</span>
-                        <div className="flex-1 truncate px-3">
-                          <span className="text-gray-200 font-medium">{row.product}</span>
-                          <span className="text-gray-500 text-[11px] ml-2 hidden sm:inline">· {row.customer}</span>
-                        </div>
-                        <span className="font-bold text-emerald-400">{row.amt}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Direct Demo Callout Strip */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-xl bg-white/5 border border-white/5 text-xs">
-                  <div className="flex items-center gap-2 text-gray-300">
-                    <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
-                    <span>Want to test this live dashboard &amp; demo store?</span>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Link
-                      to="/store/demo"
-                      className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md"
-                    >
-                      Demo Storefront ↗
-                    </Link>
-                    <Link
-                      to="/admin/login"
-                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white font-bold text-xs uppercase tracking-wider transition-all"
-                    >
-                      Admin Login
-                    </Link>
-                  </div>
+                  <Link
+                    to="/admin/login"
+                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider transition-all border border-white/10 backdrop-blur-md"
+                  >
+                    <span>Admin Login</span>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -549,6 +461,265 @@ const paymentPerks = [
   'Recurring SaaS Billing',
   'Webhook Auto-Plan Upgrades',
 ];
+
+const showcaseSlides = [
+  {
+    id: 'dashboard',
+    badge: 'Real-Time Analytics',
+    title: 'Store CMS Dashboard & Revenue Metrics',
+    tagline: 'Monitor your sales, active inventory, and live order stream from a single control center.',
+    image: '/images/showcase-dashboard.jpg',
+    browserUrl: 'app.gumshop.online/admin/dashboard',
+    icon: LayoutDashboard,
+    highlights: [
+      'Live Revenue Tracking ($1,249 today) with real-time growth curves',
+      'Active product slot meter (10 Free / 50 Pro / Unlimited Scale)',
+      'Direct 1-click Gumroad product & inventory synchronization',
+    ],
+    ctaText: 'Launch Free Store',
+    ctaLink: '/signup',
+  },
+  {
+    id: 'importer',
+    badge: 'Universal Scraper',
+    title: '1-Click Multi-Platform Product Importer',
+    tagline: 'Migrate your entire catalog from Shopify, WooCommerce, or any HTML store in seconds.',
+    image: '/images/showcase-importer.jpg',
+    browserUrl: 'app.gumshop.online/admin/import',
+    icon: Download,
+    highlights: [
+      'Instant platform auto-detection (Shopify REST / WooCommerce / HTML)',
+      'Batch item selection with automatic 50% discount price modifiers',
+      'Automatic image downloading and category assignment',
+    ],
+    ctaText: 'Try Importer in Admin',
+    ctaLink: '/admin/login',
+  },
+  {
+    id: 'themes',
+    badge: 'Theme Studio',
+    title: '8 Prebuilt Category-Specific Themes',
+    tagline: 'Transform your storefront look with 1-click presets for Tech, Fashion, Wellness, Coffee & more.',
+    image: '/images/showcase-themes.jpg',
+    browserUrl: 'app.gumshop.online/admin/appearance',
+    icon: Palette,
+    highlights: [
+      '8 Niche Presets: Cyber Tech, Luxury Fashion, Organic Wellness, Gourmet Coffee, Streetwear',
+      'Live mini-mockup preview with dynamic corner radius sliders (2px to 24px)',
+      'Custom color pickers for primary accents, surfaces, and announcement bars',
+    ],
+    ctaText: 'Explore Theme Studio',
+    ctaLink: '/admin/appearance',
+  },
+  {
+    id: 'orders',
+    badge: 'Lead Capture',
+    title: 'Physical Shipping Address & Order Leads',
+    tagline: 'Capture customer delivery addresses on-site before checkout and manage fulfillment with ease.',
+    image: '/images/showcase-orders.jpg',
+    browserUrl: 'app.gumshop.online/admin/orders',
+    icon: PackageCheck,
+    highlights: [
+      'Pre-checkout shipping modal captures customer name, address, and email',
+      'Real-time status tags: Fulfilled, In Transit, Processing, and Pending',
+      '1-Click batch CSV export and printable shipping labels',
+    ],
+    ctaText: 'View Orders Demo',
+    ctaLink: '/admin/login',
+  },
+  {
+    id: 'storefront',
+    badge: 'Sub-Second Speed',
+    title: 'Customer-Facing Headless Storefront',
+    tagline: 'A high-converting, blazing-fast storefront designed for minimal friction and maximum sales.',
+    image: '/images/showcase-storefront.jpg',
+    browserUrl: 'gumshop.online/store/demo',
+    icon: ShoppingBag,
+    highlights: [
+      'Sub-second page loads powered by React 19 and modern CSS variables',
+      'Multi-currency switcher (USD, EUR, GBP, CAD, AUD, INR, JPY)',
+      'Direct 1-click encrypted international checkout via Lemon Squeezy or Gumroad',
+    ],
+    ctaText: 'Open Live Demo Store ↗',
+    ctaLink: '/store/demo',
+  },
+];
+
+export function ShowcaseCarouselSection() {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (isPaused) return;
+    const interval = setInterval(() => {
+      setActiveIdx((prev) => (prev + 1) % showcaseSlides.length);
+    }, 5500);
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
+  const current = showcaseSlides[activeIdx];
+
+  const handlePrev = () => {
+    setActiveIdx((prev) => (prev === 0 ? showcaseSlides.length - 1 : prev - 1));
+  };
+
+  const handleNext = () => {
+    setActiveIdx((prev) => (prev + 1) % showcaseSlides.length);
+  };
+
+  return (
+    <section
+      id="showcase"
+      className="scroll-mt-20 py-24 md:py-32 bg-[#090B0E] border-y border-white/5 relative overflow-hidden"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      <div className="mx-auto max-w-7xl px-5 lg:px-8 space-y-12">
+        {/* Section Header */}
+        <Reveal className="mx-auto max-w-3xl text-center space-y-4">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-black uppercase tracking-widest">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>INTERACTIVE PLATFORM TOUR</span>
+          </div>
+          <h2 className="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight font-heading">
+            Inside the GumShop Architecture
+          </h2>
+          <p className="text-base sm:text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+            Explore the real, high-performance interfaces built for modern creator commerce.
+          </p>
+        </Reveal>
+
+        {/* Interactive Tab Navigation Strip */}
+        <div className="flex items-center justify-center gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-none">
+          {showcaseSlides.map((slide, idx) => {
+            const Icon = slide.icon;
+            const isActive = activeIdx === idx;
+            return (
+              <button
+                key={slide.id}
+                type="button"
+                onClick={() => setActiveIdx(idx)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+                  isActive
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-900/50 scale-[1.02]'
+                    : 'bg-[#14171F] hover:bg-white/10 text-gray-400 hover:text-white border border-white/5'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-indigo-400'}`} />
+                <span>{slide.badge}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Main Showcase Slide Frame */}
+        <div className="bg-[#12141C] border border-white/10 rounded-3xl overflow-hidden shadow-2xl shadow-black/80 grid grid-cols-1 lg:grid-cols-12 gap-0 relative">
+          {/* Left: Image Showcase Viewport */}
+          <div className="lg:col-span-8 bg-[#090B0E] p-4 sm:p-6 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-white/10 relative group">
+            {/* Mockup Browser Topbar */}
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/5 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-red-500/70" />
+                <span className="w-3 h-3 rounded-full bg-amber-500/70" />
+                <span className="w-3 h-3 rounded-full bg-emerald-500/70" />
+                <span className="ml-2 font-mono text-gray-400 bg-black/40 px-2.5 py-0.5 rounded-md text-[11px] border border-white/5">
+                  {current.browserUrl}
+                </span>
+              </div>
+
+              {/* Prev / Next Arrows */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white transition-colors"
+                  aria-label="Previous slide"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-[11px] font-mono text-gray-500 px-1">
+                  {activeIdx + 1} / {showcaseSlides.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white transition-colors"
+                  aria-label="Next slide"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Main Screenshot Asset */}
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl aspect-video bg-[#07080B] flex items-center justify-center">
+              <img
+                key={current.id}
+                src={current.image}
+                alt={current.title}
+                className="w-full h-full object-cover rounded-xl transition-all duration-500 animate-in fade-in duration-300"
+              />
+            </div>
+
+            {/* Auto-Slide Progress Bar */}
+            <div className="w-full h-1 bg-white/10 rounded-full mt-4 overflow-hidden">
+              <div
+                key={activeIdx}
+                className={`h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full ${
+                  isPaused ? 'w-full' : 'animate-[progress_5.5s_linear]'
+                }`}
+                style={{
+                  animationDuration: '5.5s',
+                  animationFillMode: 'forwards',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Right: Feature Highlights & CTA */}
+          <div className="lg:col-span-4 p-6 sm:p-8 flex flex-col justify-between space-y-6 bg-[#12141C]">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[11px] font-bold uppercase tracking-wider">
+                <current.icon className="w-3.5 h-3.5 text-indigo-400" />
+                <span>{current.badge}</span>
+              </div>
+
+              <h3 className="text-xl sm:text-2xl font-black text-white uppercase font-heading leading-tight">
+                {current.title}
+              </h3>
+
+              <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
+                {current.tagline}
+              </p>
+
+              <div className="space-y-2.5 pt-2 border-t border-white/5">
+                {current.highlights.map((point, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs text-gray-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span>{point}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-white/5 space-y-3">
+              <Link
+                to={current.ctaLink}
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/40 transition-all"
+              >
+                <span>{current.ctaText}</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <p className="text-[11px] text-center text-gray-500">
+                Included in all plans · No setup fees
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export function FeaturesSection() {
   return (
@@ -1176,6 +1347,7 @@ export const LandingPage: React.FC = () => {
       <main>
         <HeroSection />
         <LogoStrip />
+        <ShowcaseCarouselSection />
         <FeaturesSection />
         <HowItWorks />
         <PricingSection />
