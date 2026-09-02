@@ -1005,7 +1005,6 @@ const columns = [
       { label: 'Pricing', href: '#pricing', internal: false },
       { label: 'How It Works', href: '#how-it-works', internal: false },
       { label: 'Live Demo Store', href: '/store/demo', internal: true },
-      { label: 'Track An Order', href: '/track', internal: true },
     ],
   },
   {

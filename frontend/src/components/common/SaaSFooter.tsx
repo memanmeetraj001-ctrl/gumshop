@@ -34,7 +34,6 @@ const saasColumns = [
       { label: 'SaaS Pricing', href: '/#pricing', internal: false },
       { label: 'How It Works', href: '/#how-it-works', internal: false },
       { label: 'Live Demo Store', href: '/store/demo', internal: true },
-      { label: 'Order Tracking System', href: '/track', internal: true },
     ],
   },
   {
