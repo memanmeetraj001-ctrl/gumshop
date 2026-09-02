@@ -19,7 +19,7 @@ services:
       - key: ADMIN_EMAIL
         value: admin@gumshop.online
       - key: ADMIN_PASSWORD
-        value: admin123
+        sync: false
       - key: GUMROAD_ACCOUNT
         value: manmeetraj6
       - key: GUMROAD_STORE_URL

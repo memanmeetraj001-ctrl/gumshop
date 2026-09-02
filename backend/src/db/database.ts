@@ -54,11 +54,16 @@ class DatabaseManager {
   private isPostgres: boolean = false;
 
   constructor() {
-    if (process.cwd().endsWith('backend')) {
-      this.dataFilePath = path.join(process.cwd(), 'data', 'gumshop_db.json');
+    const candidate1 = path.join(process.cwd(), 'data', 'gumshop_db.json');
+    const candidate2 = path.join(process.cwd(), 'backend', 'data', 'gumshop_db.json');
+    if (fs.existsSync(candidate1)) {
+      this.dataFilePath = candidate1;
+    } else if (fs.existsSync(candidate2)) {
+      this.dataFilePath = candidate2;
     } else {
-      this.dataFilePath = path.join(process.cwd(), 'backend', 'data', 'gumshop_db.json');
+      this.dataFilePath = process.cwd().endsWith('backend') ? candidate1 : candidate2;
     }
+
     this.memoryDb = this.loadFromFileOrSeed();
     this.initPostgres();
   }
@@ -68,17 +73,19 @@ class DatabaseManager {
       if (fs.existsSync(this.dataFilePath)) {
         const raw = fs.readFileSync(this.dataFilePath, 'utf-8');
         const parsed = JSON.parse(raw);
-        return {
-          tenants: [],
-          orders: [],
-          analyticsEvents: [],
-          mediaItems: [],
-          adminActivity: [],
-          ...parsed,
-        };
+        if (parsed && Array.isArray(parsed.users) && parsed.users.length > 0) {
+          return {
+            tenants: [],
+            orders: [],
+            analyticsEvents: [],
+            mediaItems: [],
+            adminActivity: [],
+            ...parsed,
+          };
+        }
       }
     } catch (err) {
-      console.warn('Could not read existing local DB file, re?.seeding:', err);
+      console.warn('Could not read existing local DB file, re-seeding:', err);
     }
 
     const seed = getInitialSeedData();
