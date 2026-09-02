@@ -29,7 +29,7 @@ export const PLAN_TO_VARIANT: Record<'pro' | 'scale', Record<'monthly' | 'annual
 };
 
 const STORE_SLUG = process.env.LEMONSQUEEZY_STORE_SLUG || 'gumshop';
-const API_KEY = process.env.LEMONSQUEEZY_API_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI5NGQ1OWNlZi1kYmI4LTRlYTUtYjE3OC1kMjU0MGZjZDY5MTkiLCJqdGkiOiIxMjU5YmE0NjQxY2JhM2YyODU2ZTYwMTk4NTY5YmRkYzA0YzdkYmZmM2EyMDE5ZDAzZDNhNjNlN2EyYjdlNjJhNzBlZGMwOTUzNDVkZGVmMSIsImlhdCI6MTc4ODMyNzU4Mi41NzkxODIsIm5iZiI6MTc4ODMyNzU4Mi41NzkxODQsImV4cCI6MTgwNjQ1MTIwMC4wMjY5NjUsInN1YiI6Ijc4ODg3NTAiLCJzY29wZXMiOltdfQ.7gJPRAlU5x3Ot7J8Oq0yPx95NrvMGwOLJ3z5WOdQ2EGIoqqqFlkGH8JaUamxx5izOxUFFDrTdEExx3wrAwXEBhPF6azXrSz3H62A_539tPH08rYcxFhSUr_rL_xv6y6OgJb0WhbayGc9agyticCzSjSgAYCXn3eVonQLZbGjqiyxRKnyvs2wSBdfTWBGtmDT6QKJqNpnqeAPM_VxPNkjtJW_FW9h9QbSJqp7pLLkJKTRc-e5N4tgj2N0MsFfqp6tGVIQwnfUnZCC0E-dBJw4DfijgUyULEK5zhOydwIQUZMacPuXWgApUYMVHJ0ILkLJ6m89WxQgmEbGrl9HGQf1ioDWzkEr3ZeMkpfzIE-rhlKkDX1pnMxpyIoUZVwza-sfX9tDrUVook4vam4NLwMDSNxlyjyIH3J0AWxi8DJcKLcnn9WL6u-XUi6O7uXnWW730jW8YsxRi4G4lm6nzHP-uD4rkjsxyN73wYwEwa7QynUjjQ3rMzoUcPxY2kGK0IHujJ6eI4K1ulSeoNlYB-dqcw6TcM5Gj3uIby8YK2W4Yr7VaKiXspU2FMt9v1MGEzlTxxJtdkVtOOV9GCUITojOnekG4qXBr3JgHjjPo7cLTRoPgt9tZ1DljFB5246qqOMe-GrA5q4I4hZ2uv2ndAVWxn48_4Dog17awFx0xBsSpbs';
+const API_KEY = process.env.LEMONSQUEEZY_API_KEY || '';
 
 export function buildCheckoutUrl(variantId: string, email: string, tenantId: string): string {
   const base = `https://${STORE_SLUG}.lemonsqueezy.com/checkout/buy/${variantId}`;
@@ -57,11 +57,10 @@ export function getCheckoutUrlForPlan(
 }
 
 export function verifyWebhookSignature(rawBody: Buffer | string, signature: string): boolean {
-  const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET || 'gumshop_ls_secret_950214';
+  const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET || '';
   if (!secret) {
-    // If no secret configured in env, allow through with warning in non-strict development
-    console.warn('[LemonSqueezy Webhook] Warning: LEMONSQUEEZY_WEBHOOK_SECRET is not set.');
-    return true;
+    console.warn('[LemonSqueezy Webhook] Warning: LEMONSQUEEZY_WEBHOOK_SECRET is not configured.');
+    return process.env.NODE_ENV !== 'production';
   }
   if (!signature) {
     return false;

@@ -35,6 +35,6 @@ services:
       - key: LEMONSQUEEZY_VARIANT_SCALE_ANNUAL
         value: "2082952"
       - key: LEMONSQUEEZY_WEBHOOK_SECRET
-        value: gumshop_ls_secret_950214
+        sync: false
       - key: LEMONSQUEEZY_API_KEY
         sync: false

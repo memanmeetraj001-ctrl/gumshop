@@ -113,5 +113,18 @@ gumshop/
 
 ---
 
-## - - License
-Commercial License  - Built for SaaS deployment and CodeCanyon distribution.
+## 🔒 Security Notice & Secret Rotation
+
+> [!WARNING]
+> **Important Security Practice**: All production secrets, API tokens, database connection strings, and webhook signing keys **must** be stored exclusively in environment variables (via `.env` or your hosting dashboard like Render/Vercel) and **never** committed to version control.
+>
+> If any API key, webhook secret, or database credential was ever committed into git history in earlier versions, **rotate those secrets immediately**:
+> 1. **Lemon Squeezy API Keys**: Generate a new API key in *Lemon Squeezy Dashboard > Settings > API Keys* and revoke the old key.
+> 2. **Lemon Squeezy Webhooks**: Update your webhook signing secret in *Lemon Squeezy Dashboard > Settings > Webhooks* and configure `LEMONSQUEEZY_WEBHOOK_SECRET` in your server environment.
+> 3. **Admin Passwords**: Update the default admin password from the `/admin/settings` panel or your hosting environment variables.
+> 4. **JWT Signing Secret**: Ensure `JWT_SECRET` is set to a secure, random 64-character secret in production.
+
+---
+
+## 📄 License
+Commercial License — Built for SaaS deployment and CodeCanyon distribution.
