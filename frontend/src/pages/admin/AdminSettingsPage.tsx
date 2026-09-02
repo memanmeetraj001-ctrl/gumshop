@@ -110,7 +110,7 @@ export const AdminSettingsPage: React.FC = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl">
+    <div className="space-y-8 max-w-4xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-white uppercase tracking-wider font-heading">
@@ -127,7 +127,8 @@ export const AdminSettingsPage: React.FC = () => {
             </span>
           )}
           <button
-            type="submit"
+            type="button"
+            onClick={handleSubmit}
             className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all"
           >
             <Save className="w-4 h-4" />
@@ -556,7 +557,7 @@ export const AdminSettingsPage: React.FC = () => {
         </div>
 
         {/* Account Security & Password */}
-        <div className="bg-[#14141E] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-4">
+        <form onSubmit={handlePasswordChange} className="bg-[#14141E] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-4">
           <div className="flex items-center gap-3 pb-3 border-b border-white/5">
             <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
               <Lock className="w-4 h-4" />
@@ -572,6 +573,7 @@ export const AdminSettingsPage: React.FC = () => {
               <label className="block text-gray-300 font-semibold mb-1.5">Current Password</label>
               <input
                 type="password"
+                required
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="Enter current password"
@@ -582,6 +584,7 @@ export const AdminSettingsPage: React.FC = () => {
               <label className="block text-gray-300 font-semibold mb-1.5">New Password (6+ chars)</label>
               <input
                 type="password"
+                required
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter new password"
@@ -592,6 +595,7 @@ export const AdminSettingsPage: React.FC = () => {
               <label className="block text-gray-300 font-semibold mb-1.5">Confirm New Password</label>
               <input
                 type="password"
+                required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-type new password"
@@ -602,8 +606,7 @@ export const AdminSettingsPage: React.FC = () => {
 
           <div className="flex items-center justify-between pt-2">
             <button
-              type="button"
-              onClick={handlePasswordChange}
+              type="submit"
               disabled={pwdLoading}
               className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-50"
             >
@@ -618,8 +621,8 @@ export const AdminSettingsPage: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
+        </form>
       </div>
-    </form>
+    </div>
   );
 };

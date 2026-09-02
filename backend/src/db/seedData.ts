@@ -67,7 +67,7 @@ export function getInitialSeedData(): {
       name: 'Store Admin',
       role: 'superadmin',
       createdAt: new Date().toISOString(),
-      password: bcrypt.hashSync('admin123', 10),
+      password: bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'admin123', 10),
     },
     {
       id: 'usr_superadmin_1',
@@ -76,7 +76,7 @@ export function getInitialSeedData(): {
       name: 'GumShop Super Admin',
       role: 'superadmin',
       createdAt: new Date().toISOString(),
-      password: bcrypt.hashSync('admin123', 10),
+      password: bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'admin123', 10),
     },
   ];
 
