@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
-import { Product, PaymentIntegration } from '../../types';
+import { Product } from '../../types';
 import { formatPrice } from '../../utils/formatters';
 import {
   Zap,
@@ -8,11 +8,10 @@ import {
   AlertCircle,
   RefreshCw,
   ExternalLink,
-  ShieldCheck,
-  KeyRound,
-  Lock,
-  ArrowRight,
   Sparkles,
+  CheckSquare,
+  Square,
+  Filter,
 } from 'lucide-react';
 
 export const AdminGumroadSyncPage: React.FC = () => {
@@ -24,8 +23,13 @@ export const AdminGumroadSyncPage: React.FC = () => {
   const [testingToken, setTestingToken] = useState(false);
   const [tokenStatus, setTokenStatus] = useState<{ valid: boolean; user?: any; error?: string } | null>(null);
 
-  const [syncing, setSyncing] = useState(false);
+  const [syncingAll, setSyncingAll] = useState(false);
+  const [syncingSelected, setSyncingSelected] = useState(false);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
   const [syncResult, setSyncResult] = useState<any | null>(null);
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [filterMode, setFilterMode] = useState<'all' | 'unlinked' | 'linked'>('all');
 
   useEffect(() => {
     Promise.all([
@@ -33,6 +37,10 @@ export const AdminGumroadSyncPage: React.FC = () => {
       api.getPayments(),
     ]).then(([prods, payments]) => {
       setProducts(prods);
+      // Default selection to unlinked products or all
+      const unlinked = prods.filter((p) => !p.gumroadUrl).map((p) => p.id);
+      setSelectedIds(new Set(unlinked.length > 0 ? unlinked : prods.map((p) => p.id)));
+
       const gumroad = payments.find((p) => p.provider === 'gumroad');
       if (gumroad) {
         if (gumroad.storeUrl) setStoreUrl(gumroad.storeUrl);
@@ -58,33 +66,105 @@ export const AdminGumroadSyncPage: React.FC = () => {
     }
   };
 
-  const handleSyncAll = async () => {
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredProducts.length && filteredProducts.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredProducts.map((p) => p.id)));
+    }
+  };
+
+  // Sync a single specific product
+  const handleSyncSingleProduct = async (product: Product) => {
     if (!accessToken.trim()) {
-      alert('Please paste and test your Gumroad API Access Token first.');
+      alert('Please enter your Gumroad API Access Token in Step 1 first.');
       return;
     }
-
-    if (!confirm(`This will publish and link all ${products.length} products to your Gumroad store account. Proceed-`)) {
-      return;
-    }
-
-    setSyncing(true);
+    setSyncingId(product.id);
     setSyncResult(null);
 
     try {
-      const res = await api.syncGumroadCatalog(accessToken.trim(), storeUrl);
+      const res = await api.syncGumroadCatalog(accessToken.trim(), storeUrl, [product.id]);
       setSyncResult(res);
-      // Refresh products to show new Gumroad links
+      // Refresh products list
       const updated = await api.getProducts({ status: 'all' });
       setProducts(updated);
     } catch (err: any) {
       setSyncResult({ success: false, error: err.message });
     } finally {
-      setSyncing(false);
+      setSyncingId(null);
+    }
+  };
+
+  // Sync selected products
+  const handleSyncSelected = async () => {
+    if (!accessToken.trim()) {
+      alert('Please enter your Gumroad API Access Token in Step 1 first.');
+      return;
+    }
+    if (selectedIds.size === 0) {
+      alert('Please select at least 1 product to sync.');
+      return;
+    }
+
+    setSyncingSelected(true);
+    setSyncResult(null);
+
+    try {
+      const res = await api.syncGumroadCatalog(accessToken.trim(), storeUrl, Array.from(selectedIds));
+      setSyncResult(res);
+      const updated = await api.getProducts({ status: 'all' });
+      setProducts(updated);
+    } catch (err: any) {
+      setSyncResult({ success: false, error: err.message });
+    } finally {
+      setSyncingSelected(false);
+    }
+  };
+
+  // Sync all products
+  const handleSyncAll = async () => {
+    if (!accessToken.trim()) {
+      alert('Please enter your Gumroad API Access Token in Step 1 first.');
+      return;
+    }
+
+    if (!confirm(`This will publish and link all ${products.length} products to your Gumroad store account. Proceed?`)) {
+      return;
+    }
+
+    setSyncingAll(true);
+    setSyncResult(null);
+
+    try {
+      const res = await api.syncGumroadCatalog(accessToken.trim(), storeUrl);
+      setSyncResult(res);
+      const updated = await api.getProducts({ status: 'all' });
+      setProducts(updated);
+    } catch (err: any) {
+      setSyncResult({ success: false, error: err.message });
+    } finally {
+      setSyncingAll(false);
     }
   };
 
   const syncedCount = products.filter((p) => Boolean(p.gumroadUrl)).length;
+  const unlinkedCount = products.length - syncedCount;
+
+  const filteredProducts = products.filter((p) => {
+    if (filterMode === 'unlinked') return !p.gumroadUrl;
+    if (filterMode === 'linked') return Boolean(p.gumroadUrl);
+    return true;
+  });
+
+  const isAllSelected = filteredProducts.length > 0 && filteredProducts.every((p) => selectedIds.has(p.id));
 
   return (
     <div className="space-y-8 max-w-4xl">
@@ -100,11 +180,13 @@ export const AdminGumroadSyncPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="px-4 py-2 bg-[#14141E] border border-white/10 rounded-xl flex items-center gap-2 text-xs">
-          <span className="text-gray-400">Sync Status:</span>
-          <span className="font-bold text-white">
-            {syncedCount} / {products.length} Products Linked
-          </span>
+        <div className="flex items-center gap-2">
+          <div className="px-3.5 py-2 bg-[#14141E] border border-white/10 rounded-xl flex items-center gap-2 text-xs">
+            <span className="text-gray-400">Sync Status:</span>
+            <span className="font-bold text-emerald-400">
+              {syncedCount} / {products.length} Linked
+            </span>
+          </div>
         </div>
       </div>
 
@@ -152,9 +234,10 @@ export const AdminGumroadSyncPage: React.FC = () => {
                 type="button"
                 onClick={handleTestToken}
                 disabled={testingToken || !accessToken}
-                className="px-4 py-2.5 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-xl whitespace-nowrap disabled:opacity-50 transition-colors"
+                className="px-4 py-2.5 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-xl whitespace-nowrap disabled:opacity-50 transition-colors flex items-center gap-1.5"
               >
-                {testingToken  ? 'Testing...'  : 'Test Token'}
+                {testingToken && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>{testingToken ? 'Testing...' : 'Test Token'}</span>
               </button>
             </div>
           </div>
@@ -164,7 +247,7 @@ export const AdminGumroadSyncPage: React.FC = () => {
           <div
             className={`p-3.5 rounded-xl border flex items-center gap-2 text-xs font-semibold ${
               tokenStatus.valid
-                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                 : 'bg-red-500/10 border-red-500/30 text-red-400'
             }`}
           >
@@ -187,7 +270,7 @@ export const AdminGumroadSyncPage: React.FC = () => {
 
       {/* Step 2: Product Sync Checklist */}
       <div className="bg-[#14141E] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-white/5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
               2
@@ -195,82 +278,216 @@ export const AdminGumroadSyncPage: React.FC = () => {
             <div>
               <h3 className="text-base font-bold text-white">Product Catalog Sync Checklist</h3>
               <p className="text-[11px] text-gray-400">
-                Products to be published and linked with 1-click Gumroad checkout
+                Select one, multiple, or all products to publish and link to Gumroad
               </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleSyncAll}
-            disabled={syncing || products.length === 0}
-            className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all disabled:opacity-50"
-          >
-            {syncing ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Syncing {products.length} Products...</span>
-              </>
-            ) : (
-              <>
-                <Zap className="w-4 h-4" />
-                <span>⚡ Sync All Products to Gumroad</span>
-              </>
-            )}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Sync Selected Button */}
+            <button
+              type="button"
+              onClick={handleSyncSelected}
+              disabled={syncingSelected || syncingAll || selectedIds.size === 0}
+              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md shadow-indigo-900/40 flex items-center gap-2 transition-all disabled:opacity-40"
+            >
+              {syncingSelected ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Syncing ({selectedIds.size})...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Sync Selected ({selectedIds.size})</span>
+                </>
+              )}
+            </button>
+
+            {/* Sync All Button */}
+            <button
+              type="button"
+              onClick={handleSyncAll}
+              disabled={syncingAll || syncingSelected || products.length === 0}
+              className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md shadow-purple-900/40 flex items-center gap-2 transition-all disabled:opacity-40"
+            >
+              {syncingAll ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Syncing All ({products.length})...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Sync All ({products.length})</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Tabs & Selection Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white/5 border border-white/5 rounded-2xl text-xs">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white font-bold transition-colors"
+            >
+              {isAllSelected ? (
+                <CheckSquare className="w-4 h-4 text-indigo-400" />
+              ) : (
+                <Square className="w-4 h-4 text-gray-500" />
+              )}
+              <span>{isAllSelected ? 'Deselect All' : 'Select All Filtered'}</span>
+            </button>
+            <span className="text-gray-500">|</span>
+            <span className="text-gray-400 font-semibold">
+              <strong className="text-white">{selectedIds.size}</strong> of {filteredProducts.length} selected
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1 bg-[#0A0A0F] border border-white/10 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setFilterMode('all')}
+              className={`px-3 py-1 rounded-lg font-bold transition-colors ${
+                filterMode === 'all' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              All ({products.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterMode('unlinked')}
+              className={`px-3 py-1 rounded-lg font-bold transition-colors ${
+                filterMode === 'unlinked' ? 'bg-amber-600/30 text-amber-300 border border-amber-500/30' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Ready to Sync ({unlinkedCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterMode('linked')}
+              className={`px-3 py-1 rounded-lg font-bold transition-colors ${
+                filterMode === 'linked' ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Linked ({syncedCount})
+            </button>
+          </div>
         </div>
 
         {/* Sync Summary Result */}
         {syncResult && (
-          <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Catalog Sync Completed: {syncResult.syncedCount} / {syncResult.totalProducts} Products Configured!</span>
+          <div className={`p-4 rounded-2xl flex items-center justify-between gap-4 border text-xs font-bold ${
+            syncResult.success !== false
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+              : 'bg-red-500/10 border-red-500/30 text-red-400'
+          }`}>
+            <div className="flex items-center gap-2">
+              {syncResult.success !== false ? (
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 shrink-0" />
+              )}
+              <span>
+                {syncResult.message || `Sync Completed: ${syncResult.syncedCount || 0} / ${syncResult.totalProducts || 0} Products Configured!`}
+              </span>
             </div>
           </div>
         )}
 
         {/* Product Rows */}
         <div className="divide-y divide-white/5">
-          {products.map((p) => (
-            <div key={p.id} className="py-3.5 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <img
-                  src={p.thumbnail || p.images?.[0]}
-                  alt={p.title}
-                  className="w-10 h-10 rounded-xl object-cover border border-white/10 bg-black/40 shrink-0"
-                  onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=80&q=80'; }}
-                />
-                <div className="min-w-0">
-                  <h4 className="text-xs font-bold text-white truncate">{p.title}</h4>
-                  <div className="flex items-center gap-2 mt-0.5 text-[11px] text-gray-500">
-                    <span>{formatPrice(p.price)}</span>
-                    <span>·</span>
-                    <span className="font-mono">SKU: {p.sku}</span>
+          {filteredProducts.map((p) => {
+            const isSelected = selectedIds.has(p.id);
+            const isItemSyncing = syncingId === p.id;
+
+            return (
+              <div
+                key={p.id}
+                className={`py-3.5 px-3 rounded-2xl flex items-center justify-between gap-4 transition-colors ${
+                  isSelected ? 'bg-indigo-950/20' : 'hover:bg-white/[0.02]'
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {/* Selection Checkbox */}
+                  <button
+                    type="button"
+                    onClick={() => toggleSelect(p.id)}
+                    className="text-gray-400 hover:text-white p-1"
+                    title={isSelected ? 'Deselect product' : 'Select product'}
+                  >
+                    {isSelected ? (
+                      <CheckSquare className="w-4 h-4 text-indigo-400" />
+                    ) : (
+                      <Square className="w-4 h-4 text-gray-600" />
+                    )}
+                  </button>
+
+                  <img
+                    src={p.thumbnail || p.images?.[0]}
+                    alt={p.title}
+                    className="w-10 h-10 rounded-xl object-cover border border-white/10 bg-black/40 shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=80&q=80';
+                    }}
+                  />
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-bold text-white truncate">{p.title}</h4>
+                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-gray-500">
+                      <span>{formatPrice(p.price)}</span>
+                      <span>·</span>
+                      <span className="font-mono">SKU: {p.sku}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div>
-                {p.gumroadUrl ? (
-                  <a
-                    href={p.gumroadUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-emerald-400 hover:text-emerald-300 font-bold bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1 rounded-lg border border-emerald-500/20 transition-colors"
+                <div className="flex items-center gap-2 shrink-0">
+                  {p.gumroadUrl ? (
+                    <a
+                      href={p.gumroadUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-emerald-400 hover:text-emerald-300 font-bold bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1 rounded-lg border border-emerald-500/20 transition-colors"
+                    >
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>Linked</span>
+                      <ExternalLink className="w-2.5 h-2.5 ml-0.5" />
+                    </a>
+                  ) : (
+                    <span className="text-[11px] text-amber-400 font-semibold bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20">
+                      Ready
+                    </span>
+                  )}
+
+                  {/* Individual 1-Click Sync Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleSyncSingleProduct(p)}
+                    disabled={isItemSyncing || syncingAll || syncingSelected}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-bold transition-all disabled:opacity-50"
+                    title="Sync just this single product to Gumroad"
                   >
-                    <CheckCircle2 className="w-3 h-3" />
-                    <span>Linked to Gumroad</span>
-                    <ExternalLink className="w-2.5 h-2.5 ml-0.5" />
-                  </a>
-                ) : (
-                  <span className="text-[11px] text-amber-400 font-semibold bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20">
-                    Ready to Sync
-                  </span>
-                )}
+                    {isItemSyncing ? (
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Zap className="w-3 h-3 text-indigo-400" />
+                    )}
+                    <span>{isItemSyncing ? 'Syncing…' : 'Sync'}</span>
+                  </button>
+                </div>
               </div>
+            );
+          })}
+
+          {filteredProducts.length === 0 && (
+            <div className="py-8 text-center text-xs text-gray-500">
+              No products found for the selected filter.
             </div>
-          ))}
+          )}
         </div>
       </div>
 
@@ -302,7 +519,7 @@ export const AdminGumroadSyncPage: React.FC = () => {
           <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl flex items-start gap-3">
             <Sparkles className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-bold text-indigo-200">🎉 Sync complete! Your {syncResult.syncedCount} products are on Gumroad as drafts.</p>
+              <p className="text-xs font-bold text-indigo-200">🎉 Sync complete! Your {syncResult.syncedCount || syncResult.totalProducts || 'selected'} product(s) are on Gumroad as drafts.</p>
               <p className="text-[11px] text-indigo-400 mt-0.5 leading-relaxed">
                 Complete the 4 steps below to publish them live and start accepting customer payments through Gumroad checkout.
               </p>

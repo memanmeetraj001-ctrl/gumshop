@@ -85,17 +85,29 @@ router.post('/gumroad/test', authenticate, requireRole(['superadmin', 'editor'])
   }
 });
 
-// Sync Catalog to Gumroad
+// Sync Catalog to Gumroad (Supports All, Selected, or Single Product)
 router.post('/gumroad/sync', authenticate, requireRole(['superadmin', 'editor']), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { accessToken, storeUrl } = req.body;
+    const { accessToken, storeUrl, productIds } = req.body;
     if (!accessToken) {
       res.status(400).json({ error: 'Gumroad Access Token is required to sync.' });
       return;
     }
 
     const state = await db.getState();
-    const products = state.products || [];
+    const allProducts = state.products || [];
+    
+    // Determine target subset
+    const targetIds = Array.isArray(productIds) && productIds.length > 0 ? productIds : null;
+    const productsToSync = targetIds 
+      ? allProducts.filter((p) => targetIds.includes(p.id)) 
+      : allProducts;
+
+    if (productsToSync.length === 0) {
+      res.status(400).json({ error: 'No matching products found to sync.' });
+      return;
+    }
+
     const results: Array<{ productId: string; title: string; status: 'created' | 'linked' | 'failed'; gumroadUrl?: string; error?: string }> = [];
 
     // First: fetch existing Gumroad products to avoid creating duplicates
@@ -112,7 +124,7 @@ router.post('/gumroad/sync', authenticate, requireRole(['superadmin', 'editor'])
       // Continue anyway — may still be able to create
     }
 
-    for (const prod of products) {
+    for (const prod of productsToSync) {
       try {
         // Check if product already exists on Gumroad by name or slug
         const matched = existingGumroadProducts.find(
@@ -182,9 +194,12 @@ router.post('/gumroad/sync', authenticate, requireRole(['superadmin', 'editor'])
       }
     }
 
-    // Persist updated gumroadUrls on products and save token/storeUrl
+    // Persist updated gumroadUrls in database state
     await db.saveState((s) => {
-      s.products = products;
+      s.products = (s.products || []).map((p) => {
+        const matched = productsToSync.find((item) => item.id === p.id);
+        return matched || p;
+      });
       const gumroadSetting = s.paymentIntegrations.find((p) => p.provider === 'gumroad');
       if (gumroadSetting) {
         gumroadSetting.settingsJson = {
@@ -202,13 +217,13 @@ router.post('/gumroad/sync', authenticate, requireRole(['superadmin', 'editor'])
         userName: req.user.name,
         action: 'SYNC',
         resource: 'GUMROAD',
-        details: `Synced ${results.filter((r) => r.status !== 'failed').length}/${products.length} products with Gumroad API`,
+        details: `Synced ${results.filter((r) => r.status !== 'failed').length}/${productsToSync.length} products with Gumroad API`,
       });
     }
 
     res.json({
       success: true,
-      totalProducts: products.length,
+      totalProducts: productsToSync.length,
       syncedCount: results.filter((r) => r.status !== 'failed').length,
       results,
     });

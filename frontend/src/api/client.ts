@@ -153,7 +153,7 @@ export const api = {
 
   // Gumroad API Sync Engine
   testGumroadToken: (accessToken: string) => request<{ success: boolean; user?: any; error?: string }>('/payments/gumroad/test', { method: 'POST', body: JSON.stringify({ accessToken }) }),
-  syncGumroadCatalog: (accessToken: string, storeUrl?: string) => request<{ success: boolean; totalProducts: number; syncedCount: number; results: any[] }>('/payments/gumroad/sync', { method: 'POST', body: JSON.stringify({ accessToken, storeUrl }) }),
+  syncGumroadCatalog: (accessToken: string, storeUrl?: string, productIds?: string[]) => request<{ success: boolean; totalProducts: number; syncedCount: number; results: any[] }>('/payments/gumroad/sync', { method: 'POST', body: JSON.stringify({ accessToken, storeUrl, productIds }) }),
 
   // SaaS Billing & Plan (Gumroad Subscriptions)
   getBillingPlan: () => request<{
