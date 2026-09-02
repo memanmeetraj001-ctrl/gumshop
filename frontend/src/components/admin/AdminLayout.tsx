@@ -180,7 +180,14 @@ export const AdminLayout: React.FC = () => {
                 <p className="text-[10px] text-gray-400 capitalize truncate">{user?.role || 'Merchant'}</p>
               </div>
             </div>
-            <button onClick={handleLogout} className="text-gray-400 hover:text-indigo-400 p-1.5" title="Logout"><LogOut className="w-4 h-4" /></button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="p-2 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </aside>
@@ -241,6 +248,17 @@ export const AdminLayout: React.FC = () => {
               <span>Storefront</span>
               <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
             </a>
+
+            {/* Logout Button */}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 text-xs font-bold transition-all"
+              title="Sign Out of Admin"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
 
             {/* Mobile Menu Toggle */}
             <button

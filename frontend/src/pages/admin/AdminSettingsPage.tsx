@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 import { SiteSettings } from '../../types';
 import {
@@ -18,9 +19,12 @@ import {
   RefreshCw,
   AlertCircle,
   Lock,
+  LogOut,
 } from 'lucide-react';
 
 export const AdminSettingsPage: React.FC = () => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [settings, setSettings] = useState<Partial<SiteSettings>>({});
   const [customDomain, setCustomDomain] = useState('');
   const [saved, setSaved] = useState(false);
@@ -604,15 +608,29 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-2">
-            <button
-              type="submit"
-              disabled={pwdLoading}
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-50"
-            >
-              {pwdLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-              <span>{pwdLoading ? 'Updating…' : 'Update Password'}</span>
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <div className="flex items-center gap-3">
+              <button
+                type="submit"
+                disabled={pwdLoading}
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-50 shadow-md shadow-indigo-900/40"
+              >
+                {pwdLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                <span>{pwdLoading ? 'Updating…' : 'Update Password'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  logout();
+                  navigate('/admin/login');
+                }}
+                className="px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-1.5"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Log Out</span>
+              </button>
+            </div>
 
             {pwdResult && (
               <div className={`flex items-center gap-2 p-2.5 px-3.5 rounded-xl border text-xs font-semibold ${pwdResult.success ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
