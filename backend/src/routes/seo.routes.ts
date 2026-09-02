@@ -3,17 +3,10 @@ import { db } from '../db/database';
 
 const router = Router();
 
-// Specific Google Search Console verification file
+// Exact Google Search Console verification file
 router.get('/googleb95b120fbad0cb5e.html', (req: Request, res: Response) => {
-  res.header('Content-Type', 'text/html');
-  res.send('google-site-verification: googleb95b120fbad0cb5e.html');
-});
-
-// Dynamic wildcard handler for any Google HTML verification file
-router.get('/google:code.html', (req: Request, res: Response) => {
-  const code = req.params.code;
-  res.header('Content-Type', 'text/html');
-  res.send(`google-site-verification: google${code}.html`);
+  res.header('Content-Type', 'text/html; charset=UTF-8');
+  res.status(200).send('google-site-verification: googleb95b120fbad0cb5e.html');
 });
 
 router.get('/sitemap.xml', async (req: Request, res: Response): Promise<void> => {

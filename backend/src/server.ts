@@ -113,6 +113,9 @@ export function createServer(): Express {
       if (req.path.startsWith('/api') || req.path.startsWith('/go')) {
         return next();
       }
+      if (req.path.startsWith('/google') && req.path.endsWith('.html') && req.path !== '/googleb95b120fbad0cb5e.html') {
+        return res.status(404).send('Verification file not found');
+      }
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
