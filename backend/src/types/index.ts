@@ -366,7 +366,9 @@ export interface SiteSettings {
   twitterCard: string;
   canonicalUrl: string;
   googleAnalyticsId?: string;
+  googleSearchConsoleTag?: string;
   metaPixelId?: string;
+  customHeaderScript?: string;
 }
 
 export interface AdminActivity {

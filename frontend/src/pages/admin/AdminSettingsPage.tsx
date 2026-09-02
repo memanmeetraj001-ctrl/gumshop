@@ -403,6 +403,134 @@ export const AdminSettingsPage: React.FC = () => {
           </div>
         </div>
 
+        {/* ─── Google Analytics, Google Search Console & SEO Tools ─── */}
+        <div className="bg-[#14141E] border border-indigo-500/20 rounded-3xl p-6 sm:p-8 space-y-6">
+          <div className="flex items-center justify-between pb-3 border-b border-white/5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                <Globe className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Google Analytics &amp; Search Console</h3>
+                <p className="text-gray-400 text-xs">
+                  Connect Google Search Console indexing, GA4 visitor tracking, and custom conversion pixels.
+                </p>
+              </div>
+            </div>
+            <span className="hidden sm:inline-flex px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase border border-emerald-500/20">
+              Auto-Injected Across Storefront
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Google Search Console */}
+            <div className="space-y-1.5">
+              <label className="flex items-center justify-between text-xs font-bold text-gray-300">
+                <span>Google Search Console Verification Tag / Code</span>
+                <a
+                  href="https://search.google.com/search-console"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-indigo-400 hover:text-indigo-300 text-[11px] flex items-center gap-1 font-semibold"
+                >
+                  <span>Open Search Console ↗</span>
+                </a>
+              </label>
+              <input
+                value={settings.googleSearchConsoleTag || ''}
+                onChange={(e) => setSettings({ ...settings, googleSearchConsoleTag: e.target.value })}
+                placeholder='e.g. google-site-verification=abc123xyz or ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A0A0F] border border-white/10 text-white font-mono text-xs focus:outline-none focus:border-indigo-500"
+              />
+              <p className="text-[11px] text-gray-500">
+                Paste your HTML tag verification code or token from Google Search Console.
+              </p>
+            </div>
+
+            {/* Google Analytics 4 */}
+            <div className="space-y-1.5">
+              <label className="flex items-center justify-between text-xs font-bold text-gray-300">
+                <span>Google Analytics 4 Measurement ID</span>
+                <a
+                  href="https://analytics.google.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-indigo-400 hover:text-indigo-300 text-[11px] flex items-center gap-1 font-semibold"
+                >
+                  <span>Open GA4 ↗</span>
+                </a>
+              </label>
+              <input
+                value={settings.googleAnalyticsId || ''}
+                onChange={(e) => setSettings({ ...settings, googleAnalyticsId: e.target.value })}
+                placeholder="e.g. G-XXXXXXXXXX"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A0A0F] border border-white/10 text-white font-mono text-xs focus:outline-none focus:border-indigo-500"
+              />
+              <p className="text-[11px] text-gray-500">
+                Tracks live visitors, storefront pageviews, and product conversions in Google Analytics.
+              </p>
+            </div>
+
+            {/* Meta / Facebook Pixel */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-gray-300">
+                Meta / Facebook Pixel ID (Optional)
+              </label>
+              <input
+                value={settings.metaPixelId || ''}
+                onChange={(e) => setSettings({ ...settings, metaPixelId: e.target.value })}
+                placeholder="e.g. 123456789012345"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A0A0F] border border-white/10 text-white font-mono text-xs focus:outline-none focus:border-indigo-500"
+              />
+              <p className="text-[11px] text-gray-500">
+                Fires PageView events for Facebook/Instagram retargeting ads.
+              </p>
+            </div>
+
+            {/* Canonical Base URL */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-gray-300">
+                Canonical Base URL &amp; Sitemap Origin
+              </label>
+              <input
+                value={settings.canonicalUrl || 'https://gumshop.online'}
+                onChange={(e) => setSettings({ ...settings, canonicalUrl: e.target.value })}
+                placeholder="https://gumshop.online"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A0A0F] border border-white/10 text-white text-xs focus:outline-none focus:border-indigo-500"
+              />
+              <p className="text-[11px] text-gray-500">
+                Used in <code className="text-indigo-300">/sitemap.xml</code> and <code className="text-indigo-300">/robots.txt</code>.
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Links to Sitemap & Robots */}
+          <div className="pt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-4 text-gray-400">
+              <span className="text-gray-300 font-semibold">Live Index Files:</span>
+              <a
+                href="/sitemap.xml"
+                target="_blank"
+                rel="noreferrer"
+                className="text-indigo-400 hover:underline flex items-center gap-1"
+              >
+                <span>/sitemap.xml ↗</span>
+              </a>
+              <a
+                href="/robots.txt"
+                target="_blank"
+                rel="noreferrer"
+                className="text-indigo-400 hover:underline flex items-center gap-1"
+              >
+                <span>/robots.txt ↗</span>
+              </a>
+            </div>
+            <span className="text-[11px] text-emerald-400 font-semibold">
+              ✓ Ready for Google Search Console indexing
+            </span>
+          </div>
+        </div>
+
         {/* Maintenance Mode */}
         <div className="bg-[#14141E] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-white/5">
