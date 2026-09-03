@@ -5,6 +5,9 @@ import {
   X,
   Play,
   Pause,
+  Square,
+  SkipBack,
+  SkipForward,
   RotateCcw,
   Maximize2,
   Minimize2,
@@ -34,6 +37,8 @@ import {
   Flame,
   Check,
   Key,
+  ListVideo,
+  FastForward,
 } from 'lucide-react';
 
 interface VideoDemoModalProps {
@@ -59,7 +64,11 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
   const [currentChapterIdx, setCurrentChapterIdx] = useState<number>(0);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0);
+  const [showPlaylist, setShowPlaylist] = useState<boolean>(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
 
   const chapters: Chapter[] = [
     {
@@ -71,8 +80,7 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
       icon: Store,
       duration: 8,
       renderMockup: () => (
-        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left">
-          {/* Header */}
+        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left select-none">
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 text-[10px] font-bold border border-indigo-500/30">
@@ -83,7 +91,6 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
             <span className="text-[10px] font-mono text-emerald-400 font-bold">Auto-Saving</span>
           </div>
 
-          {/* Form Fields Simulation */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 my-auto">
             <div className="bg-[#121520] p-3 rounded-xl border border-white/10 space-y-1">
               <label className="text-[10px] font-bold text-gray-400 uppercase">Store Name</label>
@@ -118,7 +125,6 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
             </div>
           </div>
 
-          {/* Stepper Footer */}
           <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
             <span className="text-[10px] text-gray-400">Next: Universal Product Importer</span>
             <div className="px-4 py-1.5 bg-indigo-600 text-white font-bold rounded-lg flex items-center gap-1 text-[11px] shadow-md animate-pulse">
@@ -137,8 +143,7 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
       icon: Download,
       duration: 8,
       renderMockup: () => (
-        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left">
-          {/* Top Bar */}
+        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left select-none">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-white uppercase font-heading flex items-center gap-1.5">
@@ -150,7 +155,6 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
               </span>
             </div>
 
-            {/* Input URL Bar */}
             <div className="flex items-center gap-2 bg-[#121520] p-1.5 rounded-xl border border-indigo-500/40">
               <div className="flex-1 px-2.5 py-1 text-xs font-mono text-gray-300 truncate">
                 https://store.brand.com/products/wireless-headphones
@@ -162,7 +166,6 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
             </div>
           </div>
 
-          {/* Extracted Product Cards Preview */}
           <div className="grid grid-cols-3 gap-2.5 my-auto">
             {[
               { title: 'Studio Headset Pro', price: '$149.00', orig: '$199.00', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&q=80' },
@@ -182,7 +185,6 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
             ))}
           </div>
 
-          {/* Action Row */}
           <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
             <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3" /> Auto-Discount: 25% OFF Applied
@@ -203,8 +205,7 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
       icon: Key,
       duration: 8,
       renderMockup: () => (
-        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left">
-          {/* Header */}
+        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left select-none">
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg bg-[#FF90E8]/20 border border-[#FF90E8]/40 flex items-center justify-center text-[#FF90E8] font-black text-xs">
@@ -217,7 +218,6 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
             </span>
           </div>
 
-          {/* Sync Items Table Simulation */}
           <div className="space-y-1.5 my-auto bg-[#121520] p-3 rounded-xl border border-white/10">
             {[
               { name: 'Studio Headset Pro', status: 'Linked', permalink: 'gumroad.com/l/headset-pro' },
@@ -241,7 +241,6 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
             ))}
           </div>
 
-          {/* Sync Action */}
           <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
             <span className="text-[10px] text-gray-400">Auto-Generates Gumroad Checkout Permalinks</span>
             <div className="px-3.5 py-1.5 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold rounded-lg text-[10px] shadow-md flex items-center gap-1.5">
@@ -261,8 +260,7 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
       icon: TrendingUp,
       duration: 8,
       renderMockup: () => (
-        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left">
-          {/* Metric Cards Grid */}
+        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left select-none">
           <div className="grid grid-cols-4 gap-2">
             {[
               { label: 'Total Revenue', value: '$8,420.00', change: '+24% this week', color: 'text-indigo-400' },
@@ -278,7 +276,6 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
             ))}
           </div>
 
-          {/* Live Recent Orders Lead Table */}
           <div className="bg-[#121520] rounded-xl border border-white/10 p-2.5 my-auto space-y-1.5">
             <div className="flex items-center justify-between text-[10px] font-bold text-gray-400 uppercase border-b border-white/5 pb-1">
               <span>Recent Orders (Physical Goods)</span>
@@ -304,7 +301,6 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
             ))}
           </div>
 
-          {/* Quick Actions Bar */}
           <div className="flex items-center justify-between pt-1.5 border-t border-white/10 text-[10px] text-gray-400">
             <span>Storefront Status: <strong className="text-emerald-400">Live &amp; Taking Orders</strong></span>
             <span className="text-indigo-400 font-bold">View Storefront ↗</span>
@@ -321,7 +317,7 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
       icon: Palette,
       duration: 8,
       renderMockup: () => (
-        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left">
+        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left select-none">
           <div className="flex items-center justify-between border-b border-white/10 pb-2">
             <span className="text-xs font-bold text-white uppercase font-heading flex items-center gap-1.5">
               <Palette className="w-3.5 h-3.5 text-purple-400" />
@@ -333,7 +329,6 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
             </div>
           </div>
 
-          {/* Presets Chips & Simulator */}
           <div className="grid grid-cols-3 gap-3 my-auto">
             <div className="col-span-1 space-y-2">
               <span className="text-[10px] font-bold text-gray-400 uppercase block">Curated Presets</span>
@@ -354,7 +349,6 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
               ))}
             </div>
 
-            {/* Live Interactive Storefront Preview Card */}
             <div className="col-span-2 bg-[#121520] rounded-xl border border-white/10 p-3 flex flex-col justify-between">
               <div className="flex items-center justify-between pb-2 border-b border-white/5">
                 <div className="flex items-center gap-1.5">
@@ -389,8 +383,7 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
       icon: ShoppingBag,
       duration: 8,
       renderMockup: () => (
-        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left">
-          {/* Pre-checkout Modal Highlight */}
+        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left select-none">
           <div className="bg-[#121520] rounded-2xl border border-indigo-500/40 p-3.5 space-y-2.5 my-auto shadow-2xl shadow-indigo-950/50">
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
               <div className="flex items-center gap-1.5">
@@ -441,8 +434,7 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
       icon: Truck,
       duration: 8,
       renderMockup: () => (
-        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left">
-          {/* Order Details & Stepper */}
+        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left select-none">
           <div className="space-y-3 my-auto">
             <div className="bg-[#121520] p-3 rounded-xl border border-white/10 flex items-center justify-between">
               <div>
@@ -455,7 +447,6 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
               </div>
             </div>
 
-            {/* 4-Step Visual Tracking Stepper */}
             <div className="bg-[#121520] p-3 rounded-xl border border-white/10 space-y-2">
               <span className="text-[10px] font-bold text-gray-400 uppercase block">Public Order Tracking Timeline (/track)</span>
               <div className="grid grid-cols-4 gap-1 text-center">
@@ -492,7 +483,7 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
       icon: Layers,
       duration: 8,
       renderMockup: () => (
-        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left">
+        <div className="w-full h-full bg-[#0B0D13] p-4 sm:p-6 flex flex-col justify-between text-left select-none">
           <div className="flex items-center justify-between border-b border-white/10 pb-2">
             <span className="text-xs font-bold text-white uppercase font-heading flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-indigo-400" />
@@ -503,7 +494,6 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
             </span>
           </div>
 
-          {/* Tenants Directory Table Simulation */}
           <div className="space-y-1.5 my-auto bg-[#121520] p-3 rounded-xl border border-white/10">
             {[
               { store: 'Rubber Couch Studio', owner: 'owner@rubbercouch.com', plan: 'Scale (Unlimited)', gmv: '$8,420' },
@@ -536,7 +526,11 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
 
   const TOTAL_DURATION = chapters.reduce((acc, c) => acc + c.duration, 0); // 64s total
 
-  // Sound toggle handler
+  const handleClose = () => {
+    demoSoundtrack.stop();
+    onClose();
+  };
+
   const handleToggleMute = () => {
     const nextMuted = !isMuted;
     setIsMuted(nextMuted);
@@ -547,79 +541,31 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
     }
   };
 
-  useEffect(() => {
-    if (isOpen && isPlaying && !isMuted) {
-      demoSoundtrack.play();
-    } else {
-      demoSoundtrack.stop();
-    }
+  const handleTogglePlay = () => {
+    setIsPlaying((prev) => {
+      const next = !prev;
+      if (next && !isMuted) demoSoundtrack.play();
+      else demoSoundtrack.stop();
+      return next;
+    });
+  };
 
-    return () => demoSoundtrack.stop();
-  }, [isOpen, isPlaying, isMuted]);
+  const handleStop = () => {
+    setIsPlaying(false);
+    setElapsed(0);
+    setCurrentChapterIdx(0);
+    demoSoundtrack.stop();
+  };
 
-  // Keyboard shortcut listener
-  useEffect(() => {
-    if (!isOpen) return;
+  const handlePrevChapter = () => {
+    const prevIdx = Math.max(0, currentChapterIdx - 1);
+    jumpToChapter(prevIdx);
+  };
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (isFullscreen) {
-          document.exitFullscreen?.();
-          setIsFullscreen(false);
-        } else {
-          handleClose();
-        }
-      }
-      if (e.key === ' ') {
-        e.preventDefault();
-        setIsPlaying((p) => {
-          if (p) demoSoundtrack.stop();
-          else if (!isMuted) demoSoundtrack.play();
-          return !p;
-        });
-      }
-      if (e.key === 'm') {
-        handleToggleMute();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isFullscreen, onClose, isPlaying, isMuted]);
-
-  // Smooth 60fps timer loop (tick every 50ms)
-  useEffect(() => {
-    if (!isOpen || !isPlaying) return;
-
-    const interval = setInterval(() => {
-      setElapsed((prev) => {
-        const next = prev + 0.05;
-        if (next >= TOTAL_DURATION) {
-          return 0; // Loop video smoothly
-        }
-        return next;
-      });
-    }, 50);
-
-    return () => clearInterval(interval);
-  }, [isOpen, isPlaying, TOTAL_DURATION]);
-
-  // Map elapsed time to active chapter
-  useEffect(() => {
-    let accumulated = 0;
-    for (let i = 0; i < chapters.length; i++) {
-      accumulated += chapters[i].duration;
-      if (elapsed < accumulated) {
-        setCurrentChapterIdx(i);
-        break;
-      }
-    }
-  }, [elapsed, chapters]);
-
-  if (!isOpen) return null;
-
-  const currentChapter = chapters[currentChapterIdx] || chapters[0];
-  const progressPercent = Math.min(100, (elapsed / TOTAL_DURATION) * 100);
+  const handleNextChapter = () => {
+    const nextIdx = Math.min(chapters.length - 1, currentChapterIdx + 1);
+    jumpToChapter(nextIdx);
+  };
 
   const jumpToChapter = (idx: number) => {
     let start = 0;
@@ -642,215 +588,353 @@ export const VideoDemoModal: React.FC<VideoDemoModalProps> = ({ isOpen, onClose,
     }
   };
 
-  const handleClose = () => {
-    demoSoundtrack.stop();
-    onClose();
-  };
+  useEffect(() => {
+    if (isOpen && isPlaying && !isMuted) {
+      demoSoundtrack.play();
+    } else {
+      demoSoundtrack.stop();
+    }
+
+    return () => demoSoundtrack.stop();
+  }, [isOpen, isPlaying, isMuted]);
+
+  // Global Keyboard Shortcuts (Esc, Q, X to exit, Space for play/pause, Left/Right for seek)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'q' || e.key === 'Q' || e.key === 'x' || e.key === 'X') {
+        if (isFullscreen) {
+          document.exitFullscreen?.();
+          setIsFullscreen(false);
+        } else {
+          handleClose();
+        }
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        handleTogglePlay();
+      } else if (e.key === 'm' || e.key === 'M') {
+        handleToggleMute();
+      } else if (e.key === 'ArrowRight') {
+        setElapsed((prev) => Math.min(TOTAL_DURATION, prev + 4));
+      } else if (e.key === 'ArrowLeft') {
+        setElapsed((prev) => Math.max(0, prev - 4));
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isFullscreen, isPlaying, isMuted, TOTAL_DURATION]);
+
+  // 60fps Loop
+  useEffect(() => {
+    if (!isOpen || !isPlaying) return;
+
+    const interval = setInterval(() => {
+      setElapsed((prev) => {
+        const next = prev + (0.05 * playbackSpeed);
+        if (next >= TOTAL_DURATION) {
+          return 0; // Loop seamlessly
+        }
+        return next;
+      });
+    }, 50);
+
+    return () => clearInterval(interval);
+  }, [isOpen, isPlaying, TOTAL_DURATION, playbackSpeed]);
+
+  // Map elapsed to chapter
+  useEffect(() => {
+    let accumulated = 0;
+    for (let i = 0; i < chapters.length; i++) {
+      accumulated += chapters[i].duration;
+      if (elapsed < accumulated) {
+        setCurrentChapterIdx(i);
+        break;
+      }
+    }
+  }, [elapsed, chapters]);
+
+  if (!isOpen) return null;
+
+  const currentChapter = chapters[currentChapterIdx] || chapters[0];
+  const progressPercent = Math.min(100, (elapsed / TOTAL_DURATION) * 100);
 
   const formatSecs = (s: number) => {
     const mins = Math.floor(s / 60);
     const secs = Math.floor(s % 60);
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-2xl animate-in fade-in duration-200">
-      {/* Sleek, Compact Frame Container (max-w-3xl) */}
+    <div
+      ref={backdropRef}
+      onClick={(e) => {
+        if (e.target === backdropRef.current) {
+          handleClose();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-2xl animate-in fade-in duration-150 cursor-default"
+    >
+      {/* 🔴 Prominent Floating Top-Right Exit Button */}
+      <button
+        type="button"
+        onClick={handleClose}
+        className="fixed top-3 right-3 sm:top-5 sm:right-5 z-[60] px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-full font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-2xl shadow-red-900/60 border border-white/20 transition-all hover:scale-105"
+        title="Exit Video Player (Esc or Q)"
+      >
+        <X className="w-4 h-4" />
+        <span>Exit Player (Esc)</span>
+      </button>
+
+      {/* ── Main VLC-Style Player Container ── */}
       <div
         ref={containerRef}
-        className="relative w-full max-w-3xl bg-[#090B0E] border border-white/15 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl shadow-black flex flex-col max-h-[94vh]"
+        className="relative w-full max-w-4xl bg-[#181A20] border-2 border-[#333742] rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl shadow-black flex flex-col max-h-[96vh]"
       >
-        {/* ── Browser Mockup Header ── */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[#12141C]">
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+        {/* ── 1. VLC Classic Titlebar ── */}
+        <div className="flex items-center justify-between px-3 py-2 bg-[#20232B] border-b border-[#2C303B] text-gray-300 select-none">
+          <div className="flex items-center gap-2 truncate">
+            {/* VLC Traffic Cone / Logo Accent */}
+            <div className="w-5 h-5 rounded bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white text-[10px] font-black shadow">
+              ▲
             </div>
-            <div className="h-3.5 w-px bg-white/10 mx-1" />
-            <span className="text-xs font-black text-white uppercase tracking-wider font-heading truncate">
-              GumShop Interactive Platform Tour
+            <span className="text-xs font-bold text-white font-mono truncate">
+              GumShop_Platform_Tour_60s.mp4 — VLC Media Player
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            {/* Audio Toggle */}
-            <button
-              type="button"
-              onClick={handleToggleMute}
-              className={`p-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 ${
-                !isMuted
-                  ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/30'
-                  : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'
-              }`}
-              title={isMuted ? 'Unmute Audio (M)' : 'Mute Audio (M)'}
-            >
-              {!isMuted ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-              <span className="text-[10px] hidden sm:inline">{!isMuted ? 'Audio On' : 'Muted'}</span>
-              {!isMuted && isPlaying && (
-                <span className="flex items-center gap-0.5 h-2">
-                  <span className="w-0.5 h-2 bg-indigo-400 animate-pulse" />
-                  <span className="w-0.5 h-3 bg-indigo-400 animate-pulse delay-75" />
-                  <span className="w-0.5 h-1.5 bg-indigo-400 animate-pulse delay-150" />
-                </span>
-              )}
-            </button>
-
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-              title="Toggle Fullscreen"
+              className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+              title="Fullscreen (F)"
             >
               {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
             </button>
-
             <button
               type="button"
               onClick={handleClose}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-300 transition-colors"
-              title="Close (Esc)"
+              className="p-1 px-2 rounded bg-red-600/80 hover:bg-red-600 text-white transition-colors font-bold text-xs"
+              title="Close Player (Esc)"
             >
-              <X className="w-3.5 h-3.5" />
+              ✕
             </button>
           </div>
         </div>
 
-        {/* ── Video Player Canvas / Screen (Compact 16:9) ── */}
-        <div className="relative aspect-video bg-[#050608] flex items-center justify-center overflow-hidden group select-none">
+        {/* ── 2. Screen / Canvas Viewport (16:9) ── */}
+        <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden group select-none">
           {videoUrl ? (
             <iframe
               src={videoUrl}
-              title="GumShop Platform Demo Video"
+              title="GumShop Video"
               className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="autoplay"
               allowFullScreen
             />
           ) : (
             <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
               {/* Dynamic Live Vector UI Render */}
-              <div className="absolute inset-0 w-full h-full transition-all duration-300">
+              <div className="absolute inset-0 w-full h-full transition-all duration-200">
                 {currentChapter.renderMockup()}
               </div>
 
-              {/* Floating Chapter Pill Badge */}
-              <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 shadow-lg">
-                <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
-                <span className="text-[10px] font-bold text-white uppercase tracking-wider">
-                  {currentChapter.badge}
+              {/* Floating VLC OSD (On-Screen Display) Badge */}
+              <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-black/85 backdrop-blur-md px-3 py-1.5 rounded-lg border border-orange-500/40 shadow-lg text-orange-400">
+                <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-white">
+                  Chapter {currentChapter.id}/{chapters.length}: {currentChapter.badge}
                 </span>
               </div>
 
-              {/* Centered Play/Pause Click Overlay */}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsPlaying((p) => {
-                    if (p) demoSoundtrack.stop();
-                    else if (!isMuted) demoSoundtrack.play();
-                    return !p;
-                  });
-                }}
-                className="absolute inset-0 w-full h-full flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              {/* Click-to-Play/Pause Overlay */}
+              <div
+                onClick={handleTogglePlay}
+                className="absolute inset-0 w-full h-full flex items-center justify-center bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10"
               >
-                <div className="p-4 rounded-2xl bg-indigo-600/90 text-white shadow-2xl backdrop-blur-md transform scale-90 hover:scale-100 transition-transform">
+                <div className="p-3.5 rounded-full bg-orange-600/90 text-white shadow-2xl backdrop-blur-md">
                   {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
                 </div>
-              </button>
+              </div>
             </div>
           )}
         </div>
 
-        {/* ── Narration Subtitle & Explanation Strip ── */}
-        <div className="px-4 py-3 bg-[#0E1017] border-t border-white/10 flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0 mt-0.5">
-            {React.createElement(currentChapter.icon, { className: 'w-4 h-4' })}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="text-xs font-black text-white uppercase font-heading truncate">
-                {currentChapter.title}
-              </h3>
-              <span className="text-[10px] font-mono text-gray-400">
-                ({formatSecs(elapsed)} / {formatSecs(TOTAL_DURATION)})
-              </span>
+        {/* ── 3. Narration Strip / Current Step Info ── */}
+        <div className="px-3.5 py-2.5 bg-[#12141A] border-t border-[#262A34] flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/30 shrink-0">
+              {React.createElement(currentChapter.icon, { className: 'w-4 h-4' })}
             </div>
-            <p className="text-[11px] text-gray-300 mt-0.5 leading-snug">
-              {currentChapter.subtitle}
-            </p>
-          </div>
-        </div>
-
-        {/* ── Timeline Scrubber Bar ── */}
-        <div className="px-4 py-2 bg-[#090B0E] border-t border-white/5 space-y-2">
-          {/* Progress Line */}
-          <div
-            className="relative w-full h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer group/bar"
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const clickX = e.clientX - rect.left;
-              const pct = clickX / rect.width;
-              setElapsed(pct * TOTAL_DURATION);
-            }}
-          >
-            <div
-              className="absolute top-0 left-0 bottom-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-75"
-              style={{ width: `${progressPercent}%` }}
-            />
+            <div className="min-w-0">
+              <span className="font-bold text-white block truncate">{currentChapter.title}</span>
+              <span className="text-[11px] text-gray-400 block truncate">{currentChapter.subtitle}</span>
+            </div>
           </div>
 
-          {/* Chapter Quick-Jump Chips (Scrollable) */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-            {chapters.map((ch, idx) => {
-              const isActive = currentChapterIdx === idx;
-              return (
-                <button
-                  key={ch.id}
-                  type="button"
-                  onClick={() => jumpToChapter(idx)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all flex items-center gap-1 shrink-0 ${
-                    isActive
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/30'
-                      : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  <span>{ch.id}.</span>
-                  <span>{ch.badge.replace('Step ', '')}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ── Footer CTA ── */}
-        <div className="px-4 py-3 bg-[#12141C] border-t border-white/10 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Speed Multiplier */}
             <button
               type="button"
               onClick={() => {
-                setElapsed(0);
-                setCurrentChapterIdx(0);
-                setIsPlaying(true);
-                if (!isMuted) demoSoundtrack.play();
+                const speeds = [1.0, 1.25, 1.5, 2.0];
+                const next = speeds[(speeds.indexOf(playbackSpeed) + 1) % speeds.length];
+                setPlaybackSpeed(next);
               }}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-bold transition-colors flex items-center gap-1"
+              className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded border border-white/10 text-[10px] font-mono font-bold text-gray-300"
+              title="Change Speed"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span className="text-[10px]">Restart</span>
+              {playbackSpeed}x
+            </button>
+
+            {/* Playlist Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowPlaylist(!showPlaylist)}
+              className={`px-2 py-1 rounded border text-[10px] font-bold flex items-center gap-1 transition-colors ${
+                showPlaylist ? 'bg-orange-600 text-white border-orange-500' : 'bg-white/5 text-gray-300 border-white/10'
+              }`}
+            >
+              <ListVideo className="w-3 h-3" />
+              <span>Chapters ({chapters.length})</span>
             </button>
           </div>
+        </div>
 
-          <div className="flex items-center gap-2">
-            <Link
-              to="/signup"
-              onClick={handleClose}
-              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-900/30 flex items-center gap-1.5 transition-all"
+        {/* ── 4. Expandable Playlist Drawer ── */}
+        {showPlaylist && (
+          <div className="p-2 bg-[#0E1015] border-t border-[#262A34] grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px]">
+            {chapters.map((ch, idx) => (
+              <button
+                key={ch.id}
+                type="button"
+                onClick={() => {
+                  jumpToChapter(idx);
+                  setShowPlaylist(false);
+                }}
+                className={`p-1.5 rounded-lg text-left truncate font-bold transition-all border ${
+                  currentChapterIdx === idx
+                    ? 'bg-orange-600 text-white border-orange-500'
+                    : 'bg-[#181A20] text-gray-400 border-white/5 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <span>{ch.id}. {ch.badge.replace('Step ', '')}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ── 5. Iconic VLC Control Dock ── */}
+        <div className="p-3 bg-[#1D2028] border-t border-[#2C303B] space-y-2.5 select-none">
+          {/* VLC Scrubber Slider */}
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-mono font-bold text-orange-400 w-10 text-right">
+              {formatSecs(elapsed)}
+            </span>
+
+            <div
+              className="relative flex-1 h-2 bg-[#2E3340] rounded-full overflow-hidden cursor-pointer group/seek"
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const pct = Math.max(0, Math.min(1, clickX / rect.width));
+                setElapsed(pct * TOTAL_DURATION);
+              }}
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Launch Your Store Free</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+              <div
+                className="absolute top-0 left-0 bottom-0 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+
+            <span className="text-[10px] font-mono font-bold text-gray-400 w-10">
+              {formatSecs(TOTAL_DURATION)}
+            </span>
+          </div>
+
+          {/* VLC Playback Action Buttons */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Transport Buttons */}
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handlePrevChapter}
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                title="Previous Chapter"
+              >
+                <SkipBack className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleTogglePlay}
+                className="p-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold transition-all shadow-md shadow-orange-950 flex items-center justify-center"
+                title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+              >
+                {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleStop}
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                title="Stop / Reset"
+              >
+                <Square className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleNextChapter}
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                title="Next Chapter"
+              >
+                <SkipForward className="w-4 h-4" />
+              </button>
+
+              <div className="h-4 w-px bg-white/10 mx-1" />
+
+              {/* Audio Mute Toggle */}
+              <button
+                type="button"
+                onClick={handleToggleMute}
+                className={`p-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
+                  !isMuted ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-white/5 text-gray-400 hover:text-white'
+                }`}
+                title={isMuted ? 'Unmute Audio (M)' : 'Mute Audio (M)'}
+              >
+                {!isMuted ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                <span className="text-[10px] hidden sm:inline">{!isMuted ? 'Sound On' : 'Muted'}</span>
+              </button>
+            </div>
+
+            {/* Right Action: Launch & Direct Close */}
+            <div className="flex items-center gap-2">
+              <Link
+                to="/signup"
+                onClick={handleClose}
+                className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-lg shadow-md flex items-center gap-1.5 transition-all"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Launch Free</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+
+              {/* Big Red Exit Button right in the dock */}
+              <button
+                type="button"
+                onClick={handleClose}
+                className="px-3.5 py-1.5 bg-red-600/90 hover:bg-red-500 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1"
+                title="Exit Player (Esc / Q)"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Exit</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
