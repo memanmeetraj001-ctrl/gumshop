@@ -23,7 +23,11 @@ router.get('/track/:query', async (req: Request, res: Response): Promise<void> =
     const cleanQuery = query.trim().toLowerCase();
 
     const order = (state.orders || []).find(
-      (o) => o.orderNumber.toLowerCase() === cleanQuery || o.customerEmail.toLowerCase() === cleanQuery || o.id.toLowerCase() === cleanQuery
+      (o) =>
+        o.orderNumber.toLowerCase() === cleanQuery ||
+        o.customerEmail.toLowerCase() === cleanQuery ||
+        o.id.toLowerCase() === cleanQuery ||
+        (o.trackingNumber && o.trackingNumber.toLowerCase() === cleanQuery)
     );
 
     if (!order) {
