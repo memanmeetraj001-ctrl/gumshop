@@ -26,7 +26,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Generate clean slug for the store
-    const baseSlug = storeName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'my?.store';
+    const baseSlug = storeName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'my-store';
     let slug = baseSlug;
     let counter = 1;
     while (state.tenants && state.tenants.some((t) => t.slug === slug)) {
@@ -174,7 +174,6 @@ router.post('/change-password', authenticate, async (req: AuthRequest, res: Resp
     }
 
     const isMatch = bcrypt.compareSync(currentPassword, user.password) ||
-      (currentPassword === 'admin123' && user.role === 'superadmin') ||
       (process.env.ADMIN_PASSWORD && currentPassword === process.env.ADMIN_PASSWORD);
 
     if (!isMatch) {

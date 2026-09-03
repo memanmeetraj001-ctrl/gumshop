@@ -318,13 +318,13 @@ export const CartDrawer: React.FC = () => {
                 onClick={() => openCheckoutModal()}
                 className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-900/30 flex items-center justify-center gap-2 transition-all"
               >
-                <span>{gumroadIntegration?.buttonText || 'Buy Now ? Free Shipping'}</span>
+                <span>{gumroadIntegration?.buttonText || 'Buy Now — Free Shipping'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
               <div className="flex items-center justify-center gap-2 text-[11px] text-gray-400 pt-1">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>30-Day Money-Back Guarantee ? SSL Encrypted</span>
+                <span>30-Day Money-Back Guarantee · SSL Encrypted</span>
               </div>
             </div>
           )}

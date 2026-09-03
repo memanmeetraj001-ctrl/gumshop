@@ -443,7 +443,7 @@ export const AdminProductsPage: React.FC = () => {
                         disabled={togglingId === product.id}
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border transition-all ${
                           product.status === 'published'
-                             ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover :bg-emerald-500/20'
+                             ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
                             : 'bg-gray-500/10 text-gray-400 border-gray-500/20 hover:bg-gray-500/20'
                         } disabled:opacity-50`}
                         title={`Click to ${product.status === 'published'  ? 'unpublish'  : 'publish'}`}
@@ -644,7 +644,7 @@ export const AdminProductsPage: React.FC = () => {
                     onClick={() => handleToggleStatus(product)}
                     className={`p-1.5 rounded-lg transition-colors ${
                       product.status === 'published'
-                         ? 'bg-emerald-500/10 text-emerald-400 hover :bg-emerald-500/20'
+                         ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
                         : 'bg-gray-500/10 text-gray-400 hover:bg-gray-500/20'
                     }`}
                     title={product.status === 'published'  ? 'Unpublish'  : 'Publish'}

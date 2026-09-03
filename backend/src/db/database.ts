@@ -149,18 +149,18 @@ class DatabaseManager {
       mediaItems: [
         {
           id: 'med_1',
-          filename: 'swivel?.gun?.detail.jpg',
-          url: 'https://images.unsplash.com/photo?.1607860108855?.64acf2078ed9?.auto=format&fit=crop&w=1200&q=80',
+          filename: 'studio-headphones.jpg',
+          url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1200&q=80',
           type: 'image',
           size: 420000,
           folder: 'products',
-          altText: 'GumShop Swivel Gun Pro',
+          altText: 'Studio Wireless Headphones',
           createdAt: new Date().toISOString(),
         },
         {
           id: 'med_2',
-          filename: 'foam?.cannon?.clinging?.foam.jpg',
-          url: 'https://images.unsplash.com/photo?.1520340356584?.f9917d1eea6f?.auto=format&fit=crop&w=1200&q=80',
+          filename: 'lifestyle-accessories.jpg',
+          url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1200&q=80',
           type: 'image',
           size: 380000,
           folder: 'products',
@@ -175,7 +175,7 @@ class DatabaseManager {
           userName: 'GumShop Super Admin',
           action: 'INITIALIZE',
           resource: 'SYSTEM',
-          details: 'System initialized with GumShop clean?.room demo data',
+          details: 'System initialized with GumShop clean demo data',
           timestamp: new Date().toISOString(),
         },
       ],
@@ -292,13 +292,11 @@ class DatabaseManager {
       timestamp: new Date().toISOString(),
     };
 
-    await this.saveState((state) => {
-      if (!state.analyticsEvents) state.analyticsEvents = [];
-      state.analyticsEvents.unshift(fullEvent);
-      if (state.analyticsEvents.length > 5000) {
-        state.analyticsEvents = state.analyticsEvents.slice(0, 5000);
-      }
-    });
+    if (!this.memoryDb.analyticsEvents) this.memoryDb.analyticsEvents = [];
+    this.memoryDb.analyticsEvents.unshift(fullEvent);
+    if (this.memoryDb.analyticsEvents.length > 5000) {
+      this.memoryDb.analyticsEvents = this.memoryDb.analyticsEvents.slice(0, 5000);
+    }
 
     if (this.isPostgres && this.pgPool) {
       try {

@@ -19,8 +19,8 @@ router.post('/', authenticate, requireRole(['superadmin', 'editor']), async (req
     const data = req.body;
     const newItem: MediaItem = {
       id: 'med_' + Date.now().toString(36),
-      filename: data.filename || 'uploaded?.image.jpg',
-      url: data.url || 'https://images.unsplash.com/photo?.1607860108855?.64acf2078ed9?.auto=format&fit=crop&w=1200&q=80',
+      filename: data.filename || 'uploaded-image.jpg',
+      url: data.url || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1200&q=80',
       type: data.type || 'image',
       size: Number(data.size) || 120000,
       folder: data.folder || 'general',

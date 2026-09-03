@@ -9,7 +9,7 @@ const router = Router();
 // ==========================================
 
 // Super-Admin: Get all tenants / stores platform overview
-router.get('/super/all', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/super/all', authenticate, requireRole(['superadmin']), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const state = await db.getState();
     const tenants = state.tenants || [];
@@ -49,7 +49,7 @@ router.get('/super/all', authenticate, async (req: AuthRequest, res: Response): 
 });
 
 // Super-Admin: Update Tenant Plan
-router.patch('/super/:id/plan', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.patch('/super/:id/plan', authenticate, requireRole(['superadmin']), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { plan, productLimit } = req.body;
@@ -70,7 +70,7 @@ router.patch('/super/:id/plan', authenticate, async (req: AuthRequest, res: Resp
 });
 
 // Super-Admin: Toggle Store Active Status
-router.patch('/super/:id/status', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.patch('/super/:id/status', authenticate, requireRole(['superadmin']), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     let newStatus = true;
@@ -91,7 +91,7 @@ router.patch('/super/:id/status', authenticate, async (req: AuthRequest, res: Re
 });
 
 // Super-Admin: Delete Tenant Store
-router.delete('/super/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.delete('/super/:id', authenticate, requireRole(['superadmin']), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     if (id === 'tenant_demo' || id === 'demo') {

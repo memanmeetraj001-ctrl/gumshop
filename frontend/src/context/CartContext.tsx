@@ -88,7 +88,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let checkoutUrl = p.gumroadUrl || `https://gumroad.com/l/${p.slug}`;
     if (p.directCheckout && !checkoutUrl.includes('wanted=true')) {
-      checkoutUrl += checkoutUrl.includes('-')  ? '&wanted=true'  : '?wanted=true';
+      checkoutUrl += checkoutUrl.includes('?') ? '&wanted=true' : '?wanted=true';
     }
 
     api.trackEvent({
