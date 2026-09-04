@@ -1029,6 +1029,128 @@ const plans: Plan[] = [
   },
 ];
 
+export function CompetitorComparisonSection() {
+  const comparisonData = [
+    {
+      feature: 'Monthly Platform Fee',
+      gumshop: '$0/mo (Free Forever)',
+      shopify: '$39/mo + app costs',
+      stan: '$29/mo',
+      woo: 'Hosting + Plugins ($25+/mo)',
+    },
+    {
+      feature: 'Extra Transaction Commission',
+      gumshop: '0% (Keep 100%)',
+      shopify: '0.5% - 2.0% cut',
+      stan: '0%',
+      woo: 'Gateway fees',
+    },
+    {
+      feature: 'Time to First Live Sale',
+      gumshop: '60 Seconds',
+      shopify: '3 to 7 Days',
+      stan: '20 Minutes',
+      woo: '1 to 2 Weeks',
+    },
+    {
+      feature: '1-Click Universal Importer',
+      gumshop: '✅ Built-in (Shopify/Woo/HTML)',
+      shopify: '❌ Paid CSV Apps ($10–$50/mo)',
+      stan: '❌ Manual entry only',
+      woo: '❌ Complex XML/CSV',
+    },
+    {
+      feature: 'Pre-Checkout Delivery Address Capture',
+      gumshop: '✅ Built-in (Physical goods ready)',
+      shopify: '✅ Native checkout',
+      stan: '❌ Digital focus only',
+      woo: '✅ Plugin required',
+    },
+    {
+      feature: 'Instant Gumroad Sync & Payouts',
+      gumshop: '✅ 1-Click direct API sync',
+      shopify: '❌ Not supported',
+      stan: '❌ Not supported',
+      woo: '❌ Not supported',
+    },
+    {
+      feature: 'Visual Theme Studio & Device Simulator',
+      gumshop: '✅ 8 Presets with real-time preview',
+      shopify: '⚠️ Liquid code required for custom edits',
+      stan: '❌ Limited layout options',
+      woo: '⚠️ PHP & Theme files',
+    },
+  ];
+
+  return (
+    <section id="comparison" className="py-24 md:py-32 bg-[#090B0E] border-y border-white/5 relative overflow-hidden">
+      <div className="mx-auto max-w-6xl px-5 lg:px-8 space-y-12">
+        <Reveal className="mx-auto max-w-3xl text-center space-y-4">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-widest">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>VALUE COMPARISON MATRIX</span>
+          </div>
+          <h2 className="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight font-heading">
+            Why Creators Switch to GumShop
+          </h2>
+          <p className="text-base sm:text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+            Stop paying hundreds in recurring SaaS subscriptions for bloated features you don&apos;t use.
+          </p>
+        </Reveal>
+
+        {/* Comparison Table Card */}
+        <div className="bg-[#12141C] border border-white/10 rounded-3xl overflow-hidden shadow-2xl shadow-black/80">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b border-white/10 bg-[#161924]/80">
+                  <th className="p-4 sm:p-6 text-gray-400 font-bold uppercase tracking-wider">Features &amp; Costs</th>
+                  <th className="p-4 sm:p-6 text-indigo-300 font-black uppercase tracking-wider bg-indigo-950/40 border-x border-indigo-500/30">
+                    <div className="flex items-center gap-1.5">
+                      <Zap className="w-4 h-4 text-indigo-400" />
+                      <span>GumShop</span>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] bg-indigo-500 text-white ml-1">WINNER</span>
+                    </div>
+                  </th>
+                  <th className="p-4 sm:p-6 text-gray-400 font-bold uppercase tracking-wider">Shopify</th>
+                  <th className="p-4 sm:p-6 text-gray-400 font-bold uppercase tracking-wider">Stan Store</th>
+                  <th className="p-4 sm:p-6 text-gray-400 font-bold uppercase tracking-wider">WooCommerce</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {comparisonData.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="p-4 sm:p-6 font-bold text-white">{row.feature}</td>
+                    <td className="p-4 sm:p-6 font-black text-emerald-400 bg-indigo-950/20 border-x border-indigo-500/20">
+                      {row.gumshop}
+                    </td>
+                    <td className="p-4 sm:p-6 text-gray-400">{row.shopify}</td>
+                    <td className="p-4 sm:p-6 text-gray-400">{row.stan}</td>
+                    <td className="p-4 sm:p-6 text-gray-400">{row.woo}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="p-6 bg-[#0E1018] border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-xs text-gray-300">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span><strong>Total Creator Savings:</strong> Save an average of <strong>$580/year</strong> vs. Shopify + paid app plugins.</span>
+            </div>
+            <Link
+              to="/signup"
+              className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-indigo-900/40 shrink-0"
+            >
+              Claim Free Storefront →
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function PricingSection() {
   const [annual, setAnnual] = useState(false);
 
@@ -1465,6 +1587,7 @@ export const LandingPage: React.FC = () => {
         <LogoStrip />
         <ShowcaseCarouselSection />
         <FeaturesSection />
+        <CompetitorComparisonSection />
         <HowItWorks />
         <PricingSection />
         <TestimonialsSection />
