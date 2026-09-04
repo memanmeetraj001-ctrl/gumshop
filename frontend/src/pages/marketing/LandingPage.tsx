@@ -233,59 +233,7 @@ const sidebarItems = [
   { icon: RefreshCw, label: 'Gumroad Sync', active: false },
 ];
 
-export type LandingVariant = 'obsidian-pas' | 'creator-aida' | 'minimal-bab';
-
-export function HeroSection({
-  onWatchDemo,
-  variant = 'obsidian-pas',
-  onSelectVariant,
-}: {
-  onWatchDemo?: () => void;
-  variant?: LandingVariant;
-  onSelectVariant?: (v: LandingVariant) => void;
-}) {
-  const variantContent = {
-    'obsidian-pas': {
-      badge: '⚡ PAS Framework: 0% Extra Fees · No Shopify Bloat',
-      badgeClass: 'border-indigo-500/30 bg-indigo-950/60 text-indigo-300',
-      headlinePrefix: 'Tired of Shopify Fees?',
-      headlineMiddle: 'Launch a Gumroad Store',
-      headlineAccent: 'In 60 Seconds.',
-      gradient: 'from-indigo-400 via-purple-400 to-pink-400',
-      description:
-        'Why pay $39/month plus 2% transaction cuts? GumShop turns any link into an ultra-fast, modern storefront with 0% extra fees and automated shipping address capture.',
-      primaryBtn: 'Launch My Free Store',
-      primaryBtnGradient: 'from-indigo-600 to-purple-600 shadow-indigo-900/40',
-      radialGlow: 'bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(99,102,241,0.18),transparent)]',
-    },
-    'creator-aida': {
-      badge: '🚀 AIDA Framework: High-Energy Creator E-Commerce',
-      badgeClass: 'border-pink-500/30 bg-pink-950/60 text-pink-300',
-      headlinePrefix: 'Turn Any Link Into a',
-      headlineMiddle: 'High-Converting Store',
-      headlineAccent: 'With 1-Click Sync.',
-      gradient: 'from-pink-400 via-rose-400 to-amber-400',
-      description:
-        'The all-in-one e-commerce growth engine for digital creators and physical brand builders. 1-click product scraping, instant Gumroad catalog sync, and automated lead capture.',
-      primaryBtn: 'Start Selling Today — Free',
-      primaryBtnGradient: 'from-pink-600 to-rose-600 shadow-pink-900/40',
-      radialGlow: 'bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(244,63,94,0.18),transparent)]',
-    },
-    'minimal-bab': {
-      badge: '✨ BAB Framework: Before & After Simplicity',
-      badgeClass: 'border-sky-500/30 bg-sky-950/60 text-sky-300',
-      headlinePrefix: 'From Product Link',
-      headlineMiddle: 'To Live Storefront.',
-      headlineAccent: 'Without Complexity.',
-      gradient: 'from-sky-400 via-teal-300 to-emerald-400',
-      description:
-        'Before: Weeks configuring themes, paying monthly plugin fees, and debugging carts. After: A headless, lightning-fast store connected directly to your Gumroad payouts in one link.',
-      primaryBtn: 'Build My Store Now',
-      primaryBtnGradient: 'from-sky-600 to-teal-600 shadow-sky-900/40',
-      radialGlow: 'bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(56,189,248,0.18),transparent)]',
-    },
-  }[variant];
-
+export function HeroSection({ onWatchDemo }: { onWatchDemo?: () => void }) {
   return (
     <section
       id="top"
@@ -293,92 +241,45 @@ export function HeroSection({
     >
       <div
         aria-hidden="true"
-        className={`pointer-events-none absolute inset-0 ${variantContent.radialGlow}`}
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(56,189,248,0.18),transparent)]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/3 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-purple-700/10 blur-[120px]"
+        className="pointer-events-none absolute left-1/2 top-1/3 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-indigo-700/10 blur-[120px]"
       />
 
       <div className="relative mx-auto w-full max-w-5xl px-5 text-center lg:px-8">
-        {/* Style & Copy Variant Switcher Pill */}
-        <div className="animate-fade-up inline-flex flex-wrap items-center justify-center gap-1.5 p-1 rounded-2xl bg-[#111420] border border-white/10 mb-6 shadow-xl">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 px-2.5">
-            🎨 Landing Style:
-          </span>
-          <button
-            type="button"
-            onClick={() => onSelectVariant?.('obsidian-pas')}
-            className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-              variant === 'obsidian-pas'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            Obsidian Dark (PAS)
-          </button>
-          <button
-            type="button"
-            onClick={() => onSelectVariant?.('creator-aida')}
-            className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-              variant === 'creator-aida'
-                ? 'bg-pink-600 text-white shadow-md'
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            Bold Creator (AIDA)
-          </button>
-          <button
-            type="button"
-            onClick={() => onSelectVariant?.('minimal-bab')}
-            className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-              variant === 'minimal-bab'
-                ? 'bg-sky-600 text-white shadow-md'
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            Minimal Bento (BAB)
-          </button>
-        </div>
-
         <div>
-          <div className={`animate-fade-up inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold ${variantContent.badgeClass}`}>
-            <Zap className="h-4 w-4" aria-hidden="true" />
-            {variantContent.badge}
+          <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-950/60 px-4 py-2 text-sm font-bold text-sky-300 shadow-lg shadow-sky-950/40">
+            <Zap className="h-4 w-4 text-sky-400" aria-hidden="true" />
+            <span>✨ BAB Framework: Before &amp; After Simplicity · 0% Extra Fees</span>
           </div>
         </div>
 
-        <h1 className="mt-6 text-balance text-5xl font-black leading-none tracking-tighter text-white sm:text-6xl md:text-8xl">
+        <h1 className="mt-8 text-balance text-5xl font-black leading-none tracking-tighter text-white sm:text-6xl md:text-8xl">
           <span className="animate-fade-up inline-block" style={{ animationDelay: '80ms' }}>
-            {variantContent.headlinePrefix}
+            Tired of Shopify Fees?
           </span>
           <br />
           <span className="animate-fade-up inline-block" style={{ animationDelay: '180ms' }}>
-            {variantContent.headlineMiddle}
+            Launch a Gumroad Store
           </span>
           <br />
           <span
-            className={`animate-fade-up inline-block bg-gradient-to-r ${variantContent.gradient} bg-clip-text text-transparent`}
+            className="animate-fade-up inline-block bg-gradient-to-r from-sky-400 via-indigo-300 to-teal-300 bg-clip-text text-transparent"
             style={{ animationDelay: '280ms' }}
           >
-            {variantContent.headlineAccent}
+            In 60 Seconds.
           </span>
         </h1>
 
         <p
-          className="animate-fade-up mx-auto mt-7 max-w-2xl text-pretty text-lg leading-relaxed text-gray-400 md:text-2xl"
+          className="animate-fade-up mx-auto mt-7 max-w-2xl text-pretty text-lg leading-relaxed text-gray-300 md:text-2xl"
           style={{ animationDelay: '380ms' }}
         >
-          {variantContent.description}
+          <strong>Before:</strong> Weeks configuring complex themes, paying $39/mo plus transaction cuts, and debugging carts. <br className="hidden sm:inline" />
+          <strong>After:</strong> A headless, lightning-fast store connected directly to your Gumroad payouts in one link.
         </p>
-
-        {/* Special AIDA Comparison ROI badge if creator variant */}
-        {variant === 'creator-aida' && (
-          <div className="animate-fade-up mt-6 max-w-lg mx-auto p-3 rounded-2xl bg-pink-950/40 border border-pink-500/30 text-xs text-pink-200 flex items-center justify-between shadow-lg">
-            <span>💸 <strong>Shopify:</strong> $39/mo + 2% cuts ($468+/yr)</span>
-            <span className="font-black text-emerald-400">→ GumShop: $0/mo Free Tier</span>
-          </div>
-        )}
 
         <div
           className="animate-fade-up mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"
@@ -386,17 +287,17 @@ export function HeroSection({
         >
           <Link
             to="/signup"
-            className={`inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r ${variantContent.primaryBtnGradient} px-8 py-4 text-lg font-bold text-white shadow-2xl transition-all hover:scale-[1.02]`}
+            className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-600 via-indigo-600 to-teal-600 px-8 py-4 text-lg font-bold text-white shadow-2xl shadow-sky-950/60 transition-all hover:scale-[1.02] hover:brightness-110 active:scale-95"
           >
             <Rocket className="h-5 w-5" aria-hidden="true" />
-            {variantContent.primaryBtn}
+            Launch My Free Store
           </Link>
           <button
             type="button"
             onClick={onWatchDemo}
-            className="inline-flex items-center gap-2.5 rounded-2xl border border-white/15 bg-white/5 px-8 py-4 text-lg font-bold text-white transition-all hover:bg-white/10 hover:border-indigo-500/40 hover:scale-[1.02] shadow-lg shadow-black/40 group cursor-pointer"
+            className="inline-flex items-center gap-2.5 rounded-2xl border border-white/15 bg-white/5 px-8 py-4 text-lg font-bold text-white transition-all hover:bg-white/10 hover:border-sky-500/40 hover:scale-[1.02] shadow-lg shadow-black/40 group cursor-pointer"
           >
-            <span className="w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+            <span className="w-7 h-7 rounded-full bg-sky-600/30 border border-sky-500/40 flex items-center justify-center text-sky-400 group-hover:bg-sky-600 group-hover:text-white transition-colors">
               <Play className="h-3.5 w-3.5 fill-current ml-0.5" aria-hidden="true" />
             </span>
             <span>Watch Demo (60s)</span>
@@ -1569,21 +1470,16 @@ export function LandingFooter() {
 
 export const LandingPage: React.FC = () => {
   const [showDemoModal, setShowDemoModal] = useState(false);
-  const [landingVariant, setLandingVariant] = useState<LandingVariant>('obsidian-pas');
 
   return (
-    <div className="min-h-screen scroll-smooth bg-[#07080B] text-white selection:bg-indigo-500 selection:text-white relative">
+    <div className="min-h-screen scroll-smooth bg-[#07080B] text-white selection:bg-sky-500 selection:text-white">
       <VideoDemoModal
         isOpen={showDemoModal}
         onClose={() => setShowDemoModal(false)}
       />
       <LandingNav />
       <main>
-        <HeroSection
-          onWatchDemo={() => setShowDemoModal(true)}
-          variant={landingVariant}
-          onSelectVariant={setLandingVariant}
-        />
+        <HeroSection onWatchDemo={() => setShowDemoModal(true)} />
         <LogoStrip />
         <ShowcaseCarouselSection />
         <FeaturesSection />
@@ -1594,49 +1490,6 @@ export const LandingPage: React.FC = () => {
         <FinalCTA />
       </main>
       <SaaSFooter />
-
-      {/* Floating Bottom-Right Quick Variant Dock */}
-      <div className="fixed bottom-5 right-5 z-40 hidden md:flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#090B10]/90 backdrop-blur-xl border border-white/15 shadow-2xl">
-        <span className="text-[10px] font-mono font-bold text-gray-400 px-2 uppercase">
-          🎨 Style:
-        </span>
-        <button
-          type="button"
-          onClick={() => setLandingVariant('obsidian-pas')}
-          className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all ${
-            landingVariant === 'obsidian-pas'
-              ? 'bg-indigo-600 text-white shadow'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
-          title="Problem Agitate Solution - Dark Obsidian"
-        >
-          PAS
-        </button>
-        <button
-          type="button"
-          onClick={() => setLandingVariant('creator-aida')}
-          className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all ${
-            landingVariant === 'creator-aida'
-              ? 'bg-pink-600 text-white shadow'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
-          title="Attention Interest Desire Action - Bold Creator"
-        >
-          AIDA
-        </button>
-        <button
-          type="button"
-          onClick={() => setLandingVariant('minimal-bab')}
-          className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all ${
-            landingVariant === 'minimal-bab'
-              ? 'bg-sky-600 text-white shadow'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
-          title="Before After Bridge - Minimalist Bento"
-        >
-          BAB
-        </button>
-      </div>
     </div>
   );
 };
