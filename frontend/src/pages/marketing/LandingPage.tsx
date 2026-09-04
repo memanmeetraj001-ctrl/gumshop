@@ -237,58 +237,85 @@ export function HeroSection() {
       id="top"
       className="relative flex min-h-screen items-center overflow-hidden pt-28 pb-20 md:pt-32"
     >
+      {/* Ambient Radial Spotlight & Glows */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(56,189,248,0.18),transparent)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(56,189,248,0.20),transparent)]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/3 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-indigo-700/10 blur-[120px]"
+        className="pointer-events-none absolute left-1/2 top-1/4 h-[550px] w-[800px] -translate-x-1/2 rounded-full bg-sky-500/10 blur-[130px]"
       />
 
       <div className="relative mx-auto w-full max-w-5xl px-5 text-center lg:px-8">
-        <div>
-          <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-950/60 px-4 py-2 text-sm font-bold text-sky-300 shadow-lg shadow-sky-950/40">
-            <Zap className="h-4 w-4 text-sky-400" aria-hidden="true" />
-            <span>✨ BAB Framework: Before &amp; After Simplicity · 0% Extra Fees</span>
-          </div>
+        {/* Luminous Top Badge */}
+        <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-sky-400/30 bg-sky-950/50 px-4 py-2 text-xs sm:text-sm font-black uppercase tracking-wider text-sky-300 shadow-xl shadow-sky-950/50 backdrop-blur-md">
+          <Zap className="h-4 w-4 text-sky-400 fill-sky-400/30 animate-pulse" aria-hidden="true" />
+          <span>The Zero-Friction Gumroad Storefront Builder</span>
         </div>
 
+        {/* Master 3-Line Optimized Headline */}
         <h1 className="mt-8 text-balance text-5xl font-black leading-none tracking-tighter text-white sm:text-6xl md:text-8xl">
-          <span className="animate-fade-up inline-block" style={{ animationDelay: '80ms' }}>
+          <span className="animate-fade-up inline-block text-gray-200" style={{ animationDelay: '80ms' }}>
             Tired of Shopify Fees?
           </span>
           <br />
-          <span className="animate-fade-up inline-block" style={{ animationDelay: '180ms' }}>
+          <span className="animate-fade-up inline-block text-white" style={{ animationDelay: '180ms' }}>
             Launch a Gumroad Store
           </span>
           <br />
           <span
-            className="animate-fade-up inline-block bg-gradient-to-r from-sky-400 via-indigo-300 to-teal-300 bg-clip-text text-transparent"
+            className="animate-fade-up inline-block bg-gradient-to-r from-sky-400 via-teal-300 to-indigo-300 bg-clip-text text-transparent drop-shadow-sm"
             style={{ animationDelay: '280ms' }}
           >
             In 60 Seconds.
           </span>
         </h1>
 
-        <p
-          className="animate-fade-up mx-auto mt-7 max-w-2xl text-pretty text-lg leading-relaxed text-gray-300 md:text-2xl"
+        {/* High-Impact BAB (Before vs After) Comparison Bento Pill */}
+        <div
+          className="animate-fade-up mx-auto mt-8 max-w-2xl rounded-2xl border border-white/10 bg-[#0E121B]/80 p-4 shadow-2xl backdrop-blur-xl sm:p-5"
           style={{ animationDelay: '380ms' }}
         >
-          <strong>Before:</strong> Weeks configuring complex themes, paying $39/mo plus transaction cuts, and debugging carts. <br className="hidden sm:inline" />
-          <strong>After:</strong> A headless, lightning-fast store connected directly to your Gumroad payouts in one link.
-        </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3 sm:p-3.5 space-y-1">
+              <span className="text-[10px] font-mono font-black uppercase tracking-widest text-red-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> BEFORE GUMSHOP
+              </span>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Weeks configuring themes, paying <strong>$39/mo + 2% cuts</strong>, and losing mobile buyers to slow carts.
+              </p>
+            </div>
 
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 sm:p-3.5 space-y-1">
+              <span className="text-[10px] font-mono font-black uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-ping" /> AFTER GUMSHOP
+              </span>
+              <p className="text-xs text-emerald-200/90 leading-relaxed font-medium">
+                Headless store live in <strong>60 seconds</strong>, <strong>0% extra fees</strong>, and automated delivery lead capture.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Primary CTA Action */}
         <div
           className="animate-fade-up mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"
           style={{ animationDelay: '480ms' }}
         >
           <Link
             to="/signup"
-            className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-600 via-indigo-600 to-teal-600 px-9 py-4 text-lg font-bold text-white shadow-2xl shadow-sky-950/60 transition-all hover:scale-[1.02] hover:brightness-110 active:scale-95"
+            className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-teal-500 to-indigo-600 px-9 py-4 text-lg font-black uppercase tracking-wider text-white shadow-2xl shadow-sky-950/80 transition-all hover:scale-[1.03] hover:brightness-110 active:scale-95 cursor-pointer"
           >
             <Rocket className="h-5 w-5" aria-hidden="true" />
-            Launch My Free Store
+            <span>Launch My Free Store</span>
+          </Link>
+          <Link
+            to="/store/demo"
+            target="_blank"
+            className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-8 py-4 text-lg font-bold text-gray-200 transition-all hover:bg-white/10 hover:text-white hover:border-sky-500/40 hover:scale-[1.02] shadow-lg shadow-black/40"
+          >
+            <span>Explore Demo Store ↗</span>
           </Link>
         </div>
 
