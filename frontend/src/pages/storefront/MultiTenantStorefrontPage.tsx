@@ -340,11 +340,11 @@ export const MultiTenantStorefrontPage: React.FC = () => {
                 return (
                   <div
                     key={p.id}
-                    className="bg-[#12141C] border border-white/10 hover:border-white/20 rounded-2xl overflow-hidden flex flex-col justify-between transition-all group shadow-lg hover:shadow-2xl hover:shadow-black"
+                    className="bg-[#11131C]/90 backdrop-blur-md border border-white/10 hover:border-indigo-500/40 rounded-2xl overflow-hidden flex flex-col justify-between transition-all duration-300 group shadow-lg hover:shadow-2xl hover:shadow-indigo-950/40 hover:-translate-y-1"
                   >
                     <div className="p-4 space-y-3">
                       {/* Product Thumbnail */}
-                      <div className="aspect-square bg-black/40 rounded-xl overflow-hidden relative">
+                      <div className="aspect-square bg-black/40 rounded-xl overflow-hidden relative group-hover:shadow-inner">
                         <img
                           src={p.thumbnail || p.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&q=80'}
                           alt={p.title}
@@ -355,16 +355,16 @@ export const MultiTenantStorefrontPage: React.FC = () => {
                           }}
                         />
 
-                        {/* Badges */}
-                        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1">
+                        {/* High-Converting Badges */}
+                        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5">
                           {p.sale && (
-                            <span className="px-2 py-0.5 rounded-md bg-red-600 text-white font-bold text-[10px] uppercase tracking-wider shadow">
+                            <span className="px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400 font-black text-[10px] uppercase tracking-wider border border-red-500/40 backdrop-blur-md shadow-md">
                               {discountPct > 0 ? `${discountPct}% OFF` : 'SALE'}
                             </span>
                           )}
                           {p.newProduct && (
-                            <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-bold text-[10px] uppercase tracking-wider shadow">
-                              NEW
+                            <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-black text-[10px] uppercase tracking-wider border border-indigo-500/40 backdrop-blur-md shadow-md">
+                              NEW ARRIVAL
                             </span>
                           )}
                         </div>
@@ -372,11 +372,11 @@ export const MultiTenantStorefrontPage: React.FC = () => {
 
                       {/* Title & Short description */}
                       <div>
-                        <h3 className="text-sm font-bold text-white line-clamp-1 group-hover:text-indigo-400 transition-colors">
+                        <h3 className="text-sm font-extrabold text-white line-clamp-1 group-hover:text-indigo-400 transition-colors">
                           {p.title}
                         </h3>
                         {p.shortDescription && (
-                          <p className="text-xs text-gray-400 line-clamp-2 mt-1 leading-snug">
+                          <p className="text-xs text-gray-400 line-clamp-2 mt-1 leading-relaxed">
                             {p.shortDescription}
                           </p>
                         )}
@@ -384,11 +384,11 @@ export const MultiTenantStorefrontPage: React.FC = () => {
 
                       {/* Pricing */}
                       <div className="flex items-baseline gap-2 pt-1">
-                        <span className="text-base font-black text-white">
+                        <span className="text-base font-black text-white font-mono">
                           {formatPrice(p.price)}
                         </span>
                         {hasDiscount && (
-                          <span className="text-xs text-gray-500 line-through">
+                          <span className="text-xs text-gray-500 font-mono line-through">
                             {formatPrice(p.compareAtPrice!)}
                           </span>
                         )}
@@ -401,7 +401,7 @@ export const MultiTenantStorefrontPage: React.FC = () => {
                         type="button"
                         onClick={() => handleBuyNow(p)}
                         style={{ backgroundColor: primaryColor }}
-                        className="w-full py-2.5 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 hover:opacity-90"
+                        className="w-full py-2.5 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-950/50 transition-all flex items-center justify-center gap-1.5 hover:scale-[1.02] hover:brightness-110 active:scale-95 cursor-pointer"
                       >
                         <ShoppingBag className="w-3.5 h-3.5" />
                         <span>{p.buttonText || 'Buy Now — Free Shipping'}</span>
