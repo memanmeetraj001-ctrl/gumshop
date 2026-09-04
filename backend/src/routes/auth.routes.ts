@@ -33,8 +33,8 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       slug = `${baseSlug}-${counter++}`;
     }
 
-    const tenantId = `tenant_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-    const userId = `usr_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const tenantId = `tenant_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const userId = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const passwordHash = bcrypt.hashSync(password, 10);
 
     const newTenant: Tenant = {

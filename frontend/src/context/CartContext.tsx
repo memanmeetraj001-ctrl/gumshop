@@ -29,7 +29,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem('gumshop_cart');
-      return saved  ? JSON.parse(saved)  : [];
+      return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
     }
@@ -46,7 +46,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (existing) {
         return prev.map((item) =>
           item.product.id === product.id && item.selectedVariantId === selectedVariantId
-             ? { ...item, quantity : item.quantity + quantity }
+            ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       }
@@ -73,7 +73,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     setItems((prev) =>
-      prev.map((item) => (item.product.id === productId  ? { ...item, quantity }  : item))
+      prev.map((item) => (item.product.id === productId ? { ...item, quantity } : item))
     );
   };
 
@@ -83,7 +83,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const subtotal = items.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
 
   const checkoutGumroad = (targetProduct?: Product) => {
-    const p = targetProduct || (items[0]  ? items[0].product  : null);
+    const p = targetProduct || (items[0] ? items[0].product : null);
     if (!p) return;
 
     let checkoutUrl = p.gumroadUrl || `https://gumroad.com/l/${p.slug}`;

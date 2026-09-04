@@ -86,7 +86,7 @@ router.post('/create', async (req: Request, res: Response): Promise<void> => {
     }
 
     const state = await db.getState();
-    const orderId = `ord_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const orderId = `ord_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const orderNumber = generateOrderNumber();
 
     let gumroadRedirectUrl = 'https://gumroad.com';
