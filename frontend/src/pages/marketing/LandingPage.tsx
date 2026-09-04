@@ -351,7 +351,7 @@ export function HeroSection({ onWatchDemo }: { onWatchDemo?: () => void }) {
             {/* Real Dashboard Image Showcase */}
             <div className="relative overflow-hidden">
               <img
-                src="/dashboard-preview.jpg"
+                src="/images/showcase-dashboard.jpg"
                 alt="GumShop CMS Merchant Store Dashboard"
                 className="w-full h-auto object-cover rounded-2xl shadow-2xl transition-transform duration-500 group-hover:scale-[1.01]"
               />
