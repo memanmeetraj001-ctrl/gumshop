@@ -232,26 +232,76 @@ const sidebarItems = [
 ];
 
 export function HeroSection() {
+  const [activeTab, setActiveTab] = useState<'store' | 'orders' | 'scraper'>('store');
+  const [selectedProduct, setSelectedProduct] = useState(0);
+
+  const heroProducts = [
+    {
+      id: 'prod_1',
+      title: 'Studio Pro Wireless ANC Headphones',
+      category: 'Audio & Acoustics',
+      price: 189.00,
+      compareAt: 299.00,
+      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=1000&q=80',
+      badge: 'TOP SELLER',
+      rating: 4.9,
+      reviews: 142,
+    },
+    {
+      id: 'prod_2',
+      title: 'Compact 75% Gasket Mechanical Keyboard',
+      category: 'Desk & Tech',
+      price: 149.00,
+      compareAt: 219.00,
+      image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=1000&q=80',
+      badge: 'NEW DROP',
+      rating: 5.0,
+      reviews: 89,
+    },
+    {
+      id: 'prod_3',
+      title: 'Full-Grain Slim RFID Leather Wallet',
+      category: 'Everyday Carry',
+      price: 45.00,
+      compareAt: 85.00,
+      image: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=1000&q=80',
+      badge: 'LIMITED EDITION',
+      rating: 4.8,
+      reviews: 210,
+    },
+    {
+      id: 'prod_4',
+      title: '32oz Insulated Stainless Steel EDC Bottle',
+      category: 'Fitness & Gear',
+      price: 34.00,
+      compareAt: 55.00,
+      image: 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=1000&q=80',
+      badge: '50% OFF',
+      rating: 4.9,
+      reviews: 64,
+    },
+  ];
+
   return (
     <section
       id="top"
-      className="relative flex min-h-screen items-center overflow-hidden pt-28 pb-20 md:pt-32"
+      className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden pt-28 pb-20 md:pt-32"
     >
       {/* Ambient Radial Spotlight & Glows */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(56,189,248,0.20),transparent)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(99,102,241,0.25),transparent)]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/4 h-[550px] w-[800px] -translate-x-1/2 rounded-full bg-sky-500/10 blur-[130px]"
+        className="pointer-events-none absolute left-1/2 top-1/4 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-indigo-500/10 blur-[140px]"
       />
 
-      <div className="relative mx-auto w-full max-w-5xl px-5 text-center lg:px-8">
+      <div className="relative mx-auto w-full max-w-6xl px-5 text-center lg:px-8">
         {/* Luminous Top Badge */}
-        <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-sky-400/30 bg-sky-950/50 px-4 py-2 text-xs sm:text-sm font-black uppercase tracking-wider text-sky-300 shadow-xl shadow-sky-950/50 backdrop-blur-md">
-          <Zap className="h-4 w-4 text-sky-400 fill-sky-400/30 animate-pulse" aria-hidden="true" />
-          <span>The Zero-Friction Gumroad Storefront Builder</span>
+        <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-indigo-400/30 bg-indigo-950/60 px-4 py-2 text-xs sm:text-sm font-black uppercase tracking-wider text-indigo-300 shadow-xl shadow-indigo-950/50 backdrop-blur-md">
+          <Zap className="h-4 w-4 text-indigo-400 fill-indigo-400/30 animate-pulse" aria-hidden="true" />
+          <span>The Zero-Commission Headless Gumroad Storefront Engine</span>
         </div>
 
         {/* Master 3-Line Optimized Headline */}
@@ -265,7 +315,7 @@ export function HeroSection() {
           </span>
           <br />
           <span
-            className="animate-fade-up inline-block bg-gradient-to-r from-sky-400 via-teal-300 to-indigo-300 bg-clip-text text-transparent drop-shadow-sm"
+            className="animate-fade-up inline-block bg-gradient-to-r from-sky-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent drop-shadow-sm"
             style={{ animationDelay: '280ms' }}
           >
             In 60 Seconds.
@@ -274,25 +324,25 @@ export function HeroSection() {
 
         {/* High-Impact BAB (Before vs After) Comparison Bento Pill */}
         <div
-          className="animate-fade-up mx-auto mt-8 max-w-2xl rounded-2xl border border-white/10 bg-[#0E121B]/80 p-4 shadow-2xl backdrop-blur-xl sm:p-5"
+          className="animate-fade-up mx-auto mt-8 max-w-2xl rounded-2xl border border-white/10 bg-[#0E121B]/90 p-4 shadow-2xl backdrop-blur-xl sm:p-5"
           style={{ animationDelay: '380ms' }}
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
-            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3 sm:p-3.5 space-y-1">
+            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3.5 space-y-1">
               <span className="text-[10px] font-mono font-black uppercase tracking-widest text-red-400 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> BEFORE GUMSHOP
               </span>
               <p className="text-xs text-gray-400 leading-relaxed">
-                Weeks configuring themes, paying <strong>$39/mo + 2% cuts</strong>, and losing mobile buyers to slow carts.
+                Weeks configuring bloated themes, paying <strong>$39/mo + 2.9% cut + $180/mo apps</strong> ($3,480/yr tax).
               </p>
             </div>
 
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 sm:p-3.5 space-y-1">
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 space-y-1">
               <span className="text-[10px] font-mono font-black uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-ping" /> AFTER GUMSHOP
               </span>
-              <p className="text-xs text-emerald-200/90 leading-relaxed font-medium">
-                Headless store live in <strong>60 seconds</strong>, <strong>0% extra fees</strong>, and automated delivery lead capture.
+              <p className="text-xs text-emerald-200/95 leading-relaxed font-medium">
+                Live in <strong>60 seconds</strong>, <strong>0% extra fees</strong>, instant Gumroad payouts &amp; automated lead capture.
               </p>
             </div>
           </div>
@@ -305,7 +355,7 @@ export function HeroSection() {
         >
           <Link
             to="/signup"
-            className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-teal-500 to-indigo-600 px-9 py-4 text-lg font-black uppercase tracking-wider text-white shadow-2xl shadow-sky-950/80 transition-all hover:scale-[1.03] hover:brightness-110 active:scale-95 cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-600 px-9 py-4 text-lg font-black uppercase tracking-wider text-white shadow-2xl shadow-indigo-950/80 transition-all hover:scale-[1.03] hover:brightness-110 active:scale-95 cursor-pointer"
           >
             <Rocket className="h-5 w-5" aria-hidden="true" />
             <span>Launch My Free Store</span>
@@ -313,14 +363,15 @@ export function HeroSection() {
           <Link
             to="/store/demo"
             target="_blank"
-            className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-8 py-4 text-lg font-bold text-gray-200 transition-all hover:bg-white/10 hover:text-white hover:border-sky-500/40 hover:scale-[1.02] shadow-lg shadow-black/40"
+            className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-8 py-4 text-lg font-bold text-gray-200 transition-all hover:bg-white/10 hover:text-white hover:border-indigo-500/40 hover:scale-[1.02] shadow-lg shadow-black/40"
           >
             <span>Explore Demo Store ↗</span>
           </Link>
         </div>
 
+        {/* Trust Badges */}
         <div
-          className="animate-fade-up mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm text-gray-500"
+          className="animate-fade-up mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm text-gray-400"
           style={{ animationDelay: '560ms' }}
         >
           <span className="flex items-center gap-0.5 text-amber-400" aria-label="5 star rating">
@@ -328,75 +379,249 @@ export function HeroSection() {
               <Star key={i} className="h-4 w-4 fill-current" aria-hidden="true" />
             ))}
           </span>
-          <span>Trusted by 1,200+ merchants</span>
+          <span>Trusted by 1,200+ creator brands</span>
           <span className="text-gray-700" aria-hidden="true">·</span>
-          <span>$2.4M+ GMV processed</span>
+          <span>$4.8M+ GMV processed</span>
           <span className="text-gray-700" aria-hidden="true">·</span>
-          <span>No credit card required</span>
+          <span>0% Platform Commission</span>
         </div>
 
+        {/* Dynamic Interactive Master Product & Store Viewport */}
         <div
-          className="animate-fade-up relative mx-auto mt-16 max-w-4xl"
+          className="animate-fade-up relative mx-auto mt-14 max-w-5xl text-left"
           style={{ animationDelay: '660ms' }}
         >
-          <FloatingBadge
-            className="-left-3 -top-4 md:-left-10"
-            delay="0s"
-            icon={<CheckCircle2 className="h-4 w-4 text-emerald-400" />}
-            text="✓ Store Launched in 60s"
-          />
-          <FloatingBadge
-            className="-right-3 top-8 md:-right-12"
-            delay="1s"
-            icon={<DollarSign className="h-4 w-4 text-indigo-300" />}
-            text="$1,249 Revenue Today"
-          />
-          <FloatingBadge
-            className="-left-2 bottom-16 md:-left-14"
-            delay="1.6s"
-            icon={<Tag className="h-4 w-4 text-purple-300" />}
-            text="Promo: VIP20 Applied"
-          />
-          <FloatingBadge
-            className="-right-2 -bottom-4 md:-right-10"
-            delay="0.6s"
-            icon={<Truck className="h-4 w-4 text-emerald-400" />}
-            text="3 Orders Received"
-          />
+          {/* Floating Live Transaction Badges */}
+          <div className="absolute -top-6 -left-4 sm:-left-8 z-30 hidden sm:flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-[#0C1210]/90 px-4 py-2.5 text-xs font-bold text-white shadow-2xl backdrop-blur-xl animate-float">
+            <img
+              src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100&q=80"
+              alt="Sold item"
+              className="w-9 h-9 rounded-xl object-cover border border-emerald-500/40"
+            />
+            <div>
+              <div className="flex items-center gap-1.5 text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>New Sale: $189.00</span>
+              </div>
+              <span className="text-[10px] text-gray-400 block font-normal">Tokyo, JP · 0% Shopify Fee</span>
+            </div>
+          </div>
 
-          <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0F1118] shadow-2xl shadow-black/60 group relative">
-            {/* Real Dashboard Image Showcase */}
-            <div className="relative overflow-hidden">
-              <img
-                src="/images/showcase-dashboard.jpg"
-                alt="GumShop CMS Merchant Store Dashboard"
-                className="w-full h-auto object-cover rounded-2xl shadow-2xl transition-transform duration-500 group-hover:scale-[1.01]"
-              />
+          <div className="absolute -bottom-6 -right-4 sm:-right-8 z-30 hidden sm:flex items-center gap-3 rounded-2xl border border-indigo-500/30 bg-[#0E101A]/90 px-4 py-2.5 text-xs font-bold text-white shadow-2xl backdrop-blur-xl animate-float" style={{ animationDelay: '1.2s' }}>
+            <img
+              src="https://images.unsplash.com/photo-1627123424574-724758594e93?w=100&q=80"
+              alt="Sold item"
+              className="w-9 h-9 rounded-xl object-cover border border-indigo-500/40"
+            />
+            <div>
+              <div className="flex items-center gap-1.5 text-indigo-300">
+                <Truck className="w-3.5 h-3.5" />
+                <span>Courier Label Generated</span>
+              </div>
+              <span className="text-[10px] text-gray-400 block font-normal">Austin, TX · USPS Express</span>
+            </div>
+          </div>
 
-              {/* Hover Interactive Overlay Bar */}
-              <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6 bg-gradient-to-t from-[#090B0E]/95 via-[#090B0E]/70 to-transparent flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 text-xs text-white">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="font-bold">Live Multi-Store Dashboard &amp; CMS</span>
-                  <span className="text-gray-400 hidden md:inline">· Real-time order capture &amp; sync</span>
-                </div>
+          {/* Viewport Frame */}
+          <div className="overflow-hidden rounded-3xl border border-white/15 bg-[#0A0C11] shadow-2xl shadow-indigo-950/40">
+            {/* Viewport Top Header Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#0E1118] px-5 py-3.5">
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-red-500/70" />
+                <span className="h-3 w-3 rounded-full bg-amber-500/70" />
+                <span className="h-3 w-3 rounded-full bg-emerald-500/70" />
+                <span className="ml-2 font-mono text-[11px] text-gray-400 bg-black/40 px-3 py-1 rounded-lg border border-white/5 flex items-center gap-1.5">
+                  <span className="text-emerald-400">🔒</span> https://gumshop.online/store/demo
+                </span>
+              </div>
 
-                <div className="flex items-center gap-2.5 shrink-0">
-                  <Link
-                    to="/store/demo"
-                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-900/50 flex items-center gap-1.5"
-                  >
-                    <span>View Demo Store ↗</span>
-                  </Link>
-                  <Link
-                    to="/admin/login"
-                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider transition-all border border-white/10 backdrop-blur-md"
-                  >
-                    <span>Admin Login</span>
-                  </Link>
-                </div>
+              {/* Dynamic Viewport View Switcher Tabs */}
+              <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('store')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    activeTab === 'store'
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Live Storefront
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('orders')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    activeTab === 'orders'
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Orders &amp; Shipping
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('scraper')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    activeTab === 'scraper'
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  1-Click Importer
+                </button>
               </div>
             </div>
+
+            {/* Viewport Dynamic Content Area */}
+            {activeTab === 'store' && (
+              <div className="p-5 sm:p-7 space-y-6 bg-gradient-to-b from-[#0B0D14] to-[#07080B]">
+                {/* Store Header Banner inside mockup */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-white/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-lg shadow-lg">
+                      G
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black text-white uppercase font-heading">
+                        Obsidian Audio &amp; EDC
+                      </h4>
+                      <p className="text-xs text-gray-400">Official Headless Gumroad Storefront · Powered by GumShop</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      Instant Checkout Active
+                    </span>
+                  </div>
+                </div>
+
+                {/* Dynamic Product Cards Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {heroProducts.map((p, idx) => (
+                    <div
+                      key={p.id}
+                      onClick={() => setSelectedProduct(idx)}
+                      className={`rounded-2xl border transition-all duration-300 p-3 flex flex-col justify-between cursor-pointer group ${
+                        selectedProduct === idx
+                          ? 'border-indigo-500 bg-[#141824] shadow-xl shadow-indigo-950/40 ring-1 ring-indigo-500'
+                          : 'border-white/10 bg-[#0E1017] hover:border-white/20 hover:bg-[#12141F]'
+                      }`}
+                    >
+                      <div className="space-y-2.5">
+                        <div className="aspect-square rounded-xl overflow-hidden relative bg-black/50">
+                          <img
+                            src={p.image}
+                            alt={p.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[10px] font-black uppercase tracking-wider text-indigo-300 border border-white/10">
+                            {p.badge}
+                          </span>
+                        </div>
+
+                        <div>
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                            {p.category}
+                          </span>
+                          <h5 className="text-xs font-extrabold text-white line-clamp-1 group-hover:text-indigo-400 transition-colors">
+                            {p.title}
+                          </h5>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-sm font-black text-white font-mono">${p.price}</span>
+                          <span className="text-[10px] text-gray-500 font-mono line-through">${p.compareAt}</span>
+                        </div>
+                        <Link
+                          to="/store/demo"
+                          className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] uppercase transition-all"
+                        >
+                          Buy Now
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'orders' && (
+              <div className="p-5 sm:p-7 space-y-4 bg-gradient-to-b from-[#0B0D14] to-[#07080B]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-black text-white uppercase font-heading">
+                      Recent Physical Order Leads Captured
+                    </h4>
+                    <p className="text-xs text-gray-400">Customer street address captured before Gumroad redirect</p>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-lg border border-indigo-500/20">
+                    100% Leads Synced
+                  </span>
+                </div>
+
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {[
+                    { id: 'GUM-4982', name: 'Alexander Wright', email: 'a.wright@techcraft.io', item: 'Studio Pro Wireless ANC', total: '$189.00', dest: 'Tokyo, Japan', status: 'Shipped · FedEx Express' },
+                    { id: 'GUM-4981', name: 'Sophia Chen', email: 'sophia@designstudio.co', item: 'Compact 75% Mechanical Keyboard', total: '$149.00', dest: 'San Francisco, CA', status: 'Label Generated · USPS' },
+                    { id: 'GUM-4980', name: 'Liam Davies', email: 'liam.d@architects.uk', item: 'Full-Grain Slim Leather Wallet', total: '$45.00', dest: 'London, United Kingdom', status: 'Delivered' },
+                  ].map((ord) => (
+                    <div key={ord.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 text-xs gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-black text-white">{ord.id}</span>
+                          <span className="font-bold text-gray-300">{ord.name}</span>
+                          <span className="text-gray-500 font-mono text-[11px]">({ord.dest})</span>
+                        </div>
+                        <span className="text-gray-400 text-[11px] block mt-0.5">{ord.item} · {ord.total}</span>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold text-[11px]">
+                        {ord.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'scraper' && (
+              <div className="p-5 sm:p-7 space-y-4 bg-gradient-to-b from-[#0B0D14] to-[#07080B]">
+                <div>
+                  <h4 className="text-sm font-black text-white uppercase font-heading">
+                    Instant 1-Click Shopify to Gumroad Scraper
+                  </h4>
+                  <p className="text-xs text-gray-400">Migrate an entire catalog, descriptions &amp; photos in under 5 seconds</p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-black/40 border border-white/10 space-y-3">
+                  <div className="flex flex-col sm:flex-row items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value="https://allbirds-store.myshopify.com"
+                      className="w-full bg-[#141722] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono"
+                    />
+                    <button
+                      type="button"
+                      className="w-full sm:w-auto px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-xs uppercase whitespace-nowrap shadow-lg"
+                    >
+                      ✓ 24 Products Ready to Import
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-gray-400">
+                    <span className="text-emerald-400 font-bold">✓ High-res images extracted</span>
+                    <span>·</span>
+                    <span className="text-emerald-400 font-bold">✓ Variants &amp; pricing matched</span>
+                    <span>·</span>
+                    <span className="text-emerald-400 font-bold">✓ 0% import loss</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -418,7 +643,7 @@ export function LogoStrip() {
   return (
     <section className="border-y border-white/5 bg-[#0F1118] py-14">
       <p className="text-center text-xs font-bold uppercase tracking-widest text-gray-600">
-        Powering stores for creators &amp; entrepreneurs
+        Powering stores for creators &amp; entrepreneurs worldwide
       </p>
 
       <div className="relative mt-8 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
@@ -426,12 +651,347 @@ export function LogoStrip() {
           {[...brands, ...brands].map((brand, i) => (
             <span
               key={i}
-              className="flex shrink-0 items-center gap-2 text-sm font-bold text-gray-600"
+              className="flex shrink-0 items-center gap-2 text-sm font-bold text-gray-400"
             >
-              <brand.icon className="h-5 w-5" aria-hidden="true" />
+              <brand.icon className="h-5 w-5 text-indigo-400" aria-hidden="true" />
               {brand.name}
             </span>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function ProductBentoShowcase() {
+  const [selectedSwitch, setSelectedSwitch] = useState<'linear' | 'tactile'>('linear');
+
+  return (
+    <section className="py-24 md:py-32 bg-[#080A0E] relative overflow-hidden">
+      {/* Background Gradients */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto px-5 lg:px-8 space-y-12">
+        <Reveal className="max-w-3xl mx-auto text-center space-y-4">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-black uppercase tracking-widest">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>BUILT FOR HIGH-MARGIN PHYSICAL PRODUCTS</span>
+          </div>
+          <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white uppercase tracking-tight font-heading">
+            Your Gear. Displayed Like Art.
+          </h2>
+          <p className="text-base sm:text-lg text-gray-400 leading-relaxed max-w-2xl mx-auto">
+            High-converting image grids, zero page-load lag, and automated shipping lead capture engineered to turn scrollers into paying customers.
+          </p>
+        </Reveal>
+
+        {/* Dynamic Bento Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          {/* Card 1: Studio ANC Headphones (Large 7-cols) */}
+          <div className="md:col-span-7 rounded-3xl border border-white/10 bg-[#0E1118] p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden group shadow-2xl hover:border-indigo-500/40 transition-all duration-500">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-indigo-500/20 via-transparent to-transparent pointer-events-none" />
+
+            <div className="space-y-4 z-10">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-black uppercase tracking-wider">
+                  ACOUSTICS &amp; TECH
+                </span>
+                <span className="text-sm font-mono text-emerald-400 font-black">
+                  $189.00 <span className="text-gray-500 line-through text-xs font-normal">$299.00</span>
+                </span>
+              </div>
+
+              <h3 className="text-2xl sm:text-3xl font-black text-white uppercase font-heading leading-tight">
+                Studio Pro Wireless ANC Headphones
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-400 max-w-md">
+                Custom 40mm Beryllium acoustic drivers, active noise cancellation, and 38-hour battery life.
+              </p>
+            </div>
+
+            {/* High-Res Studio Image Showcase */}
+            <div className="my-6 rounded-2xl overflow-hidden relative aspect-video sm:aspect-[21/9] bg-black/60 shadow-inner">
+              <img
+                src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=1200&q=80"
+                alt="Studio Headphones"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+              />
+              <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-xl bg-black/80 backdrop-blur-md border border-white/10 text-[11px] text-gray-200 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Gumroad Direct Checkout Integrated</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between z-10 pt-2 border-t border-white/5">
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                <span>2-Year Warranty · Free Worldwide Express</span>
+              </div>
+              <Link
+                to="/store/demo"
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-indigo-900/50 transition-all hover:scale-105"
+              >
+                Buy Now ↗
+              </Link>
+            </div>
+          </div>
+
+          {/* Card 2: Custom Gasket Keyboard (5-cols) */}
+          <div className="md:col-span-5 rounded-3xl border border-white/10 bg-[#0E1118] p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden group shadow-2xl hover:border-purple-500/40 transition-all duration-500">
+            <div className="space-y-4 z-10">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 text-xs font-black uppercase tracking-wider">
+                  MECHANICAL HARDWARE
+                </span>
+                <span className="text-sm font-mono text-white font-black">$149.00</span>
+              </div>
+
+              <h3 className="text-2xl font-black text-white uppercase font-heading leading-tight">
+                Compact 75% Mechanical Board
+              </h3>
+              <p className="text-xs text-gray-400">
+                CNC-anodized aluminum frame with hot-swappable PCB and sound-dampening foam.
+              </p>
+            </div>
+
+            <div className="my-6 rounded-2xl overflow-hidden relative aspect-video bg-black/60 shadow-inner">
+              <img
+                src="https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=1000&q=80"
+                alt="Mechanical Keyboard"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+              />
+            </div>
+
+            {/* Interactive Switch Pill */}
+            <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/5">
+              <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setSelectedSwitch('linear')}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                    selectedSwitch === 'linear' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Linear Red
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedSwitch('tactile')}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                    selectedSwitch === 'tactile' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Tactile Brown
+                </button>
+              </div>
+              <Link
+                to="/store/demo"
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider transition-all border border-white/10"
+              >
+                Order
+              </Link>
+            </div>
+          </div>
+
+          {/* Card 3: Full-Grain Leather Wallet (5-cols) */}
+          <div className="md:col-span-5 rounded-3xl border border-white/10 bg-[#0E1118] p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden group shadow-2xl hover:border-amber-500/40 transition-all duration-500">
+            <div className="space-y-4 z-10">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-black uppercase tracking-wider">
+                  EVERYDAY CARRY
+                </span>
+                <span className="text-sm font-mono text-white font-black">$45.00</span>
+              </div>
+
+              <h3 className="text-2xl font-black text-white uppercase font-heading leading-tight">
+                Slim RFID Full-Grain Wallet
+              </h3>
+              <p className="text-xs text-gray-400">
+                Holds 10 cards + cash with aerospace RFID shielding.
+              </p>
+            </div>
+
+            <div className="my-6 rounded-2xl overflow-hidden relative aspect-video bg-black/60 shadow-inner">
+              <img
+                src="https://images.unsplash.com/photo-1627123424574-724758594e93?w=1000&q=80"
+                alt="Leather Wallet"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-white/5">
+              <span className="text-xs font-mono text-gray-400">Italian Vachetta Leather</span>
+              <Link
+                to="/store/demo"
+                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md"
+              >
+                Shop EDC
+              </Link>
+            </div>
+          </div>
+
+          {/* Card 4: Physical Address Capture & Tracking Engine (7-cols) */}
+          <div className="md:col-span-7 rounded-3xl border border-white/10 bg-[#0E1118] p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden group shadow-2xl hover:border-emerald-500/40 transition-all duration-500">
+            <div className="space-y-4 z-10">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black uppercase tracking-wider">
+                  PHYSICAL FULFILLMENT AUTOMATION
+                </span>
+                <span className="text-xs font-mono font-bold text-emerald-400">Zero Lost Orders</span>
+              </div>
+
+              <h3 className="text-2xl sm:text-3xl font-black text-white uppercase font-heading leading-tight">
+                Instant Shipping Lead Capture
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-400">
+                GumShop prompts the buyer for their physical street address <em>before</em> sending them to Gumroad checkout. You get 100% complete delivery information every single time.
+              </p>
+            </div>
+
+            {/* Simulated Live Order Card */}
+            <div className="my-6 p-4 rounded-2xl bg-black/40 border border-white/10 space-y-3 font-mono text-xs text-gray-300">
+              <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                <span className="text-white font-bold">ORDER #GUM-9842</span>
+                <span className="text-emerald-400 font-bold">● DISPATCHED</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div>
+                  <span className="text-gray-500 block">RECIPIENT:</span>
+                  <span className="text-white">Marcus Vance (Austin, TX)</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 block">COURIER &amp; TRACKING:</span>
+                  <span className="text-indigo-400">USPS 9400 1118 9956...</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-white/5">
+              <span className="text-xs text-gray-400">Integrated with USPS, FedEx, DHL, &amp; Royal Mail</span>
+              <Link
+                to="/signup"
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-900/50 transition-all"
+              >
+                Try It Free
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function ProfitSavingsCalculator() {
+  const [monthlyRevenue, setMonthlyRevenue] = useState(15000);
+
+  // Shopify cost: $39/mo base + 2.9% + $180/mo in essential apps (reviews, tracking, customizer)
+  const shopifyBase = 39 * 12;
+  const shopifyApps = 180 * 12;
+  const shopifyTxnFee = (monthlyRevenue * 12) * 0.029;
+  const totalShopifyCost = Math.round(shopifyBase + shopifyApps + shopifyTxnFee);
+
+  // GumShop cost: Pro Plan ($108/year billed annually) + $0 extra fees
+  const gumshopCost = 108;
+  const totalSaved = Math.max(0, totalShopifyCost - gumshopCost);
+
+  return (
+    <section className="py-24 md:py-32 bg-[#0A0C11] border-y border-white/10 relative overflow-hidden">
+      <div className="max-w-5xl mx-auto px-5 lg:px-8 space-y-12">
+        <Reveal className="text-center space-y-4">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-widest">
+            <DollarSign className="w-3.5 h-3.5" />
+            <span>REAL FINANCIAL COMPARISON</span>
+          </div>
+          <h2 className="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight font-heading">
+            How Much Is Shopify Costing You?
+          </h2>
+          <p className="text-base sm:text-lg text-gray-400 max-w-xl mx-auto">
+            Drag the slider to your estimated monthly sales and see how much pure profit you retain with GumShop.
+          </p>
+        </Reveal>
+
+        {/* Interactive Calculator Bento Box */}
+        <div className="rounded-3xl border border-white/15 bg-[#10131C] p-6 sm:p-10 shadow-2xl space-y-8">
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span className="text-sm font-bold uppercase tracking-wider text-gray-400">
+                Your Monthly Revenue:
+              </span>
+              <span className="text-3xl sm:text-4xl font-black text-white font-mono">
+                ${monthlyRevenue.toLocaleString()} <span className="text-xs text-gray-400 font-normal">/ month</span>
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min={1000}
+              max={100000}
+              step={1000}
+              value={monthlyRevenue}
+              onChange={(e) => setMonthlyRevenue(Number(e.target.value))}
+              className="w-full h-3 bg-white/10 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+            />
+
+            <div className="flex justify-between text-[11px] font-mono text-gray-500">
+              <span>$1,000/mo</span>
+              <span>$25,000/mo</span>
+              <span>$50,000/mo</span>
+              <span>$100,000/mo</span>
+            </div>
+          </div>
+
+          {/* Breakdown Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-white/10 text-left">
+            <div className="p-5 rounded-2xl bg-red-500/5 border border-red-500/20 space-y-2">
+              <span className="text-xs font-mono font-bold uppercase text-red-400">
+                Shopify Annual Cost
+              </span>
+              <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+                ${totalShopifyCost.toLocaleString()}
+              </div>
+              <p className="text-[11px] text-gray-400 leading-relaxed">
+                $39/mo base + $180/mo app fees + 2.9% transaction cuts.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-2">
+              <span className="text-xs font-mono font-bold uppercase text-indigo-300">
+                GumShop Pro Annual Cost
+              </span>
+              <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+                ${gumshopCost}
+              </div>
+              <p className="text-[11px] text-gray-400 leading-relaxed">
+                $9/mo billed annually. 0% extra transaction fees.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-2 sm:col-span-1 shadow-lg shadow-emerald-950/40">
+              <span className="text-xs font-mono font-bold uppercase text-emerald-400">
+                Your Annual Savings
+              </span>
+              <div className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono">
+                +${totalSaved.toLocaleString()}
+              </div>
+              <p className="text-[11px] text-emerald-200/80 leading-relaxed font-semibold">
+                Pure money kept in your pocket every year.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-white/5">
+            <span className="text-xs text-gray-400">
+              ⚡ Calculated based on standard Shopify Plus/Basic tier &amp; app marketplace benchmarks.
+            </span>
+            <Link
+              to="/signup"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wider shadow-xl shadow-emerald-950/60 transition-all hover:scale-105 text-center"
+            >
+              Keep This Money — Switch to GumShop
+            </Link>
+          </div>
         </div>
       </div>
     </section>
@@ -1485,11 +2045,13 @@ export function LandingFooter() {
 
 export const LandingPage: React.FC = () => {
   return (
-    <div className="min-h-screen scroll-smooth bg-[#07080B] text-white selection:bg-sky-500 selection:text-white">
+    <div className="min-h-screen scroll-smooth bg-[#07080B] text-white selection:bg-indigo-500 selection:text-white">
       <LandingNav />
       <main>
         <HeroSection />
         <LogoStrip />
+        <ProductBentoShowcase />
+        <ProfitSavingsCalculator />
         <ShowcaseCarouselSection />
         <FeaturesSection />
         <CompetitorComparisonSection />
