@@ -315,8 +315,38 @@ export const MultiTenantStorefrontPage: React.FC = () => {
               </h2>
             </div>
 
-            {/* Search Input */}
-            <div className="flex items-center gap-3">
+            {/* Search Input & Category Pills */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              {categories.length > 0 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto max-w-xs pb-1 sm:pb-0 scrollbar-none">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('all')}
+                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
+                      selectedCategory === 'all'
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/5'
+                    }`}
+                  >
+                    All ({products.length})
+                  </button>
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap capitalize ${
+                        selectedCategory === cat
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/5'
+                      }`}
+                    >
+                      {cat.replace(/^cat_/, '')}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div className="relative w-full sm:w-64">
                 <Search className="w-3.5 h-3.5 text-gray-500 absolute left-3.5 top-3" />
                 <input
@@ -340,11 +370,14 @@ export const MultiTenantStorefrontPage: React.FC = () => {
                 return (
                   <div
                     key={p.id}
-                    className="bg-[#11131C]/90 backdrop-blur-md border border-white/10 hover:border-indigo-500/40 rounded-2xl overflow-hidden flex flex-col justify-between transition-all duration-300 group shadow-lg hover:shadow-2xl hover:shadow-indigo-950/40 hover:-translate-y-1"
+                    className="bg-[#0F1117] border border-white/10 hover:border-indigo-500/40 rounded-2xl overflow-hidden flex flex-col justify-between transition-all duration-300 group shadow-lg hover:shadow-2xl hover:shadow-indigo-950/40 hover:-translate-y-1"
                   >
                     <div className="p-4 space-y-3">
-                      {/* Product Thumbnail */}
-                      <div className="aspect-square bg-black/40 rounded-xl overflow-hidden relative group-hover:shadow-inner">
+                      {/* Product Thumbnail with Link */}
+                      <Link
+                        to={`/store/${activeSlug}/products/${p.slug}`}
+                        className="aspect-square bg-black/40 rounded-xl overflow-hidden relative group-hover:shadow-inner block"
+                      >
                         <img
                           src={p.thumbnail || p.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&q=80'}
                           alt={p.title}
@@ -368,13 +401,16 @@ export const MultiTenantStorefrontPage: React.FC = () => {
                             </span>
                           )}
                         </div>
-                      </div>
+                      </Link>
 
                       {/* Title & Short description */}
                       <div>
-                        <h3 className="text-sm font-extrabold text-white line-clamp-1 group-hover:text-indigo-400 transition-colors">
+                        <Link
+                          to={`/store/${activeSlug}/products/${p.slug}`}
+                          className="text-sm font-extrabold text-white line-clamp-1 hover:text-indigo-400 transition-colors block"
+                        >
                           {p.title}
-                        </h3>
+                        </Link>
                         {p.shortDescription && (
                           <p className="text-xs text-gray-400 line-clamp-2 mt-1 leading-relaxed">
                             {p.shortDescription}
