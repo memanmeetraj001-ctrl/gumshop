@@ -137,8 +137,8 @@ router.get('/:slug/products', async (req: Request, res: Response): Promise<void>
   }
 });
 
-// Public: Get Store by Slug (Must be last)
-router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
+// Public: Get Store by Slug (Supports both /:slug and /by-slug/:slug)
+const handleGetStore = async (req: Request, res: Response): Promise<void> => {
   try {
     const { slug } = req.params;
     const state = await db.getState();
@@ -174,6 +174,9 @@ router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
-});
+};
+
+router.get('/by-slug/:slug', handleGetStore);
+router.get('/:slug', handleGetStore);
 
 export default router;

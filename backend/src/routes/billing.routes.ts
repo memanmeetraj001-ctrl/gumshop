@@ -90,6 +90,42 @@ router.get('/subscription', authenticate, async (req: AuthRequest, res: Response
   }
 });
 
+// POST /api/billing/cancel — Cancel active subscription (authenticated)
+router.post('/cancel', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const state = await db.getState();
+    const tenant = (state.tenants || []).find(
+      (t) => t.id === req.user?.tenantId || t.ownerEmail === req.user?.email
+    );
+
+    if (!tenant) {
+      res.status(404).json({ error: 'Tenant not found' });
+      return;
+    }
+
+    await db.saveState((s) => {
+      const target = (s.tenants || []).find((t) => t.id === tenant.id);
+      if (target) {
+        target.subscriptionStatus = 'cancelled';
+        target.updatedAt = new Date().toISOString();
+      }
+    });
+
+    await db.logActivity({
+      userId: req.user?.id || 'system',
+      userName: req.user?.name || tenant.storeName,
+      action: 'CANCEL',
+      resource: 'BILLING',
+      resourceId: tenant.id,
+      details: `User requested subscription cancellation for store "${tenant.storeName}".`,
+    });
+
+    res.json({ success: true, message: 'Subscription cancelled. Plan remains active until billing cycle ends.' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 /**
  * Universal Gumroad Webhook Handler
  * Handles Gumroad ping tests, sales, subscriptions, and cancellations

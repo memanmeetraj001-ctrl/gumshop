@@ -86,14 +86,17 @@ router.get('/:slugOrId', async (req: Request, res: Response): Promise<void> => {
 router.post('/', authenticate, requireRole(['superadmin', 'editor']), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const data = req.body;
+    const userTenant = req.user?.tenantId || data.tenantId || 'tenant_demo';
+
     const newProduct: Product = {
-      id: data.id || 'prod_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      id: data.id || 'prod_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      tenantId: userTenant,
       slug: data.slug || data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
       title: data.title || 'Untitled Product',
       shortDescription: data.shortDescription || '',
       description: data.description || '',
       price: Number(data.price) || 0,
-      compareAtPrice: data.compareAtPrice  ? Number(data.compareAtPrice) : undefined,
+      compareAtPrice: data.compareAtPrice ? Number(data.compareAtPrice) : undefined,
       currency: data.currency || 'USD',
       sku: data.sku || 'GS-SKU-' + Date.now().toString().slice(-4),
       categoryId: data.categoryId || '',
@@ -106,11 +109,11 @@ router.post('/', authenticate, requireRole(['superadmin', 'editor']), async (req
       sale: Boolean(data.sale),
       images: Array.isArray(data.images) && data.images.length > 0 ? data.images : ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1000&q=80'],
       thumbnail: data.thumbnail || (data.images && data.images[0]) || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80',
-      specifications: Array.isArray(data.specifications)  ? data.specifications : [],
-      faq: Array.isArray(data.faq)  ? data.faq : [],
+      specifications: Array.isArray(data.specifications) ? data.specifications : [],
+      faq: Array.isArray(data.faq) ? data.faq : [],
       gumroadUrl: data.gumroadUrl || '',
       primaryCheckout: data.primaryCheckout || 'gumroad',
-      directCheckout: data.directCheckout !== undefined  ? Boolean(data.directCheckout) : true,
+      directCheckout: data.directCheckout !== undefined ? Boolean(data.directCheckout) : true,
       buttonText: data.buttonText || 'Buy on Gumroad',
       seoTitle: data.seoTitle || '',
       seoDescription: data.seoDescription || '',
@@ -198,7 +201,7 @@ router.post('/:id/duplicate', authenticate, requireRole(['superadmin', 'editor']
 
     const duplicated: Product = {
       ...source,
-      id: 'prod_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      id: 'prod_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
       title: `${source.title} (Copy)`,
       slug: `${source.slug}-copy-${Date.now().toString().slice(-4)}`,
       sku: `${source.sku}-COPY`,

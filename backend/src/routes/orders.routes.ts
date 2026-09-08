@@ -110,12 +110,15 @@ router.post('/create', async (req: Request, res: Response): Promise<void> => {
       gumroadRedirectUrl = `${base}${base.includes('?') ? '&' : '?'}${params.toString()}`;
     }
 
+    const targetTenantId = (targetProduct as any)?.tenantId || req.body.tenantId || 'tenant_demo';
+
     const newOrder: Order = {
       id: orderId,
       orderNumber,
       customerName: customerName.trim(),
       customerEmail: customerEmail.trim().toLowerCase(),
       customerPhone: customerPhone ? customerPhone.trim() : undefined,
+      tenantId: targetTenantId,
       shippingAddress: {
         addressLine1: shippingAddress.addressLine1.trim(),
         addressLine2: shippingAddress.addressLine2 ? shippingAddress.addressLine2.trim() : undefined,
@@ -171,6 +174,12 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response): Promise<v
     const { status, search } = req.query;
     const state = await db.getState();
     let orders = state.orders || [];
+
+    // Tenant isolation: Superadmin sees everything, store owners see only their tenant's orders
+    if (req.user && req.user.role !== 'superadmin') {
+      const userTenant = req.user.tenantId || 'tenant_demo';
+      orders = orders.filter((o) => o.tenantId === userTenant || (!o.tenantId && userTenant === 'tenant_demo'));
+    }
 
     if (status && typeof status === 'string' && status !== 'all') {
       orders = orders.filter((o) => o.status === status);

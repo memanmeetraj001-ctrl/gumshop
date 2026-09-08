@@ -16,7 +16,6 @@ import { LandingPage } from './pages/marketing/LandingPage';
 import { SignupPage } from './pages/auth/SignupPage';
 
 // Storefront pages
-import { HomePage } from './pages/storefront/HomePage';
 import { ProductDetailPage } from './pages/storefront/ProductDetailPage';
 import { CollectionPage } from './pages/storefront/CollectionPage';
 import { BundlesPage } from './pages/storefront/BundlesPage';

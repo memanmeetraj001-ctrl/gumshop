@@ -37,14 +37,16 @@ router.post('/validate', async (req: Request, res: Response): Promise<void> => {
     );
 
     if (!promo) {
-      res.json({ valid: false, error: 'Invalid or expired promo code.' });
+      res.json({ valid: false, error: 'Invalid or expired promo code.', message: 'Invalid or expired promo code.' });
       return;
     }
 
     if (promo.minSpend && subtotal < promo.minSpend) {
+      const msg = `This code requires a minimum order of $${promo.minSpend.toFixed(2)}.`;
       res.json({
         valid: false,
-        error: `This code requires a minimum order of $${promo.minSpend.toFixed(2)}.`,
+        error: msg,
+        message: msg,
       });
       return;
     }

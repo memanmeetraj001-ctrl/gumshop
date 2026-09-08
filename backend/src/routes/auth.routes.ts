@@ -8,8 +8,7 @@ import { User, Tenant } from '../types';
 
 const router = Router();
 
-// Store Owner Self?.Registration (SaaS Signup)
-router.post('/register', async (req: Request, res: Response): Promise<void> => {
+const handleRegister = async (req: Request, res: Response): Promise<void> => {
   try {
     const { storeName, email, password, ownerName } = req.body;
 
@@ -56,37 +55,47 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
 
     const newUser: User = {
       id: userId,
-      tenantId,
       email: email.trim().toLowerCase(),
       name: (ownerName || storeName).trim(),
-      role: 'superadmin',
       password: passwordHash,
+      role: 'editor',
+      tenantId,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     await db.saveState((s) => {
       s.tenants = s.tenants || [];
+      s.users = s.users || [];
       s.tenants.push(newTenant);
       s.users.push(newUser);
     });
 
     const token = jwt.sign(
-      { userId: newUser.id, email: newUser.email, role: newUser.role, tenantId },
+      {
+        userId: newUser.id,
+        email: newUser.email,
+        role: newUser.role,
+        tenantId,
+      },
       config.jwtSecret,
       { expiresIn: '7d' }
     );
 
-    const { password: _, ...safeUser } = newUser;
+    const { password: _, ...sanitizedUser } = newUser;
 
     res.status(201).json({
       token,
-      user: safeUser,
+      user: sanitizedUser,
       tenant: newTenant,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Registration failed' });
   }
-});
+};
+
+router.post('/register', handleRegister);
+router.post('/signup', handleRegister);
 
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
   try {

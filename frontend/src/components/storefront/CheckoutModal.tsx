@@ -52,7 +52,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           title: product.title,
           price: product.price,
           quantity: 1,
-          thumbnail: product.thumbnail || product.images[0] || '',
+          thumbnail: product.thumbnail || product.images?.[0] || '',
           sku: product.sku,
           selectedOptions,
         },
@@ -62,7 +62,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         title: it.product.title,
         price: it.product.price,
         quantity: it.quantity,
-        thumbnail: it.product.thumbnail || it.product.images[0] || '',
+        thumbnail: it.product.thumbnail || it.product.images?.[0] || '',
         sku: it.product.sku,
       })) || [];
 

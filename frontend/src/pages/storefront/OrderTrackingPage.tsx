@@ -194,7 +194,7 @@ export const OrderTrackingPage: React.FC = () => {
                 </span>
                 <p className="text-xs text-gray-300">
                   <strong className="text-white block">{order.customerName}</strong>
-                  {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.country}
+                  {order.shippingAddress?.city ? `${order.shippingAddress.city}, ` : ''}{order.shippingAddress?.state ? `${order.shippingAddress.state} ` : ''}{order.shippingAddress?.country || 'United States'}
                 </p>
               </div>
 

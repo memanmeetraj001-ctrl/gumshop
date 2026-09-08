@@ -1,5 +1,134 @@
 {
-  "tenants": [],
+  "orders": [
+    {
+      "id": "ord_1788854569806_4g2nk5",
+      "orderNumber": "GUM-48942",
+      "customerName": "Test Customer",
+      "customerEmail": "test@example.com",
+      "tenantId": "tenant_demo",
+      "shippingAddress": {
+        "addressLine1": "123 Test St",
+        "city": "San Francisco",
+        "state": "CA",
+        "postalCode": "94105",
+        "country": "United States"
+      },
+      "items": [
+        {
+          "productId": "prod_1",
+          "title": "Test Product",
+          "price": 29,
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 29,
+      "discountAmount": 0,
+      "currency": "USD",
+      "status": "pending_payment",
+      "gumroadRedirectUrl": "https://gumroad.com",
+      "createdAt": "2026-09-08T08:02:49.806Z",
+      "updatedAt": "2026-09-08T08:02:49.806Z"
+    },
+    {
+      "id": "ord_1788854353410_uq4g4f",
+      "orderNumber": "GUM-57460",
+      "customerName": "Test Customer",
+      "customerEmail": "test@example.com",
+      "tenantId": "tenant_demo",
+      "shippingAddress": {
+        "addressLine1": "123 Test St",
+        "city": "San Francisco",
+        "state": "CA",
+        "postalCode": "94105",
+        "country": "United States"
+      },
+      "items": [
+        {
+          "productId": "prod_1",
+          "title": "Test Product",
+          "price": 29,
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 29,
+      "discountAmount": 0,
+      "currency": "USD",
+      "status": "pending_payment",
+      "gumroadRedirectUrl": "https://gumroad.com",
+      "createdAt": "2026-09-08T07:59:13.410Z",
+      "updatedAt": "2026-09-08T07:59:13.410Z"
+    }
+  ],
+  "analyticsEvents": [],
+  "mediaItems": [
+    {
+      "id": "med_1",
+      "filename": "swivel?.gun?.detail.jpg",
+      "url": "https://images.unsplash.com/photo?.1607860108855?.64acf2078ed9?.auto=format&fit=crop&w=1200&q=80",
+      "type": "image",
+      "size": 420000,
+      "folder": "products",
+      "altText": "GumShop Swivel Gun Pro",
+      "createdAt": "2026-09-01T15:06:19.868Z"
+    },
+    {
+      "id": "med_2",
+      "filename": "foam?.cannon?.clinging?.foam.jpg",
+      "url": "https://images.unsplash.com/photo?.1520340356584?.f9917d1eea6f?.auto=format&fit=crop&w=1200&q=80",
+      "type": "image",
+      "size": 380000,
+      "folder": "products",
+      "altText": "Premium Gear Product in Action",
+      "createdAt": "2026-09-01T15:06:19.868Z"
+    }
+  ],
+  "adminActivity": [
+    {
+      "userId": "usr_admin_1",
+      "userName": "Store Admin",
+      "action": "LOGIN",
+      "resource": "AUTH",
+      "details": "User logged in from ::ffff:127.0.0.1",
+      "id": "act_1788854569782_s34uz",
+      "timestamp": "2026-09-08T08:02:49.782Z"
+    },
+    {
+      "userId": "usr_admin_1",
+      "userName": "Store Admin",
+      "action": "LOGIN",
+      "resource": "AUTH",
+      "details": "User logged in from ::1",
+      "id": "act_1788275846230_ki4mp",
+      "timestamp": "2026-09-01T15:17:26.230Z"
+    },
+    {
+      "id": "act_1",
+      "userId": "usr_admin_1",
+      "userName": "GumShop Super Admin",
+      "action": "INITIALIZE",
+      "resource": "SYSTEM",
+      "details": "System initialized with GumShop clean?.room demo data",
+      "timestamp": "2026-09-01T15:06:19.868Z"
+    }
+  ],
+  "tenants": [
+    {
+      "id": "tenant_demo",
+      "slug": "demo",
+      "storeName": "My GumShop Store",
+      "tagline": "Premium Lifestyle & Tech Gear",
+      "ownerEmail": "admin@gumshop.online",
+      "ownerName": "Store Admin",
+      "plan": "free",
+      "productLimit": 10,
+      "gumroadStoreUrl": "https://manmeetraj6.gumroad.com",
+      "primaryColor": "#6366F1",
+      "currency": "USD",
+      "createdAt": "2026-09-08T07:59:09.988Z",
+      "updatedAt": "2026-09-08T07:59:09.988Z",
+      "isActive": true
+    }
+  ],
   "users": [
     {
       "id": "usr_admin_1",
@@ -734,49 +863,5 @@
     "ogImage": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
     "twitterCard": "summary_large_image",
     "canonicalUrl": "https://gumshop.online"
-  },
-  "orders": [],
-  "analyticsEvents": [],
-  "mediaItems": [
-    {
-      "id": "med_1",
-      "filename": "swivel?.gun?.detail.jpg",
-      "url": "https://images.unsplash.com/photo?.1607860108855?.64acf2078ed9?.auto=format&fit=crop&w=1200&q=80",
-      "type": "image",
-      "size": 420000,
-      "folder": "products",
-      "altText": "GumShop Swivel Gun Pro",
-      "createdAt": "2026-09-01T15:06:19.868Z"
-    },
-    {
-      "id": "med_2",
-      "filename": "foam?.cannon?.clinging?.foam.jpg",
-      "url": "https://images.unsplash.com/photo?.1520340356584?.f9917d1eea6f?.auto=format&fit=crop&w=1200&q=80",
-      "type": "image",
-      "size": 380000,
-      "folder": "products",
-      "altText": "Premium Gear Product in Action",
-      "createdAt": "2026-09-01T15:06:19.868Z"
-    }
-  ],
-  "adminActivity": [
-    {
-      "userId": "usr_admin_1",
-      "userName": "Store Admin",
-      "action": "LOGIN",
-      "resource": "AUTH",
-      "details": "User logged in from ::1",
-      "id": "act_1788275846230_ki4mp",
-      "timestamp": "2026-09-01T15:17:26.230Z"
-    },
-    {
-      "id": "act_1",
-      "userId": "usr_admin_1",
-      "userName": "GumShop Super Admin",
-      "action": "INITIALIZE",
-      "resource": "SYSTEM",
-      "details": "System initialized with GumShop clean?.room demo data",
-      "timestamp": "2026-09-01T15:06:19.868Z"
-    }
-  ]
+  }
 }
