@@ -34,28 +34,30 @@ const saasColumns = [
       { label: 'SaaS Pricing', href: '/#pricing', internal: false },
       { label: 'How It Works', href: '/#how-it-works', internal: false },
       { label: 'Live Demo Store', href: '/store/demo', internal: true },
+      { label: 'For Gumroad Creators', href: '/creators', internal: true },
     ],
   },
   {
-    title: 'Platform',
+    title: 'Comparisons',
     links: [
+      { label: 'vs. Shopify', href: '/vs/shopify', internal: true },
+      { label: 'vs. Sellfy', href: '/vs/sellfy', internal: true },
+      { label: 'vs. WooCommerce', href: '/vs/woocommerce', internal: true },
+    ],
+  },
+  {
+    title: 'Partners & Growth',
+    links: [
+      { label: 'Creator Affiliate (20%)', href: '/affiliates', internal: true },
       { label: 'Merchant Admin Login', href: '/admin/login', internal: true },
       { label: 'Create Free Store (60s)', href: '/signup', internal: true },
       { label: 'Plan Upgrades', href: '/admin/upgrade', internal: true },
+    ],
+  },
+  {
+    title: 'Legal & Help',
+    links: [
       { label: 'Merchant Guide & FAQ', href: '/admin/guide', internal: true },
-      { label: 'Master Super-Admin', href: '/super-admin/billing', internal: true },
-    ],
-  },
-  {
-    title: 'Company',
-    links: [
-      { label: 'About GumShop', href: '/about', internal: true },
-      { label: 'Contact Support', href: '/contact', internal: true },
-    ],
-  },
-  {
-    title: 'Legal',
-    links: [
       { label: 'Privacy Policy', href: '/privacy', internal: true },
       { label: 'Terms of Service', href: '/terms', internal: true },
       { label: 'Cookie Policy', href: '/cookies', internal: true },

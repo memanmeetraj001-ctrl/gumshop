@@ -14,6 +14,11 @@ import { SearchModal } from './components/storefront/SearchModal';
 // SaaS Marketing & Auth Pages
 import { LandingPage } from './pages/marketing/LandingPage';
 import { SignupPage } from './pages/auth/SignupPage';
+import { ComparisonShopifyPage } from './pages/marketing/ComparisonShopifyPage';
+import { ComparisonSellfyPage } from './pages/marketing/ComparisonSellfyPage';
+import { ComparisonWooCommercePage } from './pages/marketing/ComparisonWooCommercePage';
+import { AffiliatesPage } from './pages/marketing/AffiliatesPage';
+import { GumroadCreatorsHubPage } from './pages/marketing/GumroadCreatorsHubPage';
 
 // Storefront pages
 import { ProductDetailPage } from './pages/storefront/ProductDetailPage';
@@ -202,6 +207,18 @@ export function App() {
               {/* Gumroad Hosted Billing Return Routes */}
               <Route path="/billing/success" element={<BillingSuccessPage />} />
               <Route path="/billing/cancel" element={<BillingCancelPage />} />
+
+              {/* Competitor Comparison & Programmatic SEO Pages */}
+              <Route path="/vs/shopify" element={<ComparisonShopifyPage />} />
+              <Route path="/alternatives/shopify" element={<ComparisonShopifyPage />} />
+              <Route path="/vs/sellfy" element={<ComparisonSellfyPage />} />
+              <Route path="/alternatives/sellfy" element={<ComparisonSellfyPage />} />
+              <Route path="/vs/woocommerce" element={<ComparisonWooCommercePage />} />
+              <Route path="/alternatives/woocommerce" element={<ComparisonWooCommercePage />} />
+
+              {/* Growth & Creator Hub Pages */}
+              <Route path="/affiliates" element={<AffiliatesPage />} />
+              <Route path="/creators" element={<GumroadCreatorsHubPage />} />
 
               {/* Master Super Admin Platform */}
               <Route
