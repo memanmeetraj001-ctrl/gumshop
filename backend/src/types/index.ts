@@ -19,9 +19,31 @@ export interface Tenant {
   billingCycle?: 'monthly' | 'annual';
   planExpiresAt?: string;
   subscriptionStatus?: 'active' | 'cancelled' | 'expired' | 'paused' | 'past_due';
+  referralCode?: string;
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
+}
+
+export interface Affiliate {
+  id: string;
+  code: string;
+  email: string;
+  name?: string;
+  payoutMethod?: 'paypal' | 'gumroad' | 'stripe' | 'wire';
+  payoutAddress?: string;
+  commissionRate: number; // e.g. 0.20 for 20%
+  totalClicks: number;
+  totalConversions: number;
+  totalVolume: number;
+  totalEarnings: number;
+  paidEarnings: number;
+  unpaidEarnings: number;
+  status: 'active' | 'paused' | 'banned';
+  referredTenants?: string[];
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface User {

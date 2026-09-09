@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { CartProvider } from './context/CartContext';
+import { api } from './api/client';
 
 // Storefront components
 import { AnnouncementBar } from './components/storefront/AnnouncementBar';
@@ -49,6 +50,7 @@ import { MasterAdminLayout } from './components/admin/MasterAdminLayout';
 import { MasterStoresPage } from './pages/admin/MasterStoresPage';
 import { MasterBillingPage } from './pages/admin/MasterBillingPage';
 import { MasterSettingsPage } from './pages/admin/MasterSettingsPage';
+import { MasterAffiliatesPage } from './pages/admin/MasterAffiliatesPage';
 import { CustomerAccountPage } from './pages/storefront/CustomerAccountPage';
 import { SuperAdminDashboardPage } from './pages/admin/SuperAdminDashboardPage';
 import { AdminHomepageBuilderPage } from './pages/admin/AdminHomepageBuilderPage';
@@ -117,12 +119,30 @@ const StorefrontLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   );
 };
 
+const AffiliateTracker: React.FC = () => {
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const refCode = params.get('ref') || params.get('via');
+      if (refCode) {
+        const cleanCode = refCode.trim().toLowerCase();
+        localStorage.setItem('gumshop_ref', cleanCode);
+        api.trackAffiliateClick(cleanCode).catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+  return null;
+};
+
 export function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
         <CartProvider>
           <BrowserRouter>
+            <AffiliateTracker />
             <Routes>
               {/* SaaS Marketing Landing Page */}
               <Route path="/" element={<LandingPage />} />
@@ -232,6 +252,7 @@ export function App() {
                 <Route index element={<SuperAdminDashboardPage />} />
                 <Route path="stores" element={<MasterStoresPage />} />
                 <Route path="billing" element={<MasterBillingPage />} />
+                <Route path="affiliates" element={<MasterAffiliatesPage />} />
                 <Route path="users" element={<MasterStoresPage />} />
                 <Route path="settings" element={<MasterSettingsPage />} />
               </Route>

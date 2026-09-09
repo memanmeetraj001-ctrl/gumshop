@@ -32,11 +32,13 @@ export const SignupPage: React.FC = () => {
     setError(null);
 
     try {
+      const refCode = searchParams.get('ref') || searchParams.get('via') || localStorage.getItem('gumshop_ref') || undefined;
       const res = await api.register({
         storeName,
         email,
         password,
         ownerName: ownerName || storeName,
+        refCode: refCode || undefined,
       });
 
       if (res.token) {

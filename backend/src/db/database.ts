@@ -23,6 +23,7 @@ import {
   AnalyticsEvent,
   MediaItem,
   AdminActivity,
+  Affiliate,
 } from '../types';
 
 export interface DatabaseState {
@@ -45,6 +46,7 @@ export interface DatabaseState {
   analyticsEvents: AnalyticsEvent[];
   mediaItems: MediaItem[];
   adminActivity: AdminActivity[];
+  affiliates: Affiliate[];
 }
 
 class DatabaseManager {
@@ -132,6 +134,7 @@ class DatabaseManager {
             analyticsEvents: [],
             mediaItems: [],
             adminActivity: [],
+            affiliates: Array.isArray(parsed.affiliates) ? parsed.affiliates : [],
             ...parsed,
             tenants: loadedTenants,
           };
@@ -146,6 +149,7 @@ class DatabaseManager {
       tenants: seed.tenants && seed.tenants.length > 0 ? seed.tenants : [defaultTenant],
       orders: [],
       analyticsEvents: [],
+      affiliates: [],
       mediaItems: [
         {
           id: 'med_1',

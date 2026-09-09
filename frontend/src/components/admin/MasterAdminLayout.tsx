@@ -16,6 +16,7 @@ export const MasterAdminLayout: React.FC = () => {
     { label: 'Platform Overview & MRR', path: '/super-admin', emoji: '📊' },
     { label: 'Store Tenant Directory', path: '/super-admin/stores', emoji: '🏪' },
     { label: 'SaaS Billing & Webhooks', path: '/super-admin/billing', emoji: '💳' },
+    { label: 'Affiliates & Partners', path: '/super-admin/affiliates', emoji: '🤝' },
     { label: 'Admins & Store Owners', path: '/super-admin/users', emoji: '👥' },
     { label: 'Global Platform Settings', path: '/super-admin/settings', emoji: '⚙️' },
   ];

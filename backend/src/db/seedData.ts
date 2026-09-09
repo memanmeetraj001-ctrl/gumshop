@@ -19,6 +19,7 @@ import {
   AnalyticsEvent,
   MediaItem,
   AdminActivity,
+  Affiliate,
 } from '../types';
 
 export function getInitialSeedData(): {
@@ -41,6 +42,7 @@ export function getInitialSeedData(): {
   analyticsEvents: AnalyticsEvent[];
   mediaItems: MediaItem[];
   adminActivity: AdminActivity[];
+  affiliates: Affiliate[];
 } {
   const tenantDemo: Tenant = {
     id: 'tenant_demo',
@@ -632,5 +634,6 @@ export function getInitialSeedData(): {
     analyticsEvents: [],
     mediaItems: [],
     adminActivity: [],
+    affiliates: [],
   };
 }

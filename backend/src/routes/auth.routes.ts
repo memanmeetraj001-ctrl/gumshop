@@ -10,7 +10,8 @@ const router = Router();
 
 const handleRegister = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { storeName, email, password, ownerName } = req.body;
+    const { storeName, email, password, ownerName, refCode, referralCode } = req.body;
+    const trackingCode = (refCode || referralCode || '').trim();
 
     if (!storeName || !email || !password) {
       res.status(400).json({ error: 'Store name, email, and password are required.' });
@@ -48,6 +49,7 @@ const handleRegister = async (req: Request, res: Response): Promise<void> => {
       gumroadStoreUrl: 'https://gumroad.com',
       primaryColor: '#6366F1',
       currency: 'USD',
+      referralCode: trackingCode || undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isActive: true,
@@ -69,6 +71,19 @@ const handleRegister = async (req: Request, res: Response): Promise<void> => {
       s.users = s.users || [];
       s.tenants.push(newTenant);
       s.users.push(newUser);
+
+      // Attribute referral conversion if valid affiliate code was provided
+      if (trackingCode && Array.isArray(s.affiliates)) {
+        const aff = s.affiliates.find((a) => a.code.toLowerCase() === trackingCode.toLowerCase() && a.status === 'active');
+        if (aff) {
+          aff.totalConversions = (aff.totalConversions || 0) + 1;
+          aff.referredTenants = aff.referredTenants || [];
+          if (!aff.referredTenants.includes(tenantId)) {
+            aff.referredTenants.push(tenantId);
+          }
+          aff.updatedAt = new Date().toISOString();
+        }
+      }
     });
 
     const token = jwt.sign(

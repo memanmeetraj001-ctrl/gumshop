@@ -26,6 +26,7 @@ import settingsRoutes from './routes/settings.routes';
 import scraperRoutes from './routes/scraper.routes';
 import storesRoutes from './routes/stores.routes';
 import billingRoutes from './routes/billing.routes';
+import affiliatesRoutes from './routes/affiliates.routes';
 
 export function createServer(): Express {
   const app = express();
@@ -100,6 +101,7 @@ export function createServer(): Express {
   app.use('/api/scraper', scraperRoutes);
   app.use('/api/stores', storesRoutes);
   app.use('/api/billing', billingRoutes);
+  app.use('/api/affiliates', affiliatesRoutes);
   app.use('/api/webhook', billingRoutes);
   app.use('/webhook', billingRoutes);
 
