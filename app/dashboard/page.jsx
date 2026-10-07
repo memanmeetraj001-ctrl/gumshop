@@ -38,7 +38,9 @@ import {
     RefreshCw,
     Download,
     Upload,
-    Database
+    Database,
+    Eye,
+    EyeOff
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { isProductDeleted, isStoreDeleted, markStoreDeleted, deleteStore, DEFAULT_CATALOG_PRODUCTS } from '@/lib/firebaseDb';
@@ -49,7 +51,11 @@ export default function MasterDashboardPage() {
     const [shops, setShops] = useState([]);
     const [activeStore, setActiveStore] = useState(null);
     const [homepageStoreSlug, setHomepageStoreSlugState] = useState('');
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [authChecking, setAuthChecking] = useState(true);
+    const [inPagePassword, setInPagePassword] = useState('');
+    const [inPageShow, setInPageShow] = useState(false);
+    const [inPageSubmitting, setInPageSubmitting] = useState(false);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'archived'
@@ -259,7 +265,11 @@ export default function MasterDashboardPage() {
                     headers['Authorization'] = `Bearer ${storedToken}`;
                 }
 
-                const res = await fetch(`/api/admin/auth?t=${Date.now()}`, {
+                const url = storedToken
+                    ? `/api/admin/auth?token=${encodeURIComponent(storedToken)}&t=${Date.now()}`
+                    : `/api/admin/auth?t=${Date.now()}`;
+
+                const res = await fetch(url, {
                     cache: 'no-store',
                     credentials: 'include',
                     headers
@@ -268,29 +278,28 @@ export default function MasterDashboardPage() {
 
                 if (!isMounted) return;
 
-                if (!data.authenticated) {
-                    if (typeof window !== 'undefined') {
-                        localStorage.removeItem('gumshop_admin_token');
+                if (data.authenticated) {
+                    if (data.token && typeof window !== 'undefined') {
+                        localStorage.setItem('gumshop_admin_token', data.token);
                     }
-                    window.location.href = '/login';
-                    return;
+                    setIsAuthenticated(true);
+                    setAuthChecking(false);
+                    loadShops();
+                    loadImportHistory();
+                    loadOrders();
+                    getHomepageStoreSlug().then(slug => {
+                        if (slug && isMounted) setHomepageStoreSlugState(slug);
+                    });
+                } else {
+                    // Stay on dashboard with in-page unlock card - zero redirect loop
+                    setIsAuthenticated(false);
+                    setAuthChecking(false);
                 }
-
-                if (data.token && typeof window !== 'undefined') {
-                    localStorage.setItem('gumshop_admin_token', data.token);
-                }
-
-                setAuthChecking(false);
-                loadShops();
-                loadImportHistory();
-                loadOrders();
-                getHomepageStoreSlug().then(slug => {
-                    if (slug && isMounted) setHomepageStoreSlugState(slug);
-                });
             } catch (err) {
                 console.warn("Master auth check error:", err);
                 if (isMounted) {
-                    window.location.href = '/login';
+                    setIsAuthenticated(false);
+                    setAuthChecking(false);
                 }
             }
         };
@@ -322,6 +331,40 @@ export default function MasterDashboardPage() {
         };
     }, []);
 
+    const handleInPageLogin = async (e) => {
+        e?.preventDefault?.();
+        if (!inPagePassword.trim()) return;
+        setInPageSubmitting(true);
+        try {
+            const res = await fetch('/api/admin/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ password: inPagePassword.trim() }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (data.success) {
+                if (data.token && typeof window !== 'undefined') {
+                    localStorage.setItem('gumshop_admin_token', data.token);
+                }
+                toast.success('Welcome back to Store HQ! 🚀');
+                setIsAuthenticated(true);
+                loadShops();
+                loadImportHistory();
+                loadOrders();
+                getHomepageStoreSlug().then(slug => {
+                    if (slug) setHomepageStoreSlugState(slug);
+                });
+            } else {
+                toast.error(data.error || 'Invalid master password');
+            }
+        } catch {
+            toast.error('Authentication request failed. Please retry.');
+        } finally {
+            setInPageSubmitting(false);
+        }
+    };
+
     const handleLogout = async () => {
         try {
             await fetch('/api/admin/auth', {
@@ -334,8 +377,9 @@ export default function MasterDashboardPage() {
         if (typeof window !== 'undefined') {
             localStorage.removeItem('gumshop_admin_token');
         }
+        setIsAuthenticated(false);
+        setInPagePassword('');
         toast.success('Command Center session closed');
-        window.location.href = '/login';
     };
 
     // Store Deletion
@@ -662,6 +706,75 @@ export default function MasterDashboardPage() {
             <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-3">
                 <div className="size-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                 <p className="text-xs font-mono text-slate-400">Verifying Master Command Center Access...</p>
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4">
+                <div className="w-full max-w-sm">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-6">
+                        <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition">
+                            <span>← Return to Storefront</span>
+                        </Link>
+                        <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            Master HQ Gate
+                        </span>
+                    </div>
+
+                    <div className="flex items-center justify-center gap-2 mb-8">
+                        <div className="size-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                            <Zap size={20} className="text-white fill-white" />
+                        </div>
+                        <span className="text-white font-black text-xl tracking-tight">GumShop Master Engine</span>
+                    </div>
+
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+                        <div className="flex items-center justify-center size-12 bg-slate-800 rounded-2xl mx-auto mb-6">
+                            <ShieldCheck size={22} className="text-emerald-400" />
+                        </div>
+                        <h1 className="text-white font-bold text-xl text-center mb-1">Enter Master Password</h1>
+                        <p className="text-slate-400 text-xs text-center mb-6">Unlock Command Center to manage all stores and settings</p>
+
+                        <form onSubmit={handleInPageLogin} className="space-y-4">
+                            <div className="relative">
+                                <input
+                                    type={inPageShow ? 'text' : 'password'}
+                                    placeholder="Master password"
+                                    value={inPagePassword}
+                                    onChange={e => setInPagePassword(e.target.value)}
+                                    autoFocus
+                                    className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-2xl px-4 py-3.5 text-sm outline-none focus:border-emerald-500 transition pr-12"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setInPageShow(s => !s)}
+                                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition"
+                                >
+                                    {inPageShow ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={inPageSubmitting || !inPagePassword.trim()}
+                                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-sm rounded-2xl shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                                {inPageSubmitting ? (
+                                    <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <Zap size={16} className="fill-white" />
+                                        <span>Unlock Command Center</span>
+                                    </>
+                                )}
+                            </button>
+                        </form>
+                    </div>
+
+                    <p className="text-slate-600 text-xs text-center mt-6">Private store management only</p>
+                </div>
             </div>
         );
     }

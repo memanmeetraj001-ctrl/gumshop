@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock, Zap, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Lock, Zap, Eye, EyeOff, ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
@@ -10,9 +10,10 @@ export default function LoginGate() {
     const [password, setPassword] = useState('');
     const [show, setShow] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [isAlreadyAuth, setIsAlreadyAuth] = useState(false);
     const [checking, setChecking] = useState(true);
 
-    // If already authenticated, go straight to dashboard
+    // Passive auth status check - never auto-redirects to avoid loops
     useEffect(() => {
         const checkAuth = async () => {
             try {
@@ -29,11 +30,10 @@ export default function LoginGate() {
                 });
                 const data = await res.json().catch(() => ({}));
                 if (data.authenticated) {
+                    setIsAlreadyAuth(true);
                     if (data.token && typeof window !== 'undefined') {
                         localStorage.setItem('gumshop_admin_token', data.token);
                     }
-                    window.location.href = '/dashboard';
-                    return;
                 }
             } catch (err) {
                 console.warn('Auth check error:', err);
@@ -68,20 +68,11 @@ export default function LoginGate() {
                 setPassword('');
             }
         } catch {
-            toast.error('Something went wrong');
+            toast.error('Something went wrong. Please check connection.');
         } finally {
             setLoading(false);
         }
     };
-
-    if (checking) {
-        return (
-            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-3">
-                <div className="size-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs text-slate-400">Verifying session...</p>
-            </div>
-        );
-    }
 
     return (
         <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4">
@@ -104,6 +95,24 @@ export default function LoginGate() {
                     </div>
                     <span className="text-white font-black text-xl tracking-tight">GumShop</span>
                 </div>
+
+                {/* Already Authenticated Banner */}
+                {isAlreadyAuth && !checking && (
+                    <div className="mb-5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5 text-emerald-400 text-xs font-bold mb-2">
+                            <ShieldCheck size={16} />
+                            <span>Active Master Session Detected</span>
+                        </div>
+                        <a
+                            href="/dashboard"
+                            className="inline-flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition shadow-md shadow-emerald-600/20"
+                        >
+                            <span>Open Master Command Center</span>
+                            <ArrowRight size={14} />
+                        </a>
+                        <p className="text-[11px] text-slate-500 mt-2">Or enter password below to refresh credentials</p>
+                    </div>
+                )}
 
                 <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
                     <div className="flex items-center justify-center size-12 bg-slate-800 rounded-2xl mx-auto mb-6">
