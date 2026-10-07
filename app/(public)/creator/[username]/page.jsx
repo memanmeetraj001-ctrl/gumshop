@@ -30,24 +30,65 @@ import {
 } from '@/lib/storePresets';
 import toast from 'react-hot-toast';
 
+const PRESET_STYLES = {
+    warm_studio: {
+        bg: 'bg-gradient-to-b from-[#f8fafc] via-[#f1f5f9] to-[#e2e8f0]',
+        frame: 'bg-white text-slate-900',
+        card: 'bg-white border-slate-100 text-slate-900',
+        subtext: 'text-slate-600'
+    },
+    dark_glass: {
+        bg: 'bg-gradient-to-b from-[#090d16] via-[#0f172a] to-[#020617]',
+        frame: 'bg-slate-950 text-white',
+        card: 'bg-slate-900/90 border-slate-800 text-white',
+        subtext: 'text-slate-400'
+    },
+    sunset: {
+        bg: 'bg-gradient-to-b from-[#fff1f2] via-[#ffe4e6] to-[#fef3c7]',
+        frame: 'bg-white text-slate-900',
+        card: 'bg-white border-rose-100 text-slate-900',
+        subtext: 'text-slate-600'
+    },
+    clean_white: {
+        bg: 'bg-white',
+        frame: 'bg-white text-slate-900',
+        card: 'bg-slate-50 border-slate-200 text-slate-900',
+        subtext: 'text-slate-600'
+    },
+    neon_cyber: {
+        bg: 'bg-[#030712]',
+        frame: 'bg-gray-950 text-cyan-200',
+        card: 'bg-gray-900 border-cyan-900/60 text-cyan-100',
+        subtext: 'text-cyan-400/80'
+    }
+};
+
 function formatCreatorProfile(store, rawUsername) {
     if (!store) return null;
     const cleanUser = (rawUsername || store.username || '').toLowerCase().trim();
     const storeClean = (store.username || cleanUser).toLowerCase().trim();
-    const displayName = store.name || store.storeName || (rawUsername ? rawUsername.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Store');
+    const bioProfile = store.bioProfile || {};
+    const displayName = bioProfile.displayName || store.name || store.storeName || (rawUsername ? rawUsername.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Store');
     
     // Fall back to demo socials ONLY for explicit demo store
     const defaultSocials = storeClean === 'demo' ? DEFAULT_DEMO_CREATOR.socials : {};
+    const mergedSocials = { ...defaultSocials, ...(store.socials || {}), ...(bioProfile.socials || {}) };
 
     return {
         id: store.id || `store_${storeClean}`,
         name: displayName,
-        verified: true,
-        bio: store.bio || store.description || store.tagline || `Official storefront for ${displayName}. Browse our curated collection.`,
-        avatar: store.avatar || store.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}`,
-        socials: store.socials || defaultSocials,
+        handle: bioProfile.handle || store.username || cleanUser,
+        verified: bioProfile.verified !== undefined ? bioProfile.verified : true,
+        bio: bioProfile.tagline || store.bio || store.description || store.tagline || `Official storefront for ${displayName}. Browse our curated collection.`,
+        avatar: bioProfile.avatar || store.avatar || store.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}`,
+        socials: mergedSocials,
+        customLinks: bioProfile.customLinks || [],
+        leadMagnet: bioProfile.leadMagnet || null,
+        backgroundPreset: bioProfile.backgroundPreset || 'warm_studio',
+        productDisplayMode: bioProfile.productDisplayMode || 'all',
+        featuredProductIds: bioProfile.featuredProductIds || [],
         gumroadProductUrl: store.gumroadProductUrl || store.gumroadUrl || '',
-        themeColor: store.themeColor || '#10B981',
+        themeColor: bioProfile.themeColor || store.themeColor || '#10B981',
         status: store.status || 'approved'
     };
 }
@@ -83,6 +124,10 @@ export default function CreatorBioPage({ params }) {
         email: '',
         submitted: false
     });
+
+    // In-Bio Email Lead Magnet State
+    const [bioLeadEmail, setBioLeadEmail] = useState('');
+    const [bioLeadSubmitted, setBioLeadSubmitted] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -223,6 +268,35 @@ export default function CreatorBioPage({ params }) {
         }, 2200);
     };
 
+    const handleBioLeadSubmit = (e) => {
+        e.preventDefault();
+        if (!bioLeadEmail || !bioLeadEmail.includes('@')) {
+            toast.error("Please enter a valid email address.");
+            return;
+        }
+
+        try {
+            const crmKey = `gumshop_customers_${cleanUser}`;
+            const existing = JSON.parse(localStorage.getItem(crmKey) || '[]');
+            const newLead = {
+                id: `lead_${Date.now()}`,
+                name: bioLeadEmail.split('@')[0],
+                email: bioLeadEmail.trim().toLowerCase(),
+                totalSpent: 0,
+                orderCount: 0,
+                source: 'Stan Bio Lead Magnet',
+                lastOrderDate: new Date().toISOString()
+            };
+            if (!existing.some(c => c.email === newLead.email)) {
+                existing.unshift(newLead);
+                localStorage.setItem(crmKey, JSON.stringify(existing));
+            }
+        } catch {}
+
+        setBioLeadSubmitted(true);
+        toast.success(`Access granted! Sent to ${bioLeadEmail} 🎉`, { duration: 3500 });
+    };
+
     if (loading) return <Loading />;
 
     if (!storeInfo || !creator) {
@@ -266,8 +340,13 @@ export default function CreatorBioPage({ params }) {
         );
     }
 
+    const activePreset = PRESET_STYLES[creator?.backgroundPreset] || PRESET_STYLES.warm_studio;
+    const displayedProducts = (creator?.productDisplayMode === 'curated' && creator?.featuredProductIds?.length > 0)
+        ? products.filter(p => creator.featuredProductIds.includes(p.id))
+        : products;
+
     return (
-        <div className="min-h-screen bg-[#f3f4f6] text-slate-900 selection:bg-rose-500 selection:text-white flex flex-col font-sans antialiased">
+        <div className={`min-h-screen text-slate-900 selection:bg-rose-500 selection:text-white flex flex-col font-sans antialiased ${activePreset.bg}`}>
             
             {/* SEO Rich Snippets JSON-LD */}
             <script
@@ -301,6 +380,13 @@ export default function CreatorBioPage({ params }) {
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100">
                         ⚡ Link-in-Bio Mode • Live Store Sync
                     </span>
+                    <Link
+                        href="/store/bio-editor"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
+                    >
+                        <Smartphone size={12} className="text-rose-500" />
+                        <span>Edit Bio Profile</span>
+                    </Link>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -344,15 +430,15 @@ export default function CreatorBioPage({ params }) {
                 </div>
             </header>
 
-            {/* Main Stage with Aesthetic Warm Studio Backdrop */}
-            <main className="flex-1 flex items-center justify-center p-0 md:py-10 md:px-4 bg-gradient-to-b from-[#f8fafc] via-[#f1f5f9] to-[#e2e8f0]">
+            {/* Main Stage with Dynamic Atmosphere Preset */}
+            <main className={`flex-1 flex items-center justify-center p-0 md:py-10 md:px-4 ${activePreset.bg}`}>
                 
                 {/* Mobile Smartphone Frame Container */}
                 <div 
                     className={`w-full transition-all duration-300 ${
                         viewMode === 'phone' 
-                            ? 'max-w-[430px] md:my-auto md:rounded-[48px] md:border-[10px] md:border-slate-900 md:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] md:ring-1 md:ring-slate-800/10 relative overflow-hidden bg-white'
-                            : 'max-w-xl mx-auto rounded-3xl bg-white shadow-xl border border-slate-200 my-6'
+                            ? `max-w-[430px] md:my-auto md:rounded-[48px] md:border-[10px] md:border-slate-900 md:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] md:ring-1 md:ring-slate-800/10 relative overflow-hidden ${activePreset.frame}`
+                            : `max-w-xl mx-auto rounded-3xl shadow-xl border border-slate-200 my-6 ${activePreset.frame}`
                     }`}
                 >
                     {/* Simulated iPhone Status Bar & Dynamic Island (Phone Mode Only) */}
@@ -499,12 +585,81 @@ export default function CreatorBioPage({ params }) {
                                     )}
                                 </div>
 
+                                {/* ─── Custom CTA Link Buttons (Stan Store Killer Feature) ─── */}
+                                {creator.customLinks?.length > 0 && (
+                                    <div className="mt-4 space-y-2">
+                                        {creator.customLinks.map((link, idx) => (
+                                            <a
+                                                key={link.id || idx}
+                                                href={link.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="relative block w-full p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all font-bold text-xs sm:text-sm text-slate-800 text-center active:scale-[0.99]"
+                                                style={link.highlight ? { borderColor: creator.themeColor || '#10B981', borderWidth: '1.5px' } : {}}
+                                            >
+                                                {link.highlight && (
+                                                    <span 
+                                                        className="absolute -top-2.5 right-3 text-[10px] font-extrabold px-2 py-0.5 rounded-full text-white shadow-2xs"
+                                                        style={{ backgroundColor: creator.themeColor || '#10B981' }}
+                                                    >
+                                                        {link.badge || '⭐ Featured'}
+                                                    </span>
+                                                )}
+                                                <span>{link.title}</span>
+                                            </a>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* ─── Email Lead Magnet Opt-In Card ─── */}
+                                {creator.leadMagnet?.enabled && (
+                                    <div className="mt-4 p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-md relative overflow-hidden text-left">
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <span className="text-xs">🎁</span>
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                                                Free Resource
+                                            </span>
+                                        </div>
+                                        <h4 className="text-xs sm:text-sm font-extrabold text-white leading-snug">
+                                            {creator.leadMagnet.title || 'Free Creator Playbook'}
+                                        </h4>
+                                        <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                                            {creator.leadMagnet.subtitle || 'Enter your email for instant digital delivery.'}
+                                        </p>
+
+                                        {bioLeadSubmitted ? (
+                                            <div className="mt-2.5 p-2 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                                                <CheckCircle2 size={14} className="text-emerald-400" />
+                                                <span>Access link sent! Check your inbox.</span>
+                                            </div>
+                                        ) : (
+                                            <form onSubmit={handleBioLeadSubmit} className="mt-3 flex gap-1.5">
+                                                <input 
+                                                    type="email"
+                                                    required
+                                                    placeholder="Enter your email..."
+                                                    value={bioLeadEmail}
+                                                    onChange={e => setBioLeadEmail(e.target.value)}
+                                                    className="flex-1 min-w-0 bg-white/10 border border-white/20 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                                                />
+                                                <button
+                                                    type="submit"
+                                                    className="px-3.5 py-1.5 rounded-xl font-black text-xs text-slate-950 transition active:scale-95 shrink-0"
+                                                    style={{ backgroundColor: creator.themeColor || '#10B981' }}
+                                                >
+                                                    {creator.leadMagnet.buttonText || 'Claim Free'}
+                                                </button>
+                                            </form>
+                                        )}
+                                    </div>
+                                )}
+
                             </div>
 
                             {/* ─── Stacked Store Product Cards ─── */}
-                            {products.length > 0 ? (
+                            {displayedProducts.length > 0 ? (
                                 <div className="mt-5 space-y-3">
-                                    {products.map((item, index) => {
+                                    {displayedProducts.map((item, index) => {
                                         const isFree = parseFloat(item.price || 0) === 0 || item.isFreeDownload;
                                         const priceNum = parseFloat(item.price || 0);
                                         const priceDisplay = isFree 
@@ -558,10 +713,11 @@ export default function CreatorBioPage({ params }) {
                                                                 <span>Free Download</span>
                                                             </button>
                                                         ) : (
-                                                            /* Instant Buy via Gumroad CTA Button (Coral Gradient) */
+                                                            /* Instant Buy via Gumroad CTA Button */
                                                             <button
                                                                 onClick={() => handleInstantBuy(item)}
-                                                                className="py-1.5 px-3 sm:px-3.5 rounded-xl bg-gradient-to-r from-[#ef4444] to-[#f43f5e] hover:from-[#dc2626] hover:to-[#e11d48] text-white font-black text-xs transition active:scale-95 shadow-xs shadow-rose-500/20 flex items-center gap-1 tracking-tight"
+                                                                className="py-1.5 px-3 sm:px-3.5 rounded-xl text-white font-black text-xs transition active:scale-95 shadow-xs flex items-center gap-1 tracking-tight"
+                                                                style={{ backgroundColor: creator.themeColor || '#ef4444' }}
                                                             >
                                                                 <Zap size={13} className="fill-white" />
                                                                 <span>Instant Buy</span>

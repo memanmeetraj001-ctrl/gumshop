@@ -15,7 +15,8 @@ const StoreSidebar = ({ storeInfo }) => {
         { name: 'Import Store (AI)', href: '/store/import', icon: Sparkles, highlight: true },
         { name: '+ Create Blank Shop', href: '/create-store', icon: SquarePlusIcon },
         { name: 'Analytics & Overview', href: '/store', icon: BarChart3 },
-        { name: 'Creator Bio Link', href: `/creator/${storeSlug}`, icon: Smartphone, highlight: true, external: true, badge: 'Bio' },
+        { name: '📱 Edit Stan / Mobile Bio', href: '/store/bio-editor', icon: Smartphone, highlight: true, badge: 'New' },
+        { name: 'Creator Bio Link', href: `/creator/${storeSlug}`, icon: ExternalLink, highlight: false, external: true, badge: 'Live' },
         { name: 'Manage Products', href: '/store/manage-product', icon: SquarePenIcon },
         { name: 'Add Product', href: '/store/add-product', icon: SquarePlusIcon },
         { name: 'Orders & Shipping', href: '/store/orders', icon: Package },
@@ -51,13 +52,11 @@ const StoreSidebar = ({ storeInfo }) => {
                             <ExternalLink size={12} />
                         </Link>
                         <Link 
-                            href={`/creator/${storeSlug}`}
-                            target="_blank"
+                            href="/store/bio-editor"
                             className="inline-flex items-center justify-center gap-1.5 text-[11px] font-bold text-rose-700 hover:text-rose-800 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200/60 transition"
                         >
                             <Smartphone size={12} />
-                            <span>Insta Bio Mode</span>
-                            <ExternalLink size={10} />
+                            <span>Edit Stan / Mobile Bio</span>
                         </Link>
                     </div>
                 </div>
