@@ -26,6 +26,9 @@ import {
 } from 'lucide-react';
 import { getStoreByUsername, getProductsByStore, getAllStores, isProductDeleted, isJunkProductName } from '@/lib/firebaseDb';
 import GumroadIframeModal from '@/components/GumroadIframeModal';
+import InAppBrowserBanner from '@/components/InAppBrowserBanner';
+import ExitIntentModal from '@/components/ExitIntentModal';
+import AiShoppingAssistant from '@/components/AiShoppingAssistant';
 import Loading from '@/components/Loading';
 import { 
     DEFAULT_DEMO_CREATOR, 
@@ -426,6 +429,8 @@ export default function CreatorBioPage({ params }) {
 
     return (
         <div className={`min-h-screen text-slate-900 selection:bg-rose-500 selection:text-white flex flex-col font-sans antialiased ${activePreset.bg}`}>
+            {/* In-App Browser (TikTok / Instagram) Optimizer */}
+            <InAppBrowserBanner />
             
             {/* SEO Rich Snippets JSON-LD */}
             <script
@@ -1046,6 +1051,17 @@ export default function CreatorBioPage({ params }) {
                     </div>
                 </div>
             )}
+
+            {/* Exit Intent Discount Recovery Modal */}
+            <ExitIntentModal onApplyCoupon={(code) => toast.success(`Coupon ${code} activated for checkout!`)} />
+
+            {/* AI Shopping Assistant (generative_ui) */}
+            <AiShoppingAssistant 
+                products={displayedProducts} 
+                storeName={creator.name} 
+                themeColor={creator.themeColor} 
+                onSelectProduct={handleInstantBuy} 
+            />
 
         </div>
     );

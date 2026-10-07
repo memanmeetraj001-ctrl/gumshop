@@ -6,6 +6,8 @@ import ProductCard from "@/components/ProductCard";
 import StorefrontNavbar from "@/components/StorefrontNavbar";
 import StoreHeroBanner from "@/components/StoreHeroBanner";
 import ExitIntentModal from "@/components/ExitIntentModal";
+import InAppBrowserBanner from "@/components/InAppBrowserBanner";
+import AiShoppingAssistant from "@/components/AiShoppingAssistant";
 import { getStoreByUsername, getProductsByStore, getAllStores, isProductDeleted, isJunkProductName } from "@/lib/firebaseDb";
 import { useAuth } from "@/lib/AuthContext";
 import Link from "next/link";
@@ -137,6 +139,8 @@ export default function StoreShop({ params }) {
 
     return (
         <div className="min-h-screen bg-slate-50 pb-24 selection:bg-emerald-500 selection:text-white">
+            {/* In-App Browser (TikTok / Instagram) Optimizer */}
+            <InAppBrowserBanner />
             
             {/* 100% White-Labeled Merchant Header */}
             <StorefrontNavbar store={storeInfo} />
@@ -222,6 +226,13 @@ export default function StoreShop({ params }) {
 
             {/* Exit Intent Discount Modal */}
             <ExitIntentModal />
+
+            {/* AI Shopping Assistant (generative_ui) */}
+            <AiShoppingAssistant 
+                products={products} 
+                storeName={storeInfo.name || 'Store'} 
+                themeColor="#10B981" 
+            />
         </div>
     );
 }

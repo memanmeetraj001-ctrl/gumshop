@@ -8,20 +8,44 @@ export default function ExitIntentModal({ onApplyCoupon }) {
     const [hasTriggered, setHasTriggered] = useState(false);
 
     useEffect(() => {
-        // Detect desktop mouse leaving viewport towards top tab bar
-        const handleMouseLeave = (e) => {
-            if (e.clientY <= 10 && !hasTriggered) {
-                // Check if user has already dismissed in session
-                const dismissed = sessionStorage.getItem('gumshop_exit_dismissed');
-                if (!dismissed) {
-                    setIsOpen(true);
-                    setHasTriggered(true);
-                }
+        const triggerModal = () => {
+            const dismissed = sessionStorage.getItem('gumshop_exit_dismissed');
+            if (!dismissed && !hasTriggered) {
+                setIsOpen(true);
+                setHasTriggered(true);
             }
         };
 
+        // Desktop mouse leaving viewport
+        const handleMouseLeave = (e) => {
+            if (e.clientY <= 10) {
+                triggerModal();
+            }
+        };
+
+        // Mobile scroll-to-top exit intent
+        let lastScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+        let lastScrollTime = Date.now();
+        const handleScroll = () => {
+            const now = Date.now();
+            const currentScrollY = window.scrollY;
+            const scrollDelta = lastScrollY - currentScrollY;
+            const timeDelta = now - lastScrollTime;
+
+            if (lastScrollY > 200 && currentScrollY < 40 && scrollDelta > 120 && timeDelta < 350) {
+                triggerModal();
+            }
+            lastScrollY = currentScrollY;
+            lastScrollTime = now;
+        };
+
         document.addEventListener('mouseleave', handleMouseLeave);
-        return () => document.removeEventListener('mouseleave', handleMouseLeave);
+        window.addEventListener('scroll', handleScroll, { passive: true });
+
+        return () => {
+            document.removeEventListener('mouseleave', handleMouseLeave);
+            window.removeEventListener('scroll', handleScroll);
+        };
     }, [hasTriggered]);
 
     const handleClaimDiscount = () => {
