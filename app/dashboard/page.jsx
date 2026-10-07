@@ -396,6 +396,7 @@ export default function MasterDashboardPage() {
         try {
             // 1. Wipe remote server & Supabase database
             await fetch('/api/store/data?wipeAll=true', { method: 'DELETE' }).catch(() => {});
+            await fetch('/api/reset', { method: 'POST' }).catch(() => {});
 
             // 2. Mark stores cleared locally
             if (typeof window !== 'undefined') {
