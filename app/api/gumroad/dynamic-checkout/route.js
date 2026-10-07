@@ -4,6 +4,7 @@ const ref = () => null;
 const set = () => Promise.resolve();
 import { getServerGumroadToken } from '@/lib/serverVault';
 import { getProduct } from '@/lib/firebaseDb';
+import { saveServerOrder } from '@/lib/serverOrderStore';
 import { PaymentStatus, OrderStatus, FulfillmentStatus, ShipmentStatus } from '@/lib/paymentStatus';
 
 /**
@@ -105,46 +106,41 @@ export async function POST(req) {
             }
         }
 
-        // 3. Log Checkout Initiation Session in Firebase (PENDING / CHECKOUT_STARTED, NEVER PAID)
-        if (database) {
-            try {
-                const initialOrderSession = {
-                    id: orderSessionId,
-                    orderId: orderSessionId,
-                    storeId,
-                    storeName,
-                    total: finalTotal,
-                    subtotal: Math.round(subtotal * 100) / 100,
-                    shippingFee: Math.round(parseFloat(shippingFee || 0) * 100) / 100,
-                    discountAmount: Math.round(parseFloat(discountAmount || 0) * 100) / 100,
-                    currency: 'USD',
-                    paymentStatus: PaymentStatus.CHECKOUT_STARTED,
-                    orderStatus: OrderStatus.PENDING,
-                    fulfillmentStatus: FulfillmentStatus.UNFULFILLED,
-                    shipmentStatus: ShipmentStatus.NOT_AVAILABLE,
-                    isPaid: false,
-                    items: itemsSummary,
-                    orderItems: validatedItems.map(i => ({
-                        productId: i.productId || i.id,
-                        name: i.name,
-                        price: i.price,
-                        quantity: i.quantity || 1
-                    })),
-                    customer: {
-                        email: customer.email || '',
-                        name: customer.name || '',
-                        shippingAddress: customer.address || 'Provided during Gumroad checkout'
-                    },
-                    checkoutInitiatedAt: new Date().toISOString()
-                };
+        // 3. Log Checkout Initiation Session (PENDING / CHECKOUT_STARTED, NEVER PAID)
+        try {
+            const initialOrderSession = {
+                id: orderSessionId,
+                orderId: orderSessionId,
+                storeId,
+                storeName,
+                total: finalTotal,
+                subtotal: Math.round(subtotal * 100) / 100,
+                shippingFee: Math.round(parseFloat(shippingFee || 0) * 100) / 100,
+                discountAmount: Math.round(parseFloat(discountAmount || 0) * 100) / 100,
+                currency: 'USD',
+                paymentStatus: PaymentStatus.CHECKOUT_STARTED,
+                orderStatus: OrderStatus.PENDING,
+                fulfillmentStatus: FulfillmentStatus.UNFULFILLED,
+                shipmentStatus: ShipmentStatus.NOT_AVAILABLE,
+                isPaid: false,
+                items: itemsSummary,
+                orderItems: validatedItems.map(i => ({
+                    productId: i.productId || i.id,
+                    name: i.name,
+                    price: i.price,
+                    quantity: i.quantity || 1
+                })),
+                customer: {
+                    email: customer.email || '',
+                    name: customer.name || '',
+                    shippingAddress: customer.address || 'Provided during Gumroad checkout'
+                },
+                checkoutInitiatedAt: new Date().toISOString()
+            };
 
-                await set(ref(database, `orders/${orderSessionId}`), initialOrderSession);
-                if (storeId && storeId !== 'store_default') {
-                    await set(ref(database, `stores/${storeId}/orders/${orderSessionId}`), initialOrderSession);
-                }
-            } catch (dbErr) {
-                console.warn('Failed to log checkout initiation session:', dbErr.message);
-            }
+            await saveServerOrder(orderSessionId, initialOrderSession);
+        } catch (dbErr) {
+            console.warn('Failed to log checkout initiation session:', dbErr.message);
         }
 
         // 4. Build Real Gumroad Checkout URL

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createStore, createProduct, recordImportHistory } from '@/lib/firebaseDb';
+import { serverSaveStore, serverSaveProducts } from '@/lib/serverDb';
 
 /**
  * POST /api/importer/import
@@ -87,8 +88,12 @@ export async function POST(req) {
 
         storeRecord.products = savedProducts;
 
-        // 3. Persist to Firestore and record history
+        // 3. Atomically persist to Supabase & memory cache
         try {
+            await serverSaveStore(storeRecord);
+            if (savedProducts.length > 0) {
+                await serverSaveProducts(storeId, savedProducts);
+            }
             await createStore(storeRecord);
             for (const prod of savedProducts) {
                 await createProduct(prod).catch(() => {});
