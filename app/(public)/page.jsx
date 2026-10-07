@@ -19,7 +19,7 @@ import CartDrawer from '@/components/CartDrawer';
 import WishlistDrawer from '@/components/WishlistDrawer';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import { getAllProducts, getProductsByStore } from '@/lib/firebaseDb';
-import { getActiveStoreSync } from '@/lib/activeStore';
+import { getActiveStoreSync, getHomepageStoreSync, getHomepageStoreSlug } from '@/lib/activeStore';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts } from '@/lib/features/product/productSlice';
 
@@ -41,13 +41,28 @@ export default function SuperStorefront() {
 
     const catalogRef = useRef(null);
 
-    // Fetch active store & isolated products
+    // Fetch homepage store & isolated products
     useEffect(() => {
         const loadStoreAndCatalog = async () => {
             setLoading(true);
             try {
-                // 1. Resolve active store
-                const store = getActiveStoreSync();
+                // 1. Resolve designated homepage store (Highest priority)
+                let store = getHomepageStoreSync();
+                if (!store) {
+                    try {
+                        const hpRes = await fetch('/api/store/homepage', { cache: 'no-store' });
+                        if (hpRes.ok) {
+                            const hpData = await hpRes.json();
+                            if (hpData.homepageStore) store = hpData.homepageStore;
+                        }
+                    } catch {}
+                }
+
+                // 2. Fallback to active store if no homepage is explicitly chosen
+                if (!store) {
+                    store = getActiveStoreSync();
+                }
+
                 if (store) {
                     setActiveStore(store);
                     const storeProducts = await getProductsByStore(store.id);
@@ -70,6 +85,18 @@ export default function SuperStorefront() {
         };
 
         loadStoreAndCatalog();
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('homepage_store_changed', loadStoreAndCatalog);
+            window.addEventListener('active_store_changed', loadStoreAndCatalog);
+        }
+
+        return () => {
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('homepage_store_changed', loadStoreAndCatalog);
+                window.removeEventListener('active_store_changed', loadStoreAndCatalog);
+            }
+        };
     }, [dispatch]);
 
     useEffect(() => {

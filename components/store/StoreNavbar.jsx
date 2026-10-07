@@ -3,26 +3,69 @@ import Link from "next/link"
 import { useAuth } from "@/lib/AuthContext"
 import { useRouter } from "next/navigation"
 import { useState, useEffect, useRef } from "react"
-import { Zap, LogOut, ExternalLink, ShieldCheck, Layers, Smartphone, Copy, Store, ChevronDown } from "lucide-react"
+import { Zap, LogOut, ExternalLink, ShieldCheck, Layers, Smartphone, Copy, Store, ChevronDown, Check, Star } from "lucide-react"
 import toast from "react-hot-toast"
-import { getAllLocalStores, setActiveStoreSlug } from "@/lib/activeStore"
+import { getAllLocalStores, setActiveStoreSlug, getHomepageStoreSlug, setHomepageStoreSlug } from "@/lib/activeStore"
+import { isStoreDeleted } from "@/lib/firebaseDb"
 
 const StoreNavbar = ({ storeInfo }) => {
     const { user, logout } = useAuth()
     const router = useRouter()
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [allStores, setAllStores] = useState([])
+    const [homepageStoreSlug, setHomepageStoreSlugState] = useState('')
     const dropdownRef = useRef(null)
 
+    const loadAllStoresData = async () => {
+        const local = getAllLocalStores().filter(s => s && !isStoreDeleted(s.id) && !isStoreDeleted(s.username));
+        const map = new Map();
+        local.forEach(s => {
+            const slug = (s.username || s.id || '').toLowerCase();
+            if (slug) map.set(slug, s);
+        });
+
+        try {
+            const res = await fetch('/api/store/data').catch(() => null);
+            if (res && res.ok) {
+                const data = await res.json().catch(() => ({}));
+                if (Array.isArray(data.stores)) {
+                    data.stores.forEach(s => {
+                        const slug = (s.username || s.name || s.id || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+                        if (slug && !isStoreDeleted(slug) && !isStoreDeleted(s.id) && !map.has(slug)) {
+                            map.set(slug, {
+                                id: s.id || `store_${slug}`,
+                                name: s.name || slug,
+                                username: slug,
+                                theme: s.theme || 'viral_lander'
+                            });
+                        }
+                    });
+                }
+            }
+        } catch {}
+
+        setAllStores(Array.from(map.values()));
+        getHomepageStoreSlug().then(slug => {
+            if (slug) setHomepageStoreSlugState(slug);
+        });
+    };
+
     useEffect(() => {
-        setAllStores(getAllLocalStores())
+        loadAllStoresData();
         const handleClickOutside = (e) => {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
                 setIsDropdownOpen(false)
             }
         }
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
+        const handleHomepageEvent = (e) => {
+            if (e?.detail?.slug) setHomepageStoreSlugState(e.detail.slug);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        window.addEventListener('homepage_store_changed', handleHomepageEvent);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            window.removeEventListener('homepage_store_changed', handleHomepageEvent);
+        };
     }, [])
 
     const handleOwnerLogout = async () => {
@@ -36,6 +79,14 @@ const StoreNavbar = ({ storeInfo }) => {
         } catch (e) {}
         toast.success("Admin session closed");
         router.replace('/');
+    };
+
+    const handleSetHomepageInNav = async (e, s) => {
+        e.stopPropagation();
+        const slug = s.username || s.id;
+        await setHomepageStoreSlug(slug);
+        setHomepageStoreSlugState(slug);
+        toast.success(`Store "${s.name}" is now the Root Homepage (/)! 🌟`);
     };
 
     const storeSlug = storeInfo?.username || storeInfo?.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '') || 'shop';
@@ -61,34 +112,64 @@ const StoreNavbar = ({ storeInfo }) => {
                     >
                         <Store size={14} className="text-emerald-600 shrink-0" />
                         <span className="max-w-[130px] truncate">{storeInfo?.name || 'Active Store'}</span>
+                        {homepageStoreSlug && (storeInfo?.username === homepageStoreSlug || storeInfo?.id === homepageStoreSlug) && (
+                            <span className="text-[10px] text-amber-500 font-black shrink-0" title="This store is currently the Root Homepage">⭐</span>
+                        )}
                         <ChevronDown size={12} className="text-slate-400 shrink-0" />
                     </button>
 
                     {isDropdownOpen && (
-                        <div className="absolute left-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1">
-                            <div className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">Switch Active Store</div>
+                        <div className="absolute left-0 mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1">
+                            <div className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1 flex items-center justify-between">
+                                <span>Switch Active Store</span>
+                                <span>Homepage</span>
+                            </div>
                             {allStores.map(s => {
                                 const isCurrent = (storeInfo?.username === s.username || storeInfo?.id === s.id);
+                                const isHome = Boolean(homepageStoreSlug && (homepageStoreSlug === s.username || homepageStoreSlug === s.id));
                                 return (
-                                    <button
+                                    <div
                                         key={s.id || s.username}
-                                        onClick={() => {
-                                            setActiveStoreSlug(s);
-                                            setIsDropdownOpen(false);
-                                            window.location.reload();
-                                        }}
-                                        className={`w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition ${
+                                        className={`w-full px-2.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition ${
                                             isCurrent
                                                 ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-200/60'
                                                 : 'hover:bg-slate-50 text-slate-700'
                                         }`}
                                     >
-                                        <div className="min-w-0 pr-2">
-                                            <div className="truncate font-bold">{s.name}</div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setActiveStoreSlug(s);
+                                                setIsDropdownOpen(false);
+                                                window.location.reload();
+                                            }}
+                                            className="min-w-0 pr-2 flex-1 text-left"
+                                        >
+                                            <div className="truncate font-bold flex items-center gap-1.5">
+                                                <span>{s.name}</span>
+                                                {isHome && (
+                                                    <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[9px] font-black border border-amber-200">
+                                                        ⭐ Home
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="text-[10px] text-slate-400 font-mono">/shop/{s.username}</div>
+                                        </button>
+
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            {!isHome && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => handleSetHomepageInNav(e, s)}
+                                                    className="p-1 text-slate-400 hover:text-amber-500 rounded hover:bg-amber-50 transition text-[11px]"
+                                                    title="Designate as Root Homepage (/)"
+                                                >
+                                                    <Star size={12} />
+                                                </button>
+                                            )}
+                                            {isCurrent && <span className="size-2 rounded-full bg-emerald-500 shrink-0 ml-1" />}
                                         </div>
-                                        {isCurrent && <span className="size-2 rounded-full bg-emerald-500 shrink-0" />}
-                                    </button>
+                                    </div>
                                 );
                             })}
                             <div className="border-t border-slate-100 pt-1 mt-1">

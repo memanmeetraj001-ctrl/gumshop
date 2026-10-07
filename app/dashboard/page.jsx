@@ -42,12 +42,13 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { isProductDeleted, isStoreDeleted, markStoreDeleted, deleteStore, DEFAULT_CATALOG_PRODUCTS } from '@/lib/firebaseDb';
-import { setActiveStoreSlug, getActiveStoreSync, getAllLocalStores } from '@/lib/activeStore';
+import { setActiveStoreSlug, getActiveStoreSync, getAllLocalStores, getHomepageStoreSlug, setHomepageStoreSlug } from '@/lib/activeStore';
 
 export default function MasterDashboardPage() {
     const router = useRouter();
     const [shops, setShops] = useState([]);
     const [activeStore, setActiveStore] = useState(null);
+    const [homepageStoreSlug, setHomepageStoreSlugState] = useState('');
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'archived'
@@ -256,6 +257,9 @@ export default function MasterDashboardPage() {
                     loadShops();
                     loadImportHistory();
                     loadOrders();
+                    getHomepageStoreSlug().then(slug => {
+                        if (slug) setHomepageStoreSlugState(slug);
+                    });
                 }
             })
             .catch(() => router.replace('/login'));
@@ -269,11 +273,18 @@ export default function MasterDashboardPage() {
         const handleStoresUpdated = () => {
             loadShops();
         };
+        const handleHomepageChange = (e) => {
+            if (e?.detail?.slug) {
+                setHomepageStoreSlugState(e.detail.slug);
+            }
+        };
         window.addEventListener('active_store_changed', handleStoreChange);
         window.addEventListener('stores_updated', handleStoresUpdated);
+        window.addEventListener('homepage_store_changed', handleHomepageChange);
         return () => {
             window.removeEventListener('active_store_changed', handleStoreChange);
             window.removeEventListener('stores_updated', handleStoresUpdated);
+            window.removeEventListener('homepage_store_changed', handleHomepageChange);
         };
     }, []);
 
@@ -320,6 +331,11 @@ export default function MasterDashboardPage() {
                 localStorage.removeItem('active_store_slug');
             }
         }
+        if (homepageStoreSlug && (homepageStoreSlug === shopSlug || homepageStoreSlug === shopId || homepageStoreSlug === cleanSlug)) {
+            const nextHome = remaining[0]?.username || '';
+            setHomepageStoreSlug(nextHome);
+            setHomepageStoreSlugState(nextHome);
+        }
         if (remaining.length === 0 && typeof window !== 'undefined') {
             localStorage.setItem('gumshop_empty_dashboard_ack', 'true');
         }
@@ -332,6 +348,15 @@ export default function MasterDashboardPage() {
         setActiveStoreSlug(shop);
         setActiveStore(shop);
         toast.success(`Active store set to "${shop.name}" 🎯`);
+    };
+
+    // Set Designated Homepage Store
+    const handleSetHomepage = async (shop) => {
+        if (!shop) return;
+        const slug = shop.username || shop.id;
+        await setHomepageStoreSlug(slug);
+        setHomepageStoreSlugState(slug);
+        toast.success(`Store "${shop.name}" is now the official Homepage (/)! 🌟`);
     };
 
     // 1-Click Backup Export
@@ -609,23 +634,42 @@ export default function MasterDashboardPage() {
                         </div>
                     </div>
 
-                    {/* Active Store Indicator */}
-                    {activeStore && (
-                        <div className="hidden lg:flex items-center gap-2 ml-4 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs">
-                            <span className="text-slate-400">Active:</span>
-                            <span className="font-bold text-emerald-400">{activeStore.name}</span>
-                            <span className="text-[10px] font-mono text-slate-500">/shop/{activeStore.username}</span>
-                            <a
-                                href={`/shop/${activeStore.username}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-slate-400 hover:text-white transition ml-0.5"
-                                title="Open active storefront"
-                            >
-                                <ExternalLink size={11} />
-                            </a>
-                        </div>
-                    )}
+                    {/* Active Store & Homepage Store Indicators */}
+                    <div className="hidden lg:flex items-center gap-2.5 ml-4">
+                        {activeStore && (
+                            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs">
+                                <span className="text-slate-400">Active:</span>
+                                <span className="font-bold text-emerald-400">{activeStore.name}</span>
+                                <span className="text-[10px] font-mono text-slate-500">/shop/{activeStore.username}</span>
+                                <a
+                                    href={`/shop/${activeStore.username}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-slate-400 hover:text-white transition ml-0.5"
+                                    title="Open active storefront"
+                                >
+                                    <ExternalLink size={11} />
+                                </a>
+                            </div>
+                        )}
+                        {homepageStoreSlug && (
+                            <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs">
+                                <span className="text-amber-400 font-bold">⭐ Homepage:</span>
+                                <span className="font-bold text-amber-200">
+                                    {shops.find(s => s.username === homepageStoreSlug || s.id === homepageStoreSlug)?.name || homepageStoreSlug}
+                                </span>
+                                <a
+                                    href="/"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-amber-400/80 hover:text-amber-200 transition ml-0.5"
+                                    title="Open Root Homepage (/)"
+                                >
+                                    <ExternalLink size={11} />
+                                </a>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Prominent Master Action Strip */}
@@ -846,6 +890,65 @@ export default function MasterDashboardPage() {
                             </div>
                         </div>
 
+                        {/* Quick Store Switcher & Homepage Controller */}
+                        {shops.length > 0 && (
+                            <div className="p-4 bg-slate-900 border border-slate-800 rounded-3xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-md">
+                                <div className="flex items-center gap-3">
+                                    <div className="size-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                                        <Store size={15} />
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-bold text-white flex items-center gap-2">
+                                            <span>Working Context:</span>
+                                            <span className="text-emerald-400 font-extrabold">{activeStore?.name || 'None'}</span>
+                                        </div>
+                                        <div className="text-[11px] text-slate-400">
+                                            Switch which store you are managing or designate the root website homepage (/)
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                    <div className="flex items-center gap-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+                                        <span className="text-slate-400 font-semibold">Active:</span>
+                                        <select
+                                            value={activeStore?.username || ''}
+                                            onChange={(e) => {
+                                                const target = shops.find(s => s.username === e.target.value);
+                                                if (target) handleSetActiveStore(target);
+                                            }}
+                                            className="bg-transparent text-white font-bold focus:outline-none cursor-pointer"
+                                        >
+                                            {shops.map(s => (
+                                                <option key={s.username} value={s.username} className="bg-slate-900 text-white">
+                                                    {s.name} ({s.username}){s.username === homepageStoreSlug ? ' ⭐ [Homepage]' : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 bg-amber-950/30 px-3 py-1.5 rounded-xl border border-amber-500/30 text-xs">
+                                        <span className="text-amber-300 font-bold">⭐ Homepage (/):</span>
+                                        <select
+                                            value={homepageStoreSlug || ''}
+                                            onChange={(e) => {
+                                                const target = shops.find(s => s.username === e.target.value);
+                                                if (target) handleSetHomepage(target);
+                                            }}
+                                            className="bg-transparent text-amber-200 font-bold focus:outline-none cursor-pointer"
+                                        >
+                                            <option value="" className="bg-slate-900 text-slate-300">Default (First Active Store)</option>
+                                            {shops.map(s => (
+                                                <option key={s.username} value={s.username} className="bg-slate-900 text-amber-200">
+                                                    {s.name} ({s.username})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Render Active Stores Preview */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
@@ -865,7 +968,9 @@ export default function MasterDashboardPage() {
                                         key={shop.username} 
                                         shop={shop} 
                                         activeStore={activeStore}
+                                        homepageStoreSlug={homepageStoreSlug}
                                         onSetActiveStore={handleSetActiveStore}
+                                        onSetHomepage={handleSetHomepage}
                                         onDelete={handleDeleteShop}
                                         onArchive={handleToggleArchive}
                                         onDuplicate={handleOpenDuplicateModal}
@@ -904,6 +1009,67 @@ export default function MasterDashboardPage() {
                                 </Link>
                             </div>
                         </div>
+
+                        {/* Quick Store Switcher & Homepage Controller */}
+                        {shops.length > 0 && (
+                            <div className="p-4 bg-slate-900 border border-slate-800 rounded-3xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-md">
+                                <div className="flex items-center gap-3">
+                                    <div className="size-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                                        <Globe size={15} />
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-bold text-white flex items-center gap-2">
+                                            <span>Default Homepage (gumshop.online):</span>
+                                            <span className="text-amber-400 font-extrabold">
+                                                {shops.find(s => s.username === homepageStoreSlug || s.id === homepageStoreSlug)?.name || homepageStoreSlug || 'Auto (First Active Store)'}
+                                            </span>
+                                        </div>
+                                        <div className="text-[11px] text-slate-400">
+                                            Select which store is served when visitors load the homepage (/)
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                    <div className="flex items-center gap-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+                                        <span className="text-slate-400 font-semibold">Active:</span>
+                                        <select
+                                            value={activeStore?.username || ''}
+                                            onChange={(e) => {
+                                                const target = shops.find(s => s.username === e.target.value);
+                                                if (target) handleSetActiveStore(target);
+                                            }}
+                                            className="bg-transparent text-white font-bold focus:outline-none cursor-pointer"
+                                        >
+                                            {shops.map(s => (
+                                                <option key={s.username} value={s.username} className="bg-slate-900 text-white">
+                                                    {s.name} ({s.username}){s.username === homepageStoreSlug ? ' ⭐ [Homepage]' : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 bg-amber-950/30 px-3 py-1.5 rounded-xl border border-amber-500/30 text-xs">
+                                        <span className="text-amber-300 font-bold">⭐ Set Homepage:</span>
+                                        <select
+                                            value={homepageStoreSlug || ''}
+                                            onChange={(e) => {
+                                                const target = shops.find(s => s.username === e.target.value);
+                                                if (target) handleSetHomepage(target);
+                                            }}
+                                            className="bg-transparent text-amber-200 font-bold focus:outline-none cursor-pointer"
+                                        >
+                                            <option value="" className="bg-slate-900 text-slate-300">Default (First Active Store)</option>
+                                            {shops.map(s => (
+                                                <option key={s.username} value={s.username} className="bg-slate-900 text-amber-200">
+                                                    {s.name} ({s.username})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Search & Status Filters */}
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -946,7 +1112,9 @@ export default function MasterDashboardPage() {
                                     key={shop.username} 
                                     shop={shop} 
                                     activeStore={activeStore}
+                                    homepageStoreSlug={homepageStoreSlug}
                                     onSetActiveStore={handleSetActiveStore}
+                                    onSetHomepage={handleSetHomepage}
                                     onDelete={handleDeleteShop}
                                     onArchive={handleToggleArchive}
                                     onDuplicate={handleOpenDuplicateModal}
@@ -1642,17 +1810,20 @@ export default function MasterDashboardPage() {
 }
 
 // ─── REUSABLE INDEPENDENT STORE CARD COMPONENT ───
-function StoreCard({ shop, activeStore, onSetActiveStore, onDelete, onArchive, onDuplicate }) {
+function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onSetHomepage, onDelete, onArchive, onDuplicate }) {
     const isActive = Boolean(activeStore && (activeStore.username === shop.username || activeStore.id === shop.id));
+    const isHomepage = Boolean(homepageStoreSlug && (homepageStoreSlug === shop.username || homepageStoreSlug === shop.id));
 
     return (
         <div
             className={`bg-slate-900 border rounded-3xl p-6 transition flex flex-col justify-between group hover:border-slate-700 shadow-lg ${
-                isActive 
-                    ? 'border-emerald-500/50 ring-1 ring-emerald-500/20' 
-                    : shop.status === 'archived' 
-                        ? 'border-slate-800/60 opacity-60' 
-                        : 'border-slate-800'
+                isHomepage
+                    ? 'border-amber-500/60 ring-1 ring-amber-500/30'
+                    : isActive 
+                        ? 'border-emerald-500/50 ring-1 ring-emerald-500/20' 
+                        : shop.status === 'archived' 
+                            ? 'border-slate-800/60 opacity-60' 
+                            : 'border-slate-800'
             }`}
         >
             <div>
@@ -1668,7 +1839,7 @@ function StoreCard({ shop, activeStore, onSetActiveStore, onDelete, onArchive, o
                         )}
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
                         {isActive ? (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shadow-sm">
                                 <Check size={10} /> Active
@@ -1680,6 +1851,19 @@ function StoreCard({ shop, activeStore, onSetActiveStore, onDelete, onArchive, o
                                 title="Set as current active store"
                             >
                                 Set Active
+                            </button>
+                        )}
+                        {isHomepage ? (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-sm">
+                                ⭐ Homepage
+                            </span>
+                        ) : (
+                            <button
+                                onClick={() => onSetHomepage?.(shop)}
+                                className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-amber-500/20 text-slate-400 hover:text-amber-300 border border-slate-700 hover:border-amber-500/30 transition flex items-center gap-1"
+                                title="Set as default root homepage (/)"
+                            >
+                                ⭐ Make Homepage
                             </button>
                         )}
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
@@ -1776,6 +1960,21 @@ function StoreCard({ shop, activeStore, onSetActiveStore, onDelete, onArchive, o
                         <span>View</span>
                     </a>
                 </div>
+
+                {/* Homepage Designation Action */}
+                {isHomepage ? (
+                    <div className="text-[11px] font-bold text-amber-300 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                        <span>⭐ Official Root Homepage (/)</span>
+                    </div>
+                ) : (
+                    <button
+                        onClick={() => onSetHomepage?.(shop)}
+                        className="w-full text-[11px] font-bold text-amber-400 hover:text-white hover:bg-amber-500/20 py-1.5 px-3 rounded-xl border border-amber-500/30 transition flex items-center justify-center gap-1.5"
+                        title="Designate this store as the default root homepage"
+                    >
+                        <span>⭐ Set as Root Homepage (/)</span>
+                    </button>
+                )}
 
                 <div className="flex items-center justify-between text-[11px] pt-1">
                     <button
