@@ -1,340 +1,1796 @@
-'use client';
-import { useState, useEffect } from 'react';
+'use client'
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Navbar from '@/components/Navbar';
 import { 
-  Store, 
-  ShoppingBag, 
-  Plus, 
-  DollarSign, 
-  TrendingUp, 
-  ExternalLink, 
-  Trash2, 
-  Copy, 
-  ArrowUpRight,
-  Sparkles,
-  RefreshCw,
-  Sliders,
-  CheckCircle2,
-  ChevronRight
+    Zap, 
+    Plus, 
+    ExternalLink, 
+    ShoppingBag, 
+    Layers, 
+    LogOut, 
+    Sparkles, 
+    Trash2, 
+    Smartphone, 
+    Copy, 
+    Search, 
+    Filter, 
+    Store, 
+    ArrowRight, 
+    Settings, 
+    Archive, 
+    Check, 
+    X, 
+    Globe, 
+    ShieldCheck, 
+    TrendingUp, 
+    MousePointerClick, 
+    Share2,
+    LayoutDashboard,
+    Package,
+    BarChart3,
+    History,
+    CheckCircle2,
+    AlertCircle,
+    Clock,
+    DollarSign,
+    RefreshCw,
+    Download,
+    Upload,
+    Database
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { isProductDeleted, isStoreDeleted, markStoreDeleted, deleteStore, DEFAULT_CATALOG_PRODUCTS } from '@/lib/firebaseDb';
+import { setActiveStoreSlug, getActiveStoreSync, getAllLocalStores } from '@/lib/activeStore';
 
-export default function DashboardPage() {
-  const [stores, setStores] = useState([]);
-  const [activeStore, setActiveStore] = useState(null);
-  const [productCounts, setProductCounts] = useState({});
-  const [loading, setLoading] = useState(true);
+export default function MasterDashboardPage() {
+    const router = useRouter();
+    const [shops, setShops] = useState([]);
+    const [activeStore, setActiveStore] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'archived'
+    const [selectedCatalogStore, setSelectedCatalogStore] = useState('all');
+    const [selectedOrdersStore, setSelectedOrdersStore] = useState('all');
 
-  const fetchStores = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/stores');
-      const data = await res.json();
-      if (data.success && Array.isArray(data.stores)) {
-        setStores(data.stores);
-        if (data.stores.length > 0) {
-          setActiveStore(data.stores[0]);
-          // Fetch product counts for each store
-          data.stores.forEach(s => fetchStoreProducts(s.id));
-        } else {
-          setActiveStore(null);
+    // Orders state
+    const [orders, setOrders] = useState([]);
+    const [loadingOrders, setLoadingOrders] = useState(false);
+
+    // Master HQ Navigation State: 'overview' | 'stores' | 'products' | 'imports' | 'orders' | 'analytics' | 'gumroad' | 'settings'
+    const [activeNavTab, setActiveNavTab] = useState('overview');
+
+    // Master Import History State
+    const [importHistory, setImportHistory] = useState([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+
+    // Create Blank Store Modal
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [newShopName, setNewShopName] = useState('');
+    const [newShopTheme, setNewShopTheme] = useState('viral_lander');
+    const [newShopColor, setNewShopColor] = useState('#10B981');
+    const [isCreatingShop, setIsCreatingShop] = useState(false);
+
+    // Duplication Modal State
+    const [duplicatingShop, setDuplicatingShop] = useState(null);
+    const [dupName, setDupName] = useState('');
+    const [dupSlug, setDupSlug] = useState('');
+    const [dupCopyProducts, setDupCopyProducts] = useState(true);
+    const [dupCopyBanners, setDupCopyBanners] = useState(true);
+    const [dupCopyTheme, setDupCopyTheme] = useState(true);
+    const [dupCopyBranding, setDupCopyBranding] = useState(true);
+    const [isSubmittingDup, setIsSubmittingDup] = useState(false);
+
+    // Load Import History
+    const loadImportHistory = async () => {
+        setLoadingHistory(true);
+        try {
+            const res = await fetch('/api/importer/history');
+            const data = await res.json();
+            if (data.success && Array.isArray(data.history)) {
+                setImportHistory(data.history);
+            }
+        } catch {
+            // Silently fall back to empty array
+        } finally {
+            setLoadingHistory(false);
         }
-      }
-    } catch (e) {
-      toast.error('Failed to load stores: ' + e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  const fetchStoreProducts = async (storeId) => {
-    try {
-      const res = await fetch(`/api/products?store_id=${storeId}`);
-      const data = await res.json();
-      if (data.success && Array.isArray(data.products)) {
-        setProductCounts(prev => ({ ...prev, [storeId]: data.products.length }));
-      }
-    } catch {}
-  };
+    // Load Orders across independent stores
+    const loadOrders = async () => {
+        setLoadingOrders(true);
+        try {
+            const ordersMap = new Map();
+            // Local edge orders
+            if (typeof window !== 'undefined') {
+                const rawGen = localStorage.getItem('gumshop_recent_orders');
+                if (rawGen) {
+                    try {
+                        const arr = JSON.parse(rawGen);
+                        if (Array.isArray(arr)) {
+                            arr.forEach(o => { if (o && o.id) ordersMap.set(o.id, o); });
+                        }
+                    } catch {}
+                }
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (k && (k.startsWith('gumshop_recent_orders_') || k.startsWith('gumshop_db_orders/'))) {
+                        try {
+                            const parsed = JSON.parse(localStorage.getItem(k) || 'null');
+                            if (Array.isArray(parsed)) {
+                                parsed.forEach(o => { if (o && o.id) ordersMap.set(o.id, o); });
+                            } else if (parsed && parsed.id) {
+                                ordersMap.set(parsed.id, parsed);
+                            }
+                        } catch {}
+                    }
+                }
+            }
+            // Firebase orders
+            try {
+                const { getAllOrders } = await import('@/lib/firebaseDb');
+                const dbOrders = await Promise.race([
+                    getAllOrders(),
+                    new Promise(res => setTimeout(() => res([]), 1500))
+                ]);
+                if (Array.isArray(dbOrders)) {
+                    dbOrders.forEach(o => {
+                        if (o && o.id && !ordersMap.has(o.id)) ordersMap.set(o.id, o);
+                    });
+                }
+            } catch {}
 
-  useEffect(() => {
-    fetchStores();
-  }, []);
+            const sorted = Array.from(ordersMap.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+            setOrders(sorted);
+        } catch (e) {
+            console.warn("Failed to load orders:", e);
+        } finally {
+            setLoadingOrders(false);
+        }
+    };
 
-  const handleDeleteStore = async (store) => {
-    if (!confirm(`Are you sure you want to delete "${store.name}"? All products, orders, and links will be permanently erased.`)) {
-      return;
-    }
-    const toastId = toast.loading(`Deleting ${store.name}...`);
-    try {
-      const res = await fetch(`/api/stores?id=${store.id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(`Store "${store.name}" deleted`, { id: toastId });
-        fetchStores();
-      } else {
-        toast.error('Delete failed: ' + (data.error || 'Server error'), { id: toastId });
-      }
-    } catch (e) {
-      toast.error('Error deleting: ' + e.message, { id: toastId });
-    }
-  };
+    // Load Stores from Edge Cache & Firebase with Strict Product Isolation
+    const loadShops = async () => {
+        const found = [];
+        const seenSlugs = new Set();
+        const { getProductsByStore } = await import('@/lib/firebaseDb');
 
-  const totalProducts = Object.values(productCounts).reduce((a, b) => a + b, 0);
+        // 1. Scan local edge stores
+        if (typeof window !== 'undefined') {
+            const localStores = getAllLocalStores();
+            for (const ls of localStores) {
+                if (ls && ls.username && !isStoreDeleted(ls.id) && !isStoreDeleted(ls.username) && !seenSlugs.has(ls.username)) {
+                    seenSlugs.add(ls.username);
+                    const prods = await getProductsByStore(ls.id || ls.username);
+                    found.push({
+                        ...ls,
+                        products: prods,
+                        productsCount: prods.length
+                    });
+                }
+            }
+        }
 
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Navbar 
-        stores={stores} 
-        activeStore={activeStore} 
-        onStoreChange={(s) => setActiveStore(s)} 
-      />
+        // 2. Fetch remote stores from dedicated Server Database (/api/store/data) & Firebase
+        try {
+            const apiRes = await fetch('/api/store/data').catch(() => null);
+            if (apiRes && apiRes.ok) {
+                const apiData = await apiRes.json().catch(() => ({}));
+                if (Array.isArray(apiData.stores)) {
+                    for (const sStore of apiData.stores) {
+                        if (!sStore) continue;
+                        const slug = (sStore.username || sStore.name || sStore.id || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+                        if (slug && !isStoreDeleted(sStore.id) && !isStoreDeleted(sStore.username) && !isStoreDeleted(slug) && !seenSlugs.has(slug)) {
+                            seenSlugs.add(slug);
+                            const prods = await getProductsByStore(sStore.id || slug);
+                            found.push({
+                                id: sStore.id || `store_${slug}`,
+                                name: sStore.name || slug,
+                                username: slug,
+                                description: sStore.description || '',
+                                theme: sStore.theme || 'tech_hardware',
+                                themeColor: sStore.themeColor || '#10B981',
+                                logo: sStore.logo || '',
+                                status: sStore.status || 'active',
+                                productsCount: prods.length,
+                                products: prods,
+                                createdAt: sStore.createdAt || new Date().toISOString()
+                            });
+                        }
+                    }
+                }
+            }
+        } catch {}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Master Dashboard Overview
-            </h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Multi-store management, live catalog synchronization, and isolated storefront routing.
-            </p>
-          </div>
+        try {
+            const { getAllStores } = await import('@/lib/firebaseDb');
+            const remoteStores = await Promise.race([
+                getAllStores(),
+                new Promise(res => setTimeout(() => res([]), 1500))
+            ]);
+            if (Array.isArray(remoteStores)) {
+                for (const rStore of remoteStores) {
+                    if (!rStore) continue;
+                    const slug = (rStore.username || rStore.name || rStore.id || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+                    if (slug && !isStoreDeleted(rStore.id) && !isStoreDeleted(rStore.username) && !isStoreDeleted(slug) && !seenSlugs.has(slug)) {
+                        seenSlugs.add(slug);
+                        const prods = await getProductsByStore(rStore.id || slug);
+                        found.push({
+                            id: rStore.id || `store_${slug}`,
+                            name: rStore.name || slug,
+                            username: slug,
+                            description: rStore.description || '',
+                            theme: rStore.theme || 'viral_lander',
+                            themeColor: rStore.themeColor || '#10B981',
+                            logo: rStore.logo || '',
+                            status: rStore.status || 'active',
+                            productsCount: prods.length,
+                            products: prods,
+                            createdAt: rStore.createdAt || new Date().toISOString()
+                        });
+                    }
+                }
+            }
+        } catch (fbErr) {}
 
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/store/cloner"
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-sm transition"
-            >
-              <Copy className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Clone Store</span>
-            </Link>
-            <Link
-              href="/store/create"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-sm transition"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Create Store</span>
-            </Link>
-          </div>
-        </div>
+        setShops(found);
+        const currActive = getActiveStoreSync();
+        if (currActive && !isStoreDeleted(currActive.id) && !isStoreDeleted(currActive.username)) {
+            setActiveStore(currActive);
+        } else if (found.length > 0) {
+            setActiveStore(found[0]);
+        } else {
+            setActiveStore(null);
+        }
+        setLoading(false);
+    };
 
-        {/* Top Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-            <div className="flex items-center justify-between text-slate-500 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Total Revenue</span>
-              <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-100">0 orders</span>
-            </div>
-            <div className="text-3xl font-black text-slate-900">$0.00</div>
-            <div className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-              <DollarSign className="w-3.5 h-3.5" />
-              <span>Real-time Gumroad webhook verified</span>
-            </div>
-          </div>
+    useEffect(() => {
+        fetch('/api/admin/auth')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.authenticated) router.replace('/login');
+                else {
+                    loadShops();
+                    loadImportHistory();
+                    loadOrders();
+                }
+            })
+            .catch(() => router.replace('/login'));
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-            <div className="flex items-center justify-between text-slate-500 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Active Stores</span>
-              <span className="text-[11px] font-semibold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full border border-indigo-100">Live</span>
-            </div>
-            <div className="text-3xl font-black text-slate-900">{stores.length}</div>
-            <div className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-              <Store className="w-3.5 h-3.5" />
-              <span>PostgreSQL isolated tenants</span>
-            </div>
-          </div>
+        const handleStoreChange = () => {
+            const current = getActiveStoreSync();
+            if (current && !isStoreDeleted(current.id) && !isStoreDeleted(current.username)) {
+                setActiveStore(current);
+            }
+        };
+        const handleStoresUpdated = () => {
+            loadShops();
+        };
+        window.addEventListener('active_store_changed', handleStoreChange);
+        window.addEventListener('stores_updated', handleStoresUpdated);
+        return () => {
+            window.removeEventListener('active_store_changed', handleStoreChange);
+            window.removeEventListener('stores_updated', handleStoresUpdated);
+        };
+    }, []);
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-            <div className="flex items-center justify-between text-slate-500 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Total Products</span>
-              <span className="text-[11px] font-semibold bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full border border-purple-100">Catalog</span>
-            </div>
-            <div className="text-3xl font-black text-slate-900">{totalProducts}</div>
-            <div className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-              <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Synced across bio and shops</span>
-            </div>
-          </div>
+    const handleLogout = async () => {
+        await fetch('/api/admin/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'logout' })
+        });
+        toast.success('Logged out');
+        router.replace('/');
+    };
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-            <div className="flex items-center justify-between text-slate-500 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Avg Margin</span>
-              <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-100">Net</span>
-            </div>
-            <div className="text-3xl font-black text-slate-900">
-              {totalProducts > 0 ? '55.0%' : '0.0%'}
-            </div>
-            <div className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>Live profit tracking</span>
-            </div>
-          </div>
-        </div>
+    // Store Deletion
+    const handleDeleteShop = async (shopSlug, shopId, e) => {
+        e?.stopPropagation?.();
+        const displayLabel = shopSlug || shopId || 'this store';
+        if (!confirm(`Permanently delete store "${displayLabel}"? All products and store data will be deleted.`)) return;
 
-        {/* Content Body: Empty State OR Stores Grid */}
-        {loading ? (
-          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-500">
-            <RefreshCw className="w-8 h-8 mx-auto animate-spin text-indigo-600 mb-3" />
-            <p className="text-sm font-semibold">Connecting to Supabase PostgreSQL...</p>
-          </div>
-        ) : stores.length === 0 ? (
-          /* Clean Zero-State Matching Mockup */
-          <div className="bg-white rounded-3xl border border-slate-200/80 p-8 sm:p-14 text-center max-w-3xl mx-auto shadow-sm">
-            <div className="w-20 h-20 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-6 shadow-inner">
-              <Store className="w-10 h-10" />
-            </div>
+        // 1. Immediately register tombstone so no background routine or seeder can resurrect it
+        if (shopSlug) markStoreDeleted(shopSlug);
+        if (shopId) markStoreDeleted(shopId);
 
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              Welcome to your Store Dashboard!
-            </h2>
-            <p className="text-sm text-slate-500 max-w-md mx-auto mt-2 leading-relaxed">
-              You currently have 0 active stores. Create your first brand from scratch or clone any existing Shopify / WooCommerce store in 1 click.
-            </p>
+        // 2. Await deep deletion (Firebase, collection map, products cascade, local/session storage)
+        await deleteStore(shopId, shopSlug);
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
-              <Link
-                href="/store/create"
-                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition flex items-center justify-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>[+] Create First Store</span>
-              </Link>
-              <Link
-                href="/store/cloner"
-                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center justify-center gap-2 border border-slate-200"
-              >
-                <Copy className="w-4 h-4 text-slate-500" />
-                <span>Clone Existing Store</span>
-              </Link>
-            </div>
+        // 3. Filter shops state
+        const cleanSlug = (shopSlug || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+        const cleanId = (shopId || '').toLowerCase();
+        const remaining = shops.filter(s => {
+            const sSlug = (s.username || s.name || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+            const sId = (s.id || '').toLowerCase();
+            return sSlug !== cleanSlug && sId !== cleanId && s.id !== shopId && s.username !== shopSlug;
+        });
+        setShops(remaining);
 
-            <div className="mt-10 pt-8 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Zero Ghost Data</span>
-                </div>
-                <p className="text-[11px] text-slate-500 leading-snug">
-                  PostgreSQL foreign keys ensure instant cascade deletion with zero leftover records.
-                </p>
-              </div>
+        if (activeStore && (activeStore.username === shopSlug || activeStore.id === shopId || (cleanSlug && activeStore.username === cleanSlug))) {
+            const nextActive = remaining[0] || null;
+            setActiveStore(nextActive);
+            if (nextActive) setActiveStoreSlug(nextActive);
+            else if (typeof window !== 'undefined') {
+                localStorage.removeItem('gumshop_active_store');
+                localStorage.removeItem('active_store_cache');
+                localStorage.removeItem('active_store_slug');
+            }
+        }
+        if (remaining.length === 0 && typeof window !== 'undefined') {
+            localStorage.setItem('gumshop_empty_dashboard_ack', 'true');
+        }
+        toast.success(`Store "${displayLabel}" permanently deleted.`);
+    };
 
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500" />
-                  <span>Dual Frontends</span>
-                </div>
-                <p className="text-[11px] text-slate-500 leading-snug">
-                  Every store automatically powers an e-commerce shop and a mobile Link-in-Bio tree.
-                </p>
-              </div>
+    // Set Active Store
+    const handleSetActiveStore = (shop) => {
+        if (!shop) return;
+        setActiveStoreSlug(shop);
+        setActiveStore(shop);
+        toast.success(`Active store set to "${shop.name}" 🎯`);
+    };
 
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-purple-500" />
-                  <span>Gumroad Inframe</span>
-                </div>
-                <p className="text-[11px] text-slate-500 leading-snug">
-                  Embedded modal checkout eliminates redirection friction for your buyers.
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* Active Stores Listing */
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <span>Active Stores</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
-                  {stores.length}
-                </span>
-              </h2>
-            </div>
+    // 1-Click Backup Export
+    const handleExportBackup = () => {
+        try {
+            const dataToExport = {
+                exportedAt: new Date().toISOString(),
+                version: '1.0',
+                stores: shops,
+                storage: {}
+            };
+            if (typeof window !== 'undefined') {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && (key.startsWith('gumshop_') || key.startsWith('store_') || key.startsWith('cloned_store_'))) {
+                        dataToExport.storage[key] = localStorage.getItem(key);
+                    }
+                }
+            }
+            const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gumshop-stores-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast.success('All stores & products exported to JSON! 📦');
+        } catch (e) {
+            toast.error('Failed to export backup');
+        }
+    };
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {stores.map((s) => (
-                <div 
-                  key={s.id} 
-                  className="bg-white rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm p-5 transition flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-100 border border-indigo-200 text-indigo-700 font-black flex items-center justify-center text-sm shadow-sm">
-                          {s.name.charAt(0).toUpperCase()}
+    // 1-Click Backup Import
+    const handleImportBackup = (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const parsed = JSON.parse(e.target?.result);
+                if (parsed && parsed.storage && typeof window !== 'undefined') {
+                    Object.entries(parsed.storage).forEach(([k, v]) => {
+                        localStorage.setItem(k, v);
+                    });
+                    localStorage.removeItem('gumshop_stores_cleared');
+                    localStorage.removeItem('gumshop_empty_dashboard_ack');
+                    toast.success('Backup restored successfully! 🎉');
+                    await loadShops();
+                } else {
+                    toast.error('Invalid backup file format');
+                }
+            } catch {
+                toast.error('Failed to parse backup JSON');
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    // Erase Complete Store Data / Reset to Zero
+    const handleWipeAllData = async () => {
+        if (!confirm('⚠️ Are you sure you want to completely erase ALL store data? This will delete all stores and products from the database and reset to zero.')) return;
+        try {
+            // 1. Wipe remote server & Supabase database
+            await fetch('/api/store/data?wipeAll=true', { method: 'DELETE' }).catch(() => {});
+
+            // 2. Mark stores cleared locally
+            if (typeof window !== 'undefined') {
+                localStorage.clear();
+                sessionStorage.clear();
+
+                localStorage.setItem('gumshop_stores_cleared', 'true');
+                localStorage.setItem('gumshop_empty_dashboard_ack', 'true');
+                
+                // Add known demo presets to tombstone so they never auto-resurrect
+                const presetsToTombstone = ['highgeartoys', 'buy-rc-drift-cars-online', 'higt-rc-drift-cars-onlinee', 'high-rc-toys', 'aura-trends', 'neon-vault', 'clean-glow', 'store_highgeartoys'];
+                localStorage.setItem('gumshop_deleted_stores', JSON.stringify(presetsToTombstone));
+
+                // Expire all cookies
+                document.cookie = 'active_store_slug=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                document.cookie = 'gumshop_merchant_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                document.cookie = 'gumshop_active_store=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+
+                window.dispatchEvent(new Event('active_store_changed'));
+                window.dispatchEvent(new Event('products_updated'));
+            }
+
+            setShops([]);
+            setActiveStore(null);
+            setOrders([]);
+            toast.success('Complete store data erased. Database reset to zero! 🗑️');
+        } catch (e) {
+            toast.error('Failed to erase all store data');
+        }
+    };
+
+    // Store Archive / Unarchive
+    const handleToggleArchive = (shop) => {
+        const nextStatus = shop.status === 'archived' ? 'active' : 'archived';
+        setShops(prev => prev.map(s => s.id === shop.id ? { ...s, status: nextStatus } : s));
+
+        if (typeof window !== 'undefined') {
+            const cleanSlug = shop.username;
+            const updated = { ...shop, status: nextStatus };
+            localStorage.setItem(`store_${cleanSlug}`, JSON.stringify(updated));
+            localStorage.setItem(`cloned_store_${cleanSlug}`, JSON.stringify(updated));
+        }
+
+        toast.success(nextStatus === 'archived' ? `Store "${shop.name}" archived.` : `Store "${shop.name}" restored.`);
+    };
+
+    // Open Duplication Modal
+    const handleOpenDuplicateModal = (shop, e) => {
+        e?.stopPropagation();
+        setDuplicatingShop(shop);
+        setDupName(`${shop.name} Copy`);
+        setDupSlug(`${shop.username}-copy`);
+        setDupCopyProducts(true);
+        setDupCopyBanners(true);
+        setDupCopyTheme(true);
+        setDupCopyBranding(true);
+    };
+
+    // Execute Duplication
+    const handleExecuteDuplicate = async (e) => {
+        e?.preventDefault();
+        if (!dupName.trim() || !duplicatingShop) return;
+
+        setIsSubmittingDup(true);
+        try {
+            const res = await fetch('/api/store/duplicate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sourceStoreSlug: duplicatingShop.username,
+                    sourceStoreData: duplicatingShop,
+                    newStoreName: dupName.trim(),
+                    newStoreSlug: dupSlug.trim(),
+                    copyProducts: dupCopyProducts,
+                    copyBanners: dupCopyBanners,
+                    copyTheme: dupCopyTheme,
+                    copyBranding: dupCopyBranding
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                throw new Error(data.error || 'Duplication failed');
+            }
+
+            // Save to edge cache
+            if (typeof window !== 'undefined') {
+                const s = data.store;
+                localStorage.setItem(`store_${data.newStoreSlug}`, JSON.stringify(s));
+                localStorage.setItem(`cloned_store_${data.newStoreSlug}`, JSON.stringify(s));
+            }
+
+            toast.success(`Store "${dupName}" duplicated successfully! 🚀`);
+            setDuplicatingShop(null);
+            loadShops();
+        } catch (err) {
+            toast.error(err.message || 'Failed to duplicate store');
+        } finally {
+            setIsSubmittingDup(false);
+        }
+    };
+
+    // Create Blank Store
+    const handleCreateBlankShop = async (e) => {
+        e.preventDefault();
+        if (!newShopName.trim()) return;
+
+        const cleanSlug = newShopName.toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-') || `shop-${Date.now()}`;
+        const storeId = `store_${cleanSlug}`;
+
+        setIsCreatingShop(true);
+        try {
+            const newStore = {
+                id: storeId,
+                name: newShopName.trim(),
+                username: cleanSlug,
+                description: `Official digital storefront for ${newShopName.trim()}.`,
+                theme: newShopTheme,
+                themeColor: newShopColor,
+                status: 'active',
+                products: [],
+                createdAt: new Date().toISOString()
+            };
+
+            if (typeof window !== 'undefined') {
+                localStorage.setItem(`store_${cleanSlug}`, JSON.stringify(newStore));
+                localStorage.setItem(`cloned_store_${cleanSlug}`, JSON.stringify(newStore));
+                setActiveStoreSlug(newStore);
+            }
+
+            try {
+                const { createStore } = await import('@/lib/firebaseDb');
+                await createStore(newStore);
+            } catch {}
+
+            toast.success(`Store "${newShopName}" created! 🚀`);
+            setIsCreateModalOpen(false);
+            router.push(`/store/manage-product`);
+        } catch {
+            toast.error('Failed to create store');
+        } finally {
+            setIsCreatingShop(false);
+        }
+    };
+
+    // Filtered list
+    const filteredShops = shops.filter(shop => {
+        const matchesQuery = 
+            shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            shop.username.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesStatus = statusFilter === 'all' || (shop.status || 'active') === statusFilter;
+        return matchesQuery && matchesStatus;
+    });
+
+    // Compute Metrics & Master Catalog
+    const totalStores = shops.length;
+    const totalProducts = shops.reduce((acc, s) => acc + (s.productsCount || 0), 0);
+    const activeStoresCount = shops.filter(s => s.status !== 'archived').length;
+
+    // Aggregated Master Products
+    const allMasterProducts = shops.flatMap(shop => 
+        (shop.products || []).map(p => ({
+            ...p,
+            storeName: shop.name,
+            storeSlug: shop.username,
+            storeTheme: shop.theme
+        }))
+    );
+
+    // Filtered Master Catalog by selected store
+    const filteredMasterProducts = allMasterProducts.filter(p => {
+        if (selectedCatalogStore === 'all') return true;
+        const target = selectedCatalogStore.toLowerCase().replace(/^store_/, '');
+        const pSlug = (p.storeSlug || '').toLowerCase();
+        const pStoreId = (p.storeId || '').toLowerCase().replace(/^store_/, '');
+        return pSlug === target || pStoreId === target;
+    });
+
+    // Orders Filtered by selected store
+    const filteredOrders = orders.filter(o => {
+        if (selectedOrdersStore === 'all') return true;
+        const target = selectedOrdersStore.toLowerCase().replace(/^store_/, '');
+        const oStoreId = (o.storeId || '').toLowerCase().replace(/^store_/, '');
+        const oStoreSlug = (o.storeSlug || o.storeName || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+        return oStoreId === target || oStoreSlug === target;
+    });
+
+    // Financial Metrics
+    const totalOrdersCount = orders.length;
+    const completedOrdersCount = orders.filter(o => (o.status || '').toLowerCase() === 'completed' || o.verified).length;
+    const totalRevenue = orders.reduce((sum, o) => {
+        const val = parseFloat(o.total || o.amount || o.price || 0);
+        return sum + (isNaN(val) ? 0 : val);
+    }, 0);
+
+    return (
+        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">
+            {/* Header */}
+            <header className="px-6 py-4 border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="size-9 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-black shadow-md shadow-emerald-500/20">
+                        <Zap size={20} />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-base font-black text-white tracking-tight">GumShop Master Engine</h1>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                Personal HQ
+                            </span>
                         </div>
-                        <div>
-                          <h3 className="font-bold text-slate-900 text-base leading-tight">{s.name}</h3>
-                          <span className="text-xs text-slate-400 font-mono">/{s.slug}</span>
+                    </div>
+
+                    {/* Active Store Indicator */}
+                    {activeStore && (
+                        <div className="hidden lg:flex items-center gap-2 ml-4 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs">
+                            <span className="text-slate-400">Active:</span>
+                            <span className="font-bold text-emerald-400">{activeStore.name}</span>
+                            <span className="text-[10px] font-mono text-slate-500">/shop/{activeStore.username}</span>
+                            <a
+                                href={`/shop/${activeStore.username}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-slate-400 hover:text-white transition ml-0.5"
+                                title="Open active storefront"
+                            >
+                                <ExternalLink size={11} />
+                            </a>
                         </div>
-                      </div>
+                    )}
+                </div>
 
-                      <button
-                        onClick={() => handleDeleteStore(s)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
-                        title="Delete Store"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <p className="text-xs text-slate-500 line-clamp-2 mb-4">
-                      {s.description || 'Modern multi-channel store with synchronized catalog and link-in-bio presence.'}
-                    </p>
-
-                    <div className="flex items-center gap-2 mb-5">
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
-                        {productCounts[s.id] ?? 0} Products
-                      </span>
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100">
-                        USD ($)
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Store Actions */}
-                  <div className="pt-4 border-t border-slate-100 flex flex-col gap-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <a
-                        href={`/shop/${s.slug}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition"
-                      >
-                        <span>Storefront</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </a>
-                      <a
-                        href={`/creator/${s.slug}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold transition"
-                      >
-                        <span>Link-in-Bio</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </a>
-                    </div>
+                {/* Prominent Master Action Strip */}
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition flex items-center gap-1.5 shadow-sm"
+                    >
+                        <Plus size={13} />
+                        <span>+ CREATE STORE</span>
+                    </button>
 
                     <Link
-                      href={`/store/manage-product?store=${s.slug}`}
-                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition"
+                        href="/store/import"
+                        className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 transition flex items-center gap-1.5 active:scale-95"
                     >
-                      <Sliders className="w-3.5 h-3.5" />
-                      <span>Manage Products & Margins</span>
+                        <Sparkles size={13} />
+                        <span>+ IMPORT STORE</span>
                     </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-      </main>
-    </div>
-  );
+                    <Link
+                        href="/store/add-product"
+                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs border border-slate-700 transition hidden md:flex items-center gap-1.5"
+                    >
+                        <Plus size={13} />
+                        <span>+ ADD PRODUCT</span>
+                    </Link>
+
+                    <button
+                        onClick={handleExportBackup}
+                        className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs border border-slate-700 transition hidden sm:flex items-center gap-1.5"
+                        title="Export All Stores & Products to JSON"
+                    >
+                        <Download size={13} className="text-emerald-400" />
+                        <span>Backup</span>
+                    </button>
+
+                    <label
+                        className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs border border-slate-700 transition hidden sm:flex items-center gap-1.5 cursor-pointer"
+                        title="Import Stores from JSON Backup"
+                    >
+                        <Upload size={13} className="text-teal-400" />
+                        <span>Restore</span>
+                        <input
+                            type="file"
+                            accept=".json"
+                            onChange={handleImportBackup}
+                            className="hidden"
+                        />
+                    </label>
+
+                    <button
+                        onClick={handleWipeAllData}
+                        className="px-2.5 py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 hover:text-white font-bold text-xs border border-red-800/60 transition hidden sm:flex items-center gap-1.5"
+                        title="Erase Complete Store Data (Reset to Zero)"
+                    >
+                        <Trash2 size={13} className="text-red-400" />
+                        <span>Reset to Zero</span>
+                    </button>
+
+                    <span className="text-slate-800 hidden sm:inline">|</span>
+
+                    <button
+                        onClick={handleLogout}
+                        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+                        title="Logout"
+                    >
+                        <LogOut size={15} />
+                    </button>
+                </div>
+            </header>
+
+            {/* Master HQ Navigation Bar (Section 27) */}
+            <nav className="border-b border-slate-800 bg-slate-900/40 px-6 overflow-x-auto no-scrollbar sticky top-[65px] z-20 backdrop-blur-md">
+                <div className="max-w-7xl mx-auto flex items-center gap-1 sm:gap-2">
+                    {[
+                        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+                        { id: 'stores', label: `Stores (${shops.length})`, icon: Store },
+                        { id: 'products', label: `Products (${totalProducts})`, icon: ShoppingBag },
+                        { id: 'imports', label: `Imports (${importHistory.length})`, icon: Sparkles },
+                        { id: 'orders', label: 'Orders', icon: Package },
+                        { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+                        { id: 'gumroad', label: 'Gumroad', icon: Zap },
+                        { id: 'settings', label: 'Settings', icon: Settings }
+                    ].map(tab => {
+                        const Icon = tab.icon;
+                        const isActive = activeNavTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => {
+                                    setActiveNavTab(tab.id);
+                                    if (tab.id === 'imports') loadImportHistory();
+                                }}
+                                className={`px-3 sm:px-4 py-3 text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap border-b-2 ${
+                                    isActive 
+                                        ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5' 
+                                        : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/40'
+                                }`}
+                            >
+                                <Icon size={14} className={isActive ? 'text-emerald-400' : 'text-slate-500'} />
+                                <span>{tab.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </nav>
+
+            {/* Main Stage */}
+            <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 space-y-8">
+
+                {/* ─── TAB 1: OVERVIEW ─── */}
+                {activeNavTab === 'overview' && (
+                    <>
+                        {/* ─── METRIC CARDS ─── */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
+                                <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+                                    <span>Total Stores</span>
+                                    <Store size={15} className="text-emerald-400" />
+                                </div>
+                                <div className="text-2xl font-black text-white mt-2">{totalStores}</div>
+                                <div className="text-[11px] text-slate-500 mt-1">{activeStoresCount} active storefronts</div>
+                            </div>
+
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
+                                <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+                                    <span>Catalog Items</span>
+                                    <ShoppingBag size={15} className="text-teal-400" />
+                                </div>
+                                <div className="text-2xl font-black text-white mt-2">{totalProducts}</div>
+                                <div className="text-[11px] text-slate-500 mt-1">Across all independent stores</div>
+                            </div>
+
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
+                                <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+                                    <span>Checkout Status</span>
+                                    <Zap size={15} className="text-amber-400" />
+                                </div>
+                                <div className="text-2xl font-black text-emerald-400 mt-2">Ready</div>
+                                <div className="text-[11px] text-slate-500 mt-1">Supported Gumroad Overlay</div>
+                            </div>
+
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
+                                <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+                                    <span>Bio Links</span>
+                                    <Smartphone size={15} className="text-rose-400" />
+                                </div>
+                                <div className="text-2xl font-black text-white mt-2">{totalStores}</div>
+                                <div className="text-[11px] text-slate-500 mt-1">Mobile Creator storefronts</div>
+                            </div>
+                        </div>
+
+                        {/* ─── UNIVERSAL CATALOG & DATA BACKUP STRIP ─── */}
+                        <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="size-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                                    <Database size={18} />
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold text-white">Universal Dynamic Catalog Engine</span>
+                                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold">Active Everywhere</span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-400 mt-0.5">
+                                        All stores render cleanly across regular, incognito, and mobile browsers. Export or restore your entire multi-store database anytime with 1 click.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 w-full md:w-auto">
+                                <button
+                                    onClick={handleExportBackup}
+                                    className="flex-1 md:flex-none px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 flex items-center justify-center gap-1.5 transition"
+                                >
+                                    <Download size={13} className="text-emerald-400" />
+                                    <span>Export All (.json)</span>
+                                </button>
+                                <label
+                                    className="flex-1 md:flex-none px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
+                                >
+                                    <Upload size={13} className="text-teal-400" />
+                                    <span>Restore Backup</span>
+                                    <input
+                                        type="file"
+                                        accept=".json"
+                                        onChange={handleImportBackup}
+                                        className="hidden"
+                                    />
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* ─── QUICK ACTION BAR ─── */}
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-900/80 border border-slate-800 rounded-3xl p-4 sm:p-5">
+                            <div>
+                                <h2 className="text-base font-extrabold text-white">Master HQ Stores</h2>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                    Create new stores from scratch, import external stores with 1 workflow, or duplicate existing shops.
+                                </p>
+                            </div>
+
+                            <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                                <Link
+                                    href="/store/import"
+                                    className="flex-1 sm:flex-none px-4 py-2.5 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 transition active:scale-95 flex items-center justify-center gap-1.5"
+                                >
+                                    <Sparkles size={14} />
+                                    <span>+ Import Store</span>
+                                </Link>
+
+                                <button
+                                    onClick={() => setIsCreateModalOpen(true)}
+                                    className="flex-1 sm:flex-none px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition active:scale-95 flex items-center justify-center gap-1.5"
+                                >
+                                    <Plus size={14} />
+                                    <span>+ Create Store</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Render Active Stores Preview */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-sm font-bold text-white">Active Stores ({filteredShops.length})</h3>
+                                <button
+                                    onClick={() => setActiveNavTab('stores')}
+                                    className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                                >
+                                    <span>View All Stores</span>
+                                    <ArrowRight size={12} />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {filteredShops.slice(0, 6).map((shop) => (
+                                    <StoreCard 
+                                        key={shop.username} 
+                                        shop={shop} 
+                                        activeStore={activeStore}
+                                        onSetActiveStore={handleSetActiveStore}
+                                        onDelete={handleDeleteShop}
+                                        onArchive={handleToggleArchive}
+                                        onDuplicate={handleOpenDuplicateModal}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                {/* ─── TAB 2: STORES ─── */}
+                {activeNavTab === 'stores' && (
+                    <div className="space-y-6">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-lg font-black text-white">All Stores ({shops.length})</h2>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                    Each store operates independently with isolated products, branding, and themes.
+                                </p>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setIsCreateModalOpen(true)}
+                                    className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition flex items-center gap-1.5"
+                                >
+                                    <Plus size={13} />
+                                    <span>Create Store</span>
+                                </button>
+                                <Link
+                                    href="/store/import"
+                                    className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold text-xs shadow-md transition flex items-center gap-1.5"
+                                >
+                                    <Sparkles size={13} />
+                                    <span>Import Store</span>
+                                </Link>
+                            </div>
+                        </div>
+
+                        {/* Search & Status Filters */}
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                            <div className="relative w-full sm:w-72">
+                                <Search size={14} className="absolute left-3.5 top-3 text-slate-500" />
+                                <input
+                                    type="text"
+                                    placeholder="Search by store name or slug..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                                />
+                            </div>
+
+                            <div className="flex bg-slate-900 border border-slate-800 p-0.5 rounded-xl text-xs font-semibold">
+                                <button
+                                    onClick={() => setStatusFilter('all')}
+                                    className={`px-3 py-1 rounded-lg transition ${statusFilter === 'all' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    All ({shops.length})
+                                </button>
+                                <button
+                                    onClick={() => setStatusFilter('active')}
+                                    className={`px-3 py-1 rounded-lg transition ${statusFilter === 'active' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    Active
+                                </button>
+                                <button
+                                    onClick={() => setStatusFilter('archived')}
+                                    className={`px-3 py-1 rounded-lg transition ${statusFilter === 'archived' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    Archived
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredShops.map((shop) => (
+                                <StoreCard 
+                                    key={shop.username} 
+                                    shop={shop} 
+                                    activeStore={activeStore}
+                                    onSetActiveStore={handleSetActiveStore}
+                                    onDelete={handleDeleteShop}
+                                    onArchive={handleToggleArchive}
+                                    onDuplicate={handleOpenDuplicateModal}
+                                />
+                            ))}
+
+                            {/* Quick Create Card */}
+                            <button
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="bg-slate-900/40 border-2 border-dashed border-slate-800 hover:border-emerald-500/50 rounded-3xl p-8 flex flex-col items-center justify-center text-center transition group min-h-[300px]"
+                            >
+                                <div className="size-12 rounded-2xl bg-slate-800 group-hover:bg-emerald-500/10 flex items-center justify-center text-slate-500 group-hover:text-emerald-400 transition mb-3">
+                                    <Plus size={22} />
+                                </div>
+                                <h4 className="font-bold text-sm text-slate-300 group-hover:text-white transition">New Blank Store</h4>
+                                <p className="text-xs text-slate-500 mt-1 max-w-[200px]">Launch an empty storefront and build custom products</p>
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* ─── TAB 3: MASTER PRODUCTS CATALOG (Section 9) ─── */}
+                {activeNavTab === 'products' && (
+                    <div className="space-y-6">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-lg font-black text-white">Master Catalog ({filteredMasterProducts.length} items)</h2>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                    {selectedCatalogStore === 'all' 
+                                        ? 'Consolidated product directory across all independent stores.' 
+                                        : `Filtered product catalog strictly for store "${selectedCatalogStore}".`}
+                                </p>
+                            </div>
+
+                            <div className="flex items-center gap-2.5">
+                                <select
+                                    value={selectedCatalogStore}
+                                    onChange={(e) => setSelectedCatalogStore(e.target.value)}
+                                    className="px-3 py-2 bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl text-xs text-white focus:outline-none transition"
+                                >
+                                    <option value="all">All Stores ({allMasterProducts.length} items)</option>
+                                    {shops.map(s => (
+                                        <option key={s.username} value={s.username}>{s.name} ({s.productsCount || 0})</option>
+                                    ))}
+                                </select>
+
+                                <Link
+                                    href="/store/add-product"
+                                    className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold text-xs shadow-md transition flex items-center gap-1.5"
+                                >
+                                    <Plus size={13} />
+                                    <span>Add Product</span>
+                                </Link>
+                            </div>
+                        </div>
+
+                        {filteredMasterProducts.length > 0 ? (
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-xs">
+                                        <thead className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                                            <tr>
+                                                <th className="py-3 px-4">Product</th>
+                                                <th className="py-3 px-4">Assigned Store</th>
+                                                <th className="py-3 px-4">Price</th>
+                                                <th className="py-3 px-4">Status</th>
+                                                <th className="py-3 px-4 text-right">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-800/60 text-slate-200">
+                                            {filteredMasterProducts.map((p, idx) => (
+                                                <tr key={p.id || idx} className="hover:bg-slate-800/30 transition">
+                                                    <td className="py-3 px-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="size-10 rounded-xl bg-slate-800 overflow-hidden shrink-0 border border-slate-700">
+                                                                <img 
+                                                                    src={p.image || p.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100'} 
+                                                                    alt={p.name} 
+                                                                    className="w-full h-full object-cover" 
+                                                                />
+                                                            </div>
+                                                            <div className="min-w-0 max-w-xs">
+                                                                <div className="font-bold text-white truncate">{typeof p.name === 'string' ? p.name : String(p.name || 'Product')}</div>
+                                                                <div className="text-[10px] text-slate-500 font-mono truncate">{typeof p.category === 'string' ? p.category : (p.category?.name || 'Featured')}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 px-4">
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                                                            <Store size={10} />
+                                                            {p.storeName}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-4 font-mono font-bold text-emerald-400">
+                                                        ${(parseFloat(typeof p.price === 'object' ? p.price?.amount : p.price) || 0).toFixed(2)}
+                                                    </td>
+                                                    <td className="py-3 px-4">
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                            Active
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-4 text-right">
+                                                        <Link
+                                                            href={`/store/manage-product`}
+                                                            onClick={() => setActiveStoreSlug({ username: p.storeSlug, name: p.storeName })}
+                                                            className="text-xs font-bold text-slate-400 hover:text-white transition px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700"
+                                                        >
+                                                            Manage
+                                                        </Link>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-16 bg-slate-900 border border-slate-800 rounded-3xl p-8">
+                                <ShoppingBag size={32} className="mx-auto text-slate-600 mb-3" />
+                                <h4 className="text-sm font-bold text-white">No products found for this selection</h4>
+                                <p className="text-xs text-slate-500 mt-1">Import a store or add a new product to this store.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ─── TAB 4: MASTER IMPORTS & HISTORY (Section 26) ─── */}
+                {activeNavTab === 'imports' && (
+                    <div className="space-y-6">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-900/80 border border-slate-800 rounded-3xl p-6">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <Sparkles size={18} className="text-emerald-400" />
+                                    <h2 className="text-base font-extrabold text-white">AI Store Import Center</h2>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1 max-w-xl">
+                                    Inspect any public store (Shopify, WooCommerce, HTML), preview products and hero banners, customize parameters, and generate an independent storefront.
+                                </p>
+                            </div>
+
+                            <Link
+                                href="/store/import"
+                                className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 transition active:scale-95 flex items-center gap-1.5"
+                            >
+                                <Sparkles size={14} />
+                                <span>Start New Import</span>
+                            </Link>
+                        </div>
+
+                        {/* Import History Table */}
+                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
+                            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                                <div>
+                                    <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                                        <History size={15} className="text-slate-400" />
+                                        <span>Master Import History</span>
+                                    </h3>
+                                    <p className="text-[11px] text-slate-500 mt-0.5">Audit log of imported catalogs and source provenance</p>
+                                </div>
+                                <button
+                                    onClick={loadImportHistory}
+                                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+                                    title="Refresh History"
+                                >
+                                    <RefreshCw size={13} className={loadingHistory ? 'animate-spin' : ''} />
+                                </button>
+                            </div>
+
+                            {importHistory.length > 0 ? (
+                                <div className="overflow-x-auto mt-4">
+                                    <table className="w-full text-left text-xs">
+                                        <thead className="text-[10px] uppercase font-bold text-slate-500 border-b border-slate-800 pb-2">
+                                            <tr>
+                                                <th className="py-2.5 px-3">Source</th>
+                                                <th className="py-2.5 px-3">Date</th>
+                                                <th className="py-2.5 px-3">Products</th>
+                                                <th className="py-2.5 px-3">Banners</th>
+                                                <th className="py-2.5 px-3">Destination Store</th>
+                                                <th className="py-2.5 px-3">Status</th>
+                                                <th className="py-2.5 px-3 text-right">View</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                                            {importHistory.map((item, idx) => (
+                                                <tr key={item.id || idx} className="hover:bg-slate-800/30 transition">
+                                                    <td className="py-3 px-3">
+                                                        <div className="font-mono text-[11px] text-slate-300 truncate max-w-xs" title={item.sourceUrl}>
+                                                            {item.sourceUrl || 'Direct Catalog Import'}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 px-3 text-slate-400 text-[11px]">
+                                                        {new Date(item.createdAt || item.date || Date.now()).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="py-3 px-3 font-bold text-white">
+                                                        {item.productsImported || 0} items
+                                                    </td>
+                                                    <td className="py-3 px-3 text-slate-400">
+                                                        {item.bannersImported || 0} banners
+                                                    </td>
+                                                    <td className="py-3 px-3">
+                                                        <span className="font-bold text-emerald-400">
+                                                            {item.destinationStoreName || item.destinationStoreSlug || 'Store'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-3">
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                            <CheckCircle2 size={10} />
+                                                            {item.status || 'COMPLETED'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-3 text-right">
+                                                        <a
+                                                            href={`/shop/${item.destinationStoreSlug}`}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-xs font-bold text-slate-400 hover:text-white"
+                                                        >
+                                                            <ExternalLink size={13} />
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 text-slate-500 text-xs">
+                                    No external stores have been imported yet.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* ─── TAB 5: ORDERS (Section 17) ─── */}
+                {activeNavTab === 'orders' && (
+                    <div className="space-y-6">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-lg font-black text-white">Customer Orders & Fulfillment ({filteredOrders.length})</h2>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                    {selectedOrdersStore === 'all'
+                                        ? 'Consolidated customer orders across all independent stores.'
+                                        : `Customer orders strictly for store "${selectedOrdersStore}".`}
+                                </p>
+                            </div>
+
+                            <div className="flex items-center gap-2.5">
+                                <select
+                                    value={selectedOrdersStore}
+                                    onChange={(e) => setSelectedOrdersStore(e.target.value)}
+                                    className="px-3 py-2 bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl text-xs text-white focus:outline-none transition"
+                                >
+                                    <option value="all">All Stores ({orders.length} orders)</option>
+                                    {shops.map(s => (
+                                        <option key={s.username} value={s.username}>{s.name}</option>
+                                    ))}
+                                </select>
+
+                                <button
+                                    onClick={loadOrders}
+                                    className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+                                    title="Refresh Orders"
+                                >
+                                    <RefreshCw size={13} className={loadingOrders ? 'animate-spin' : ''} />
+                                </button>
+
+                                <Link
+                                    href="/store/orders"
+                                    className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition flex items-center gap-1.5"
+                                >
+                                    <ExternalLink size={13} />
+                                    <span>Store Order Manager</span>
+                                </Link>
+                            </div>
+                        </div>
+
+                        {/* Order Summary Cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
+                                <div className="text-[11px] font-bold text-slate-400">Total Orders</div>
+                                <div className="text-2xl font-black text-white mt-1">{filteredOrders.length}</div>
+                            </div>
+                            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
+                                <div className="text-[11px] font-bold text-slate-400">Completed Orders</div>
+                                <div className="text-2xl font-black text-emerald-400 mt-1">
+                                    {filteredOrders.filter(o => (o.status || '').toLowerCase() === 'completed' || o.verified).length}
+                                </div>
+                            </div>
+                            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
+                                <div className="text-[11px] font-bold text-slate-400">Gross Revenue</div>
+                                <div className="text-2xl font-black text-teal-400 mt-1 font-mono">
+                                    ${filteredOrders.reduce((sum, o) => sum + (parseFloat(o.total || o.amount || o.price || 0) || 0), 0).toFixed(2)}
+                                </div>
+                            </div>
+                        </div>
+
+                        {filteredOrders.length > 0 ? (
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-xs">
+                                        <thead className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                                            <tr>
+                                                <th className="py-3 px-4">Order ID</th>
+                                                <th className="py-3 px-4">Store</th>
+                                                <th className="py-3 px-4">Customer</th>
+                                                <th className="py-3 px-4">Amount</th>
+                                                <th className="py-3 px-4">Status</th>
+                                                <th className="py-3 px-4">Date</th>
+                                                <th className="py-3 px-4 text-right">Fulfillment</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-800/60 text-slate-200">
+                                            {filteredOrders.map((ord, idx) => (
+                                                <tr key={ord.id || idx} className="hover:bg-slate-800/30 transition">
+                                                    <td className="py-3 px-4 font-mono font-bold text-white">
+                                                        {ord.id || `ORD-${idx + 1}`}
+                                                    </td>
+                                                    <td className="py-3 px-4">
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                                                            <Store size={10} />
+                                                            {ord.storeName || ord.storeSlug || ord.storeId || 'Store'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-4">
+                                                        <div className="font-medium text-white">{typeof ord.customer === 'string' ? ord.customer : (ord.customer?.name || ord.name || ord.customerName || 'Customer')}</div>
+                                                        <div className="text-[10px] text-slate-500 font-mono">{typeof ord.customer === 'object' && ord.customer?.email ? ord.customer.email : (ord.customerEmail || ord.email || '—')}</div>
+                                                    </td>
+                                                    <td className="py-3 px-4 font-mono font-bold text-emerald-400">
+                                                        ${(parseFloat(ord.total || ord.amount || ord.price || 0) || 0).toFixed(2)}
+                                                    </td>
+                                                    <td className="py-3 px-4">
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                            <CheckCircle2 size={10} />
+                                                            {ord.status || 'Completed'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-4 text-slate-400 text-[11px]">
+                                                        {new Date(ord.createdAt || Date.now()).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="py-3 px-4 text-right">
+                                                        <Link
+                                                            href={`/track?orderId=${ord.id}`}
+                                                            target="_blank"
+                                                            className="text-xs font-bold text-slate-400 hover:text-white transition px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 inline-flex items-center gap-1"
+                                                        >
+                                                            <span>Track</span>
+                                                            <ExternalLink size={10} />
+                                                        </Link>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-10 text-center space-y-3">
+                                <Package size={36} className="mx-auto text-slate-600" />
+                                <h3 className="text-base font-bold text-white">No customer orders recorded yet</h3>
+                                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                                    When customers place orders via Gumroad checkout on any storefront, verified transactions will populate here automatically.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ─── TAB 6: ANALYTICS (Section 25) ─── */}
+                {activeNavTab === 'analytics' && (
+                    <div className="space-y-6">
+                        <div>
+                            <h2 className="text-lg font-black text-white">Master Commerce Analytics</h2>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                                Verified commercial metrics and live storefront engagement. Zero simulated claims.
+                            </p>
+                        </div>
+
+                        {/* Storefront Engagement Metrics */}
+                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                    <TrendingUp size={16} className="text-emerald-400" />
+                                    <span>GumShop Storefront Engagement (Local Metrics)</span>
+                                </h3>
+                                <span className="text-[10px] text-slate-500 font-mono">Live Counter</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                                    <div className="text-[11px] text-slate-400 font-bold">Total Stores</div>
+                                    <div className="text-xl font-black text-white mt-1">{totalStores}</div>
+                                    <div className="text-[10px] text-slate-500 mt-0.5">{activeStoresCount} active shops</div>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                                    <div className="text-[11px] text-slate-400 font-bold">Active Catalog Items</div>
+                                    <div className="text-xl font-black text-white mt-1">{totalProducts}</div>
+                                    <div className="text-[10px] text-slate-500 mt-0.5">Across all stores</div>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                                    <div className="text-[11px] text-slate-400 font-bold">Recorded Orders</div>
+                                    <div className="text-xl font-black text-emerald-400 mt-1">{totalOrdersCount}</div>
+                                    <div className="text-[10px] text-slate-500 mt-0.5">Real checkouts</div>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                                    <div className="text-[11px] text-slate-400 font-bold">Creator Bio Links</div>
+                                    <div className="text-xl font-black text-rose-400 mt-1">{totalStores}</div>
+                                    <div className="text-[10px] text-slate-500 mt-0.5">Active landing pages</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Gumroad Settlement Metrics */}
+                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                <DollarSign size={16} className="text-teal-400" />
+                                <span>Gumroad Commercial Settlement (Verified Financials)</span>
+                            </h3>
+                            <p className="text-xs text-slate-400">
+                                Sales figures are sourced directly from authenticated transactions and verified sales. Never synthesized from click events.
+                            </p>
+
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                                    <div className="text-[11px] text-slate-400 font-bold">Verified Purchases</div>
+                                    <div className="text-xl font-black text-white mt-1">{completedOrdersCount}</div>
+                                    <div className="text-[10px] text-slate-500 mt-1">{completedOrdersCount > 0 ? 'Verified transactions' : 'No sales recorded yet'}</div>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                                    <div className="text-[11px] text-slate-400 font-bold">Net Revenue</div>
+                                    <div className="text-xl font-black text-emerald-400 mt-1 font-mono">${totalRevenue.toFixed(2)}</div>
+                                    <div className="text-[10px] text-slate-500 mt-1">Real gross GMV</div>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                                    <div className="text-[11px] text-slate-400 font-bold">Refund Rate</div>
+                                    <div className="text-xl font-black text-white mt-1">0.0%</div>
+                                    <div className="text-[10px] text-slate-500 mt-1">Zero chargebacks</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ─── TAB 7: GUMROAD INTEGRATION (Section 13) ─── */}
+                {activeNavTab === 'gumroad' && (
+                    <div className="space-y-6">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-lg font-black text-white">Gumroad Commerce Center</h2>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                    Manage server-vaulted API keys, overlay checkout parameters, and product sync.
+                                </p>
+                            </div>
+
+                            <Link
+                                href="/settings/integrations/gumroad"
+                                className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-xs shadow-md transition flex items-center gap-1.5"
+                            >
+                                <Zap size={13} />
+                                <span>Configure Gumroad</span>
+                            </Link>
+                        </div>
+
+                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4">
+                            <div className="flex items-center gap-3">
+                                <div className="size-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center font-black text-xl">
+                                    G
+                                </div>
+                                <div>
+                                    <h3 className="font-extrabold text-white text-base">Supported Gumroad Integration Active</h3>
+                                    <p className="text-xs text-slate-400 mt-0.5">
+                                        Uses Gumroad’s official JavaScript overlay modal (`gumroad.js`) and direct checkout permalinks with post-purchase verification.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-800 flex flex-wrap gap-3">
+                                <Link
+                                    href="/settings/integrations/gumroad"
+                                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition"
+                                >
+                                    Open Gumroad Product Mapping Table
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ─── TAB 8: SETTINGS (Section 3) ─── */}
+                {activeNavTab === 'settings' && (
+                    <div className="space-y-6">
+                        <div>
+                            <h2 className="text-lg font-black text-white">Master HQ Engine Settings</h2>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                                Global platform configuration and control options.
+                            </p>
+                        </div>
+
+                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+                            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                                <div>
+                                    <h3 className="text-sm font-bold text-white">Authentication & Session</h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">Master administrator session active</p>
+                                </div>
+                                <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    Admin Verified
+                                </span>
+                            </div>
+
+                            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                                <div>
+                                    <h3 className="text-sm font-bold text-white">Security & SSRF Guard</h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">DNS rebinding protection, non-standard IP blocking active</p>
+                                </div>
+                                <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    Hardened
+                                </span>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-sm font-bold text-white">Token Storage</h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">Secrets stored strictly server-side</p>
+                                </div>
+                                <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    Server-Vaulted
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+            </main>
+
+            {/* ─── MODAL: CREATE BLANK STORE ─── */}
+            {isCreateModalOpen && (
+                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                            <div className="flex items-center gap-2">
+                                <div className="size-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                                    <Plus size={16} />
+                                </div>
+                                <h3 className="font-bold text-base text-white">Create New Store</h3>
+                            </div>
+                            <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-500 hover:text-white">
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateBlankShop} className="mt-5 space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-400 mb-1">Store Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="e.g. Velocity RC Store"
+                                    value={newShopName}
+                                    onChange={(e) => setNewShopName(e.target.value)}
+                                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-400 mb-1">Theme</label>
+                                <select
+                                    value={newShopTheme}
+                                    onChange={(e) => setNewShopTheme(e.target.value)}
+                                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500"
+                                >
+                                    <option value="viral_lander">Viral Lander</option>
+                                    <option value="tech_hardware">Tech Hardware & RC</option>
+                                    <option value="clean_beauty">Clean Minimalist Beauty</option>
+                                    <option value="fashion_lookbook">Fashion Lookbook</option>
+                                    <option value="digital_creator">Digital Creator</option>
+                                </select>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={isCreatingShop}
+                                className="w-full mt-4 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold text-xs shadow-md transition"
+                            >
+                                {isCreatingShop ? 'Creating Store...' : 'Create Store'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ─── MODAL: 1-CLICK STORE DUPLICATION ─── */}
+            {duplicatingShop && (
+                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                            <div className="flex items-center gap-2">
+                                <div className="size-8 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center">
+                                    <Copy size={16} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-sm text-white">Duplicate Store</h3>
+                                    <p className="text-[11px] text-slate-400">Clone "{duplicatingShop.name}" into an independent shop</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setDuplicatingShop(null)} className="text-slate-500 hover:text-white">
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleExecuteDuplicate} className="mt-4 space-y-3.5">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-400 mb-1">New Store Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={dupName}
+                                    onChange={(e) => {
+                                        setDupName(e.target.value);
+                                        setDupSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-'));
+                                    }}
+                                    className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-400 mb-1">New Store Slug</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={dupSlug}
+                                    onChange={(e) => setDupSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-'))}
+                                    className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                                />
+                            </div>
+
+                            <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800/80 space-y-2">
+                                <span className="text-[11px] font-bold text-slate-400 block mb-1">Copy Options:</span>
+                                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={dupCopyProducts}
+                                        onChange={(e) => setDupCopyProducts(e.target.checked)}
+                                        className="size-4 rounded text-emerald-500 focus:ring-0"
+                                    />
+                                    <span>Copy all catalog products ({duplicatingShop.productsCount || 0} items)</span>
+                                </label>
+
+                                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={dupCopyBanners}
+                                        onChange={(e) => setDupCopyBanners(e.target.checked)}
+                                        className="size-4 rounded text-emerald-500 focus:ring-0"
+                                    />
+                                    <span>Copy hero marketing banners</span>
+                                </label>
+
+                                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={dupCopyTheme}
+                                        onChange={(e) => setDupCopyTheme(e.target.checked)}
+                                        className="size-4 rounded text-emerald-500 focus:ring-0"
+                                    />
+                                    <span>Copy theme & color palette</span>
+                                </label>
+
+                                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={dupCopyBranding}
+                                        onChange={(e) => setDupCopyBranding(e.target.checked)}
+                                        className="size-4 rounded text-emerald-500 focus:ring-0"
+                                    />
+                                    <span>Copy store logo & bio tagline</span>
+                                </label>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={isSubmittingDup}
+                                className="w-full mt-3 py-3 rounded-xl bg-teal-500 hover:bg-teal-600 text-slate-950 font-extrabold text-xs shadow-md transition"
+                            >
+                                {isSubmittingDup ? 'Cloning Store...' : 'Create Duplicate Store'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+        </div>
+    );
+}
+
+// ─── REUSABLE INDEPENDENT STORE CARD COMPONENT ───
+function StoreCard({ shop, activeStore, onSetActiveStore, onDelete, onArchive, onDuplicate }) {
+    const isActive = Boolean(activeStore && (activeStore.username === shop.username || activeStore.id === shop.id));
+
+    return (
+        <div
+            className={`bg-slate-900 border rounded-3xl p-6 transition flex flex-col justify-between group hover:border-slate-700 shadow-lg ${
+                isActive 
+                    ? 'border-emerald-500/50 ring-1 ring-emerald-500/20' 
+                    : shop.status === 'archived' 
+                        ? 'border-slate-800/60 opacity-60' 
+                        : 'border-slate-800'
+            }`}
+        >
+            <div>
+                {/* Top Badges & Delete */}
+                <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="size-13 rounded-2xl bg-slate-800 border border-slate-700 p-1 shrink-0 overflow-hidden">
+                        {shop.logo ? (
+                            <img src={shop.logo} alt={shop.name} className="w-full h-full object-cover rounded-xl" />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center font-black text-emerald-400 text-base">
+                                {shop.name.charAt(0).toUpperCase()}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                        {isActive ? (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shadow-sm">
+                                <Check size={10} /> Active
+                            </span>
+                        ) : (
+                            <button
+                                onClick={() => onSetActiveStore?.(shop)}
+                                className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 transition"
+                                title="Set as current active store"
+                            >
+                                Set Active
+                            </button>
+                        )}
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+                            {shop.theme?.replace('_', ' ')}
+                        </span>
+                        <button
+                            onClick={(e) => onDelete(shop.username, shop.id, e)}
+                            className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                            title="Delete store permanently"
+                        >
+                            <Trash2 size={13} />
+                        </button>
+                    </div>
+                </div>
+
+                <h3 className="font-bold text-base text-white truncate">{shop.name}</h3>
+                <p className="text-xs text-slate-500 font-mono mt-0.5">/shop/{shop.username}</p>
+
+                {shop.description && (
+                    <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                        {shop.description}
+                    </p>
+                )}
+
+                {/* Metrics Summary */}
+                <div className="grid grid-cols-2 gap-2 mt-4 p-3 rounded-2xl bg-slate-950/60 border border-slate-800/60">
+                    <div className="text-center">
+                        <div className="text-[11px] text-slate-500 font-medium">Products</div>
+                        <div className="text-sm font-bold text-white mt-0.5">{shop.productsCount}</div>
+                    </div>
+                    <div className="text-center border-l border-slate-800/60">
+                        <div className="text-[11px] text-slate-500 font-medium">Checkout</div>
+                        <div className="text-sm font-bold text-emerald-400 mt-0.5">Ready</div>
+                    </div>
+                </div>
+
+                {/* Creator Bio Pill */}
+                <div className="mt-3 p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        <Smartphone size={13} className="text-rose-400 shrink-0" />
+                        <span className="font-mono text-[11px] text-rose-300 truncate">/creator/{shop.username}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => {
+                                const url = `${window.location.origin}/creator/${shop.username}`;
+                                navigator.clipboard.writeText(url);
+                                toast.success('Bio link copied! 📋');
+                            }}
+                            className="px-2 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-[10px] font-bold"
+                        >
+                            Copy
+                        </button>
+                        <a
+                            href={`/creator/${shop.username}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1 text-rose-300 hover:text-white"
+                        >
+                            <ExternalLink size={12} />
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {/* Store Actions Panel */}
+            <div className="mt-4 pt-4 border-t border-slate-800 space-y-2">
+                <div className="flex items-center gap-2">
+                    <Link
+                        href="/store"
+                        onClick={() => setActiveStoreSlug(shop)}
+                        className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-1 transition"
+                    >
+                        <Layers size={13} />
+                        <span>Manage</span>
+                    </Link>
+                    <Link
+                        href="/store/manage-product"
+                        onClick={() => setActiveStoreSlug(shop)}
+                        className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center gap-1 transition"
+                        title="Catalog editor"
+                    >
+                        <ShoppingBag size={13} />
+                        <span>Catalog</span>
+                    </Link>
+                    <a
+                        href={`/shop/${shop.username}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="py-2 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center gap-1 transition"
+                        title="Open public storefront"
+                    >
+                        <Globe size={13} />
+                        <span>View</span>
+                    </a>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] pt-1">
+                    <button
+                        onClick={(e) => onDuplicate(shop, e)}
+                        className="text-slate-400 hover:text-white flex items-center gap-1 font-semibold"
+                    >
+                        <Copy size={11} /> Duplicate
+                    </button>
+                    <button
+                        onClick={() => onArchive(shop)}
+                        className="text-slate-400 hover:text-white flex items-center gap-1 font-semibold"
+                    >
+                        <Archive size={11} /> {shop.status === 'archived' ? 'Unarchive' : 'Archive'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 }

@@ -1,0 +1,151 @@
+import { NextResponse } from 'next/server';
+import { database } from '@/lib/firebase';
+const ref = () => null;
+const get = () => Promise.resolve({ exists: () => false });
+const set = () => Promise.resolve();
+import { getServerGumroadToken } from '@/lib/serverVault';
+import { PaymentStatus, OrderStatus, FulfillmentStatus, ShipmentStatus } from '@/lib/paymentStatus';
+import { getServerOrder, saveServerOrder } from '@/lib/serverOrderStore';
+
+/**
+ * GET /api/gumroad/verify-order
+ * Strict Server-Side Payment Verification & Reconciliation
+ * The browser CANNOT manufacture a successful payment. Only database records or Gumroad API verify PAID status.
+ */
+export async function GET(req) {
+    try {
+        const { searchParams } = new URL(req.url);
+        const rawOrderId = searchParams.get('orderId') || searchParams.get('order_id') || searchParams.get('sale_id') || '';
+        const storeId = searchParams.get('storeId') || searchParams.get('store') || '';
+        const saleId = searchParams.get('saleId') || searchParams.get('sale_id') || '';
+
+        const orderId = rawOrderId.trim();
+        if (!orderId) {
+            return NextResponse.json({
+                verified: false,
+                paymentStatus: PaymentStatus.NOT_FOUND,
+                error: 'Order ID is required for verification.'
+            }, { status: 400 });
+        }
+
+        // 1. Check resilient server storage and database for existing order
+        let existingOrder = await getServerOrder(orderId, storeId);
+
+        // If order already marked as PAID by webhook
+        if (existingOrder && (existingOrder.paymentStatus === PaymentStatus.PAID || existingOrder.isPaid === true)) {
+            return NextResponse.json({
+                verified: true,
+                paymentStatus: PaymentStatus.PAID,
+                orderStatus: existingOrder.orderStatus || OrderStatus.CONFIRMED,
+                fulfillmentStatus: existingOrder.fulfillmentStatus || FulfillmentStatus.UNFULFILLED,
+                shipmentStatus: existingOrder.shipmentStatus || ShipmentStatus.NOT_AVAILABLE,
+                order: existingOrder
+            });
+        }
+
+        // 2. Perform Server-Side Reconciliation with Gumroad API
+        const token = await getServerGumroadToken();
+        if (token) {
+            try {
+                const salesRes = await fetch(`https://api.gumroad.com/v2/sales?access_token=${encodeURIComponent(token)}`, {
+                    headers: { 'Accept': 'application/json' },
+                    signal: AbortSignal.timeout(6000)
+                });
+
+                if (salesRes.ok) {
+                    const salesData = await salesRes.json();
+                    const salesList = salesData.sales || [];
+
+                    const matchedSale = salesList.find(s => 
+                        String(s.order_number) === orderId ||
+                        String(s.id) === orderId ||
+                        String(s.id) === saleId ||
+                        s.url_params?.order_id === orderId ||
+                        s['url_params[order_id]'] === orderId
+                    );
+
+                    if (matchedSale) {
+                        // Official sale confirmed by Gumroad API!
+                        const pricePaid = matchedSale.price ? (parseFloat(matchedSale.price) / 100) : (existingOrder?.total || 0);
+                        const customerEmail = matchedSale.email || existingOrder?.customer?.email || 'customer@gumshop.online';
+                        const customerName = matchedSale.full_name || customerEmail.split('@')[0];
+
+                        const verifiedOrder = {
+                            id: orderId,
+                            orderId: orderId,
+                            orderNumber: `GS-${(matchedSale.order_number || orderId).toString().slice(-6).toUpperCase()}`,
+                            storeId: existingOrder?.storeId || storeId || 'store_default',
+                            storeName: existingOrder?.storeName || 'GumShop Store',
+                            total: pricePaid,
+                            subtotal: pricePaid,
+                            currency: (matchedSale.currency || 'USD').toUpperCase(),
+                            paymentStatus: PaymentStatus.PAID,
+                            orderStatus: OrderStatus.CONFIRMED,
+                            fulfillmentStatus: FulfillmentStatus.UNFULFILLED,
+                            shipmentStatus: ShipmentStatus.NOT_AVAILABLE,
+                            isPaid: true,
+                            paymentMethod: 'Gumroad Verified Checkout',
+                            gumroadSaleId: matchedSale.id,
+                            items: existingOrder?.items || matchedSale.product_name || 'Store Order',
+                            orderItems: existingOrder?.orderItems || [{
+                                name: matchedSale.product_name || 'Store Item',
+                                price: pricePaid,
+                                quantity: 1
+                            }],
+                            customer: {
+                                name: customerName,
+                                email: customerEmail,
+                                shippingAddress: matchedSale.shipping_information?.street_address || existingOrder?.customer?.shippingAddress || 'Digital / Customer provided'
+                            },
+                            verifiedAt: new Date().toISOString(),
+                            createdAt: existingOrder?.createdAt || matchedSale.created_at || new Date().toISOString()
+                        };
+
+                        // Persist verified order to resilient storage
+                        await saveServerOrder(orderId, verifiedOrder);
+
+                        return NextResponse.json({
+                            verified: true,
+                            paymentStatus: PaymentStatus.PAID,
+                            orderStatus: OrderStatus.CONFIRMED,
+                            fulfillmentStatus: FulfillmentStatus.UNFULFILLED,
+                            shipmentStatus: ShipmentStatus.NOT_AVAILABLE,
+                            order: verifiedOrder
+                        });
+                    }
+                }
+            } catch (gumroadErr) {
+                console.warn('Gumroad reconciliation error:', gumroadErr.message);
+            }
+        }
+
+        // 3. If order exists in database but not verified by Gumroad yet
+        if (existingOrder) {
+            return NextResponse.json({
+                verified: false,
+                paymentStatus: PaymentStatus.VERIFICATION_PENDING,
+                orderStatus: existingOrder.orderStatus || OrderStatus.PENDING,
+                message: 'Payment verification is still pending. We are awaiting confirmation from Gumroad.',
+                order: {
+                    ...existingOrder,
+                    isPaid: false
+                }
+            });
+        }
+
+        // 4. No order found
+        return NextResponse.json({
+            verified: false,
+            paymentStatus: PaymentStatus.NOT_FOUND,
+            message: 'No checkout session could be found for this reference.'
+        }, { status: 404 });
+
+    } catch (err) {
+        console.error('Verify order route error:', err);
+        return NextResponse.json({
+            verified: false,
+            paymentStatus: PaymentStatus.FAILED,
+            error: 'Server error verifying order status.'
+        }, { status: 500 });
+    }
+}
