@@ -942,24 +942,8 @@ export default function StanStoreBioEditor() {
                             {/* Inner Screen Canvas */}
                             <div className={`min-h-[680px] max-h-[720px] overflow-y-auto scrollbar-none flex flex-col justify-between ${activePreset.bgClass}`}>
                                 
-                                {/* iOS Status Bar & Dynamic Island */}
-                                <div className="pt-3 px-6 flex items-center justify-between text-slate-800 text-[11px] font-semibold">
-                                    <span>9:41</span>
-                                    {/* Dynamic Island */}
-                                    <div className="w-24 h-5 bg-black rounded-full mx-auto shadow-inner flex items-center justify-end pr-2 gap-1.5">
-                                        <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                                        <span className="size-2.5 rounded-full bg-slate-900 border border-slate-800" />
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <span className="text-[10px]">5G</span>
-                                        <div className="w-4 h-2 rounded border border-current flex items-center p-0.5">
-                                            <div className="w-full h-full bg-current rounded-xs" />
-                                        </div>
-                                    </div>
-                                </div>
-
                                 {/* Bio Profile Content */}
-                                <div className="px-5 pt-4 pb-6 flex-1 flex flex-col">
+                                <div className="px-5 pt-6 pb-6 flex-1 flex flex-col">
                                     
                                     {/* Avatar & Verification */}
                                     <div className="flex flex-col items-center text-center">

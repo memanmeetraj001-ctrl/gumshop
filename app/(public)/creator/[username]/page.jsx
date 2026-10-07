@@ -533,30 +533,6 @@ export default function CreatorBioPage({ params }) {
                             : `max-w-xl mx-auto rounded-3xl shadow-xl border border-slate-200 my-6 ${activePreset.frame}`
                     }`}
                 >
-                    {/* Simulated iPhone Status Bar & Dynamic Island (Phone Mode Only) */}
-                    <div className="pt-3 px-7 flex items-center justify-between select-none text-slate-900 text-xs font-semibold">
-                        <span>10:09</span>
-                        
-                        {/* Dynamic Island Pill */}
-                        <div className="w-24 h-5 bg-black rounded-full mx-auto shadow-inner flex items-center justify-end pr-2 gap-1.5">
-                            <span className="size-2 rounded-full bg-emerald-500/80 animate-pulse"></span>
-                            <span className="size-2.5 rounded-full bg-slate-900 border border-slate-800"></span>
-                        </div>
-
-                        {/* Status Icons */}
-                        <div className="flex items-center gap-1.5">
-                            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                                <path d="M2 17h3v4H2v-4zm5-4h3v8H7v-8zm5-4h3v12h-3V9zm5-4h3v16h-3V5z"/>
-                            </svg>
-                            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                                <path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98A16.88 16.88 0 0 0 12 4zm0 3c3.73 0 7.12 1.39 9.73 3.68L12 19.46 2.27 10.68A13.9 13.9 0 0 1 12 7z"/>
-                            </svg>
-                            <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                                <path d="M17 6H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h13c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 9H5c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h11c.55 0 1 .45 1 1v4c0 .55-.45 1-1 1zm4-6h1c.55 0 1 .45 1 1v4c0 .55-.45 1-1 1h-1V9z"/>
-                            </svg>
-                        </div>
-                    </div>
-
                     {/* Inner Content Canvas */}
                     <div className="px-5 sm:px-6 pt-5 pb-8 min-h-[640px] flex flex-col justify-between">
                         
