@@ -47,20 +47,29 @@ const OrderSummary = ({ totalPrice, items }) => {
     const handleCouponCode = async (event) => {
         event.preventDefault();
         try {
-            const couponData = await getCoupon(couponCodeInput.toUpperCase());
-            if (couponData && new Date(couponData.expiresAt) > new Date()) {
-                if (couponData.productId) {
+            const couponData = await getCoupon(couponCodeInput.trim().toUpperCase());
+            if (couponData && (!couponData.expiresAt || new Date(couponData.expiresAt) > new Date())) {
+                if (couponData.minSpend && totalPrice < Number(couponData.minSpend)) {
+                    return toast.error(`Minimum cart subtotal of $${couponData.minSpend} required for coupon ${couponData.code}`);
+                }
+                if (couponData.productId && couponData.productId !== 'ALL') {
                     if (!items.some(item => item.id === couponData.productId)) {
-                        return toast.error("This coupon is for a specific product not in your cart");
+                        return toast.error("This coupon is for a specific product not currently in your cart");
                     }
                 } else if (couponData.storeId) {
-                    if (!items.some(item => item.storeId === couponData.storeId)) {
-                        return toast.error("This coupon is for a store whose products are not in your cart");
+                    const hasStoreProduct = items.some(item => !item.storeId || item.storeId === couponData.storeId);
+                    if (!hasStoreProduct) {
+                        return toast.error("This coupon does not apply to products in your cart");
                     }
                 }
 
                 setCoupon(couponData);
-                toast.success(`Coupon applied! ${couponData.discount}% off`);
+                const discountLabel = couponData.type === 'fixed' 
+                    ? `$${couponData.discount} off` 
+                    : couponData.type === 'shipping' 
+                        ? 'Free Shipping' 
+                        : `${couponData.discount}% off`;
+                toast.success(`Coupon applied! ${discountLabel} 🎉`);
             } else {
                 toast.error("Invalid or expired coupon");
             }
@@ -71,15 +80,18 @@ const OrderSummary = ({ totalPrice, items }) => {
 
     const calculateDiscount = () => {
         if (!coupon) return 0;
-        if (coupon.productId) {
+        if (coupon.type === 'fixed') {
+            return Math.min(totalPrice, Number(coupon.discount || 0));
+        }
+        if (coupon.productId && coupon.productId !== 'ALL') {
             const applicableTotal = items.filter(i => i.id === coupon.productId).reduce((acc, item) => acc + item.price * item.quantity, 0);
-            return (coupon.discount / 100) * applicableTotal;
+            return (Number(coupon.discount) / 100) * applicableTotal;
         }
         if (coupon.storeId) {
-            const applicableTotal = items.filter(i => i.storeId === coupon.storeId).reduce((acc, item) => acc + item.price * item.quantity, 0);
-            return (coupon.discount / 100) * applicableTotal;
+            const applicableTotal = items.filter(i => !i.storeId || i.storeId === coupon.storeId).reduce((acc, item) => acc + item.price * item.quantity, 0);
+            return (Number(coupon.discount) / 100) * applicableTotal;
         }
-        return (coupon.discount / 100) * totalPrice;
+        return (Number(coupon.discount) / 100) * totalPrice;
     }
 
     // ⚡ GumShop White-Labeled Dynamic Gumroad In-Page Checkout

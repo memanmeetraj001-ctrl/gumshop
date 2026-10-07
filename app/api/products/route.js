@@ -5,9 +5,6 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const storeId = searchParams.get('store_id') || searchParams.get('store');
-    if (!storeId) {
-      return NextResponse.json({ success: false, error: 'store_id parameter required' }, { status: 400 });
-    }
     const products = await dbGetProducts(storeId);
     return NextResponse.json({ success: true, products });
   } catch (err) {

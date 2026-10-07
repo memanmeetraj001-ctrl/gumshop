@@ -10,11 +10,13 @@ export default function StorefrontNavbar({ store }) {
 
     useEffect(() => {
         try {
-            const raw = localStorage.getItem('cart');
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed)) {
-                    setLocalCount(parsed.reduce((sum, item) => sum + (item.quantity || 1), 0));
+            if (typeof window !== 'undefined') {
+                const raw = localStorage.getItem('cart');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) {
+                        setLocalCount(parsed.reduce((sum, item) => sum + (item.quantity || 1), 0));
+                    }
                 }
             }
         } catch {}

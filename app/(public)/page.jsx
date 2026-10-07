@@ -74,8 +74,7 @@ export default function SuperStorefront() {
                         setProducts([]);
                     }
                 } else {
-                    const fetched = await getAllProducts();
-                    setProducts(fetched || []);
+                    setProducts([]);
                 }
             } catch (err) {
                 console.warn('Error loading storefront catalog:', err);
