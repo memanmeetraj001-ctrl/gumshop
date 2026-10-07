@@ -47,7 +47,11 @@ const BACKGROUND_PRESETS = [
     { id: 'dark_glass', label: 'Dark Glass / OLED', desc: 'Midnight sleek dark aesthetic', bgClass: 'bg-gradient-to-b from-[#090d16] via-[#0f172a] to-[#020617]', cardClass: 'bg-slate-900/90 text-white border-slate-800' },
     { id: 'sunset', label: 'Sunset Glow', desc: 'Energetic creator warm peach & coral', bgClass: 'bg-gradient-to-b from-[#fff1f2] via-[#ffe4e6] to-[#fef3c7]', cardClass: 'bg-white text-slate-900 border-rose-100' },
     { id: 'clean_white', label: 'Minimal White', desc: 'Ultra-clean modern high contrast', bgClass: 'bg-white', cardClass: 'bg-slate-50 text-slate-900 border-slate-200' },
-    { id: 'neon_cyber', label: 'Cyberpunk Neon', desc: 'Futuristic midnight glow', bgClass: 'bg-[#030712]', cardClass: 'bg-gray-950 text-cyan-200 border-cyan-900/60' }
+    { id: 'neon_cyber', label: 'Cyberpunk Neon', desc: 'Futuristic midnight glow', bgClass: 'bg-[#030712]', cardClass: 'bg-gray-950 text-cyan-200 border-cyan-900/60' },
+    { id: 'editorial_paper', label: 'Minimalist Editorial', desc: 'Warm cream paper & bespoke serif elegance', bgClass: 'bg-gradient-to-b from-[#FAF8F5] via-[#F4EFEA] to-[#EAE3D9]', cardClass: 'bg-white text-stone-900 border-stone-200' },
+    { id: 'midnight_luxe', label: 'Luxe Midnight', desc: 'Deep obsidian with champagne gold touches', bgClass: 'bg-gradient-to-b from-[#0B0F19] via-[#090D15] to-[#04060A]', cardClass: 'bg-[#121826] text-amber-50 border-amber-500/20' },
+    { id: 'pastel_candy', label: 'Pastel Candy', desc: 'Playful soft lavender and bubblegum tone', bgClass: 'bg-gradient-to-b from-[#F5F3FF] via-[#FDF2F8] to-[#FFF1F2]', cardClass: 'bg-white/95 text-slate-900 border-purple-100' },
+    { id: 'emerald_forest', label: 'Nordic Emerald', desc: 'Organic deep pine & fresh mint vibe', bgClass: 'bg-gradient-to-b from-[#064E3B] via-[#022C22] to-[#011C15]', cardClass: 'bg-[#064E3B]/60 text-emerald-50 border-emerald-700/40' }
 ];
 
 export default function StanStoreBioEditor() {

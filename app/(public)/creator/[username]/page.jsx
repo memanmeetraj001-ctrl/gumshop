@@ -64,6 +64,30 @@ const PRESET_STYLES = {
         frame: 'bg-gray-950 text-cyan-200',
         card: 'bg-gray-900 border-cyan-900/60 text-cyan-100',
         subtext: 'text-cyan-400/80'
+    },
+    editorial_paper: {
+        bg: 'bg-gradient-to-b from-[#FAF8F5] via-[#F4EFEA] to-[#EAE3D9]',
+        frame: 'bg-[#FAF8F5] text-stone-900',
+        card: 'bg-white border-stone-200 text-stone-900',
+        subtext: 'text-stone-600'
+    },
+    midnight_luxe: {
+        bg: 'bg-gradient-to-b from-[#0B0F19] via-[#090D15] to-[#04060A]',
+        frame: 'bg-[#0B0F19] text-amber-100',
+        card: 'bg-[#121826] border-amber-500/20 text-amber-50',
+        subtext: 'text-amber-300/70'
+    },
+    pastel_candy: {
+        bg: 'bg-gradient-to-b from-[#F5F3FF] via-[#FDF2F8] to-[#FFF1F2]',
+        frame: 'bg-white text-slate-900',
+        card: 'bg-white/95 border-purple-100 text-slate-900',
+        subtext: 'text-purple-600'
+    },
+    emerald_forest: {
+        bg: 'bg-gradient-to-b from-[#064E3B] via-[#022C22] to-[#011C15]',
+        frame: 'bg-[#022C22] text-emerald-100',
+        card: 'bg-[#064E3B]/60 border-emerald-700/40 text-emerald-50',
+        subtext: 'text-emerald-300/70'
     }
 };
 
@@ -779,6 +803,14 @@ export default function CreatorBioPage({ params }) {
 
                                                 {/* Product Content Column */}
                                                 <div className="flex-1 min-w-0">
+                                                    {/* High-Converting Badges */}
+                                                    {(item.badge || isFree || index === 0 || (item.comparePrice && item.comparePrice > item.price)) && (
+                                                        <div className="mb-1">
+                                                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-500/20">
+                                                                {item.badge || (isFree ? '⚡ Instant Free Access' : (index === 0 ? '🔥 Best Seller' : '🏷️ Limited Drop'))}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                     <h3 className="text-sm font-bold text-slate-900 leading-snug line-clamp-2">
                                                         {item.name}
                                                     </h3>

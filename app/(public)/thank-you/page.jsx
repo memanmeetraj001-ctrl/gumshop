@@ -17,14 +17,18 @@ import {
     MapPin, 
     AlertCircle,
     RefreshCw,
-    XCircle
+    XCircle,
+    Sparkles,
+    Share2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 function ThankYouContent() {
     const searchParams = useSearchParams();
     const orderIdParam = searchParams.get('orderId') || searchParams.get('order_id') || searchParams.get('sale_id') || searchParams.get('order_number') || '';
-    const resolvedStoreSlug = (storeSlugParam || order?.storeSlug || order?.storeId || (typeof window !== 'undefined' ? localStorage.getItem('active_store_slug') : '') || '').replace(/^store_/, '');
+    const storeSlugParam = searchParams.get('storeSlug') || searchParams.get('store') || searchParams.get('shop') || '';
+    const resolvedStoreSlug = (storeSlugParam || (typeof window !== 'undefined' ? localStorage.getItem('active_store_slug') : '') || '').replace(/^store_/, '');
+    const storeSlug = resolvedStoreSlug;
     const returnStoreUrl = resolvedStoreSlug ? `/shop/${encodeURIComponent(resolvedStoreSlug)}` : '/';
 
     // Payment Verification State Machine
@@ -208,6 +212,61 @@ function ThankYouContent() {
                                 <p className="text-slate-700 pl-5 font-medium">
                                     {order.customer?.shippingAddress || 'Digital delivery to customer email'}
                                 </p>
+                            </div>
+
+                            {/* Viral Affiliate & Referral Rewards Box (Growth Hacker Engine) */}
+                            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-emerald-500/10 to-amber-500/10 border-2 border-emerald-500/30 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="flex items-center gap-1.5 text-xs font-black text-emerald-950 uppercase tracking-wider">
+                                        <Sparkles size={14} className="text-amber-500 fill-amber-500" />
+                                        <span>Refer Friends & Earn 15% Cash</span>
+                                    </span>
+                                    <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                                        Instant Commission
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                                    Share your VIP referral link with friends. Whenever they make a purchase, you automatically receive a 15% payout!
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <input 
+                                        type="text" 
+                                        readOnly 
+                                        value={`${typeof window !== 'undefined' ? window.location.origin : 'https://www.gumshop.online'}/shop/${encodeURIComponent(resolvedStoreSlug || 'store')}?ref=${encodeURIComponent(order?.id || orderIdParam || 'vip')}`} 
+                                        className="flex-1 bg-white border border-slate-300 text-slate-800 text-xs px-3 py-2 rounded-xl font-mono select-all focus:outline-none"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            const refUrl = `${window.location.origin}/shop/${encodeURIComponent(resolvedStoreSlug || 'store')}?ref=${encodeURIComponent(order?.id || orderIdParam || 'vip')}`;
+                                            navigator.clipboard.writeText(refUrl);
+                                            toast.success("Referral link copied!");
+                                        }}
+                                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-xs active:scale-95 shrink-0"
+                                    >
+                                        <Copy size={13} />
+                                        <span>Copy</span>
+                                    </button>
+                                </div>
+                                <div className="flex gap-2 pt-1">
+                                    <a
+                                        href={`https://wa.me/?text=${encodeURIComponent(`Check out this store I just bought from! You can get an exclusive discount here: ${typeof window !== 'undefined' ? window.location.origin : 'https://www.gumshop.online'}/shop/${encodeURIComponent(resolvedStoreSlug || 'store')}?ref=${encodeURIComponent(order?.id || orderIdParam || 'vip')}`)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex-1 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 text-[11px] font-bold flex items-center justify-center gap-1.5 transition active:scale-98"
+                                    >
+                                        <Share2 size={12} className="text-emerald-700" />
+                                        <span>Share on WhatsApp</span>
+                                    </a>
+                                    <a
+                                        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Just ordered something awesome from @${resolvedStoreSlug || 'gumshop'}! Check it out here: ${typeof window !== 'undefined' ? window.location.origin : 'https://www.gumshop.online'}/shop/${encodeURIComponent(resolvedStoreSlug || 'store')}?ref=${encodeURIComponent(order?.id || orderIdParam || 'vip')}`)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex-1 py-2 px-3 rounded-xl bg-slate-900 hover:bg-black text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition active:scale-98"
+                                    >
+                                        <Share2 size={12} className="text-white" />
+                                        <span>Post to X</span>
+                                    </a>
+                                </div>
                             </div>
 
                             {/* Action Buttons */}
