@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
@@ -23,21 +23,33 @@ import {
     Store, 
     ArrowRight, 
     ShieldCheck, 
-    Zap 
+    Zap,
+    Upload,
+    FileText,
+    DollarSign,
+    Search,
+    LayoutGrid,
+    Table as TableIcon,
+    Star,
+    Percent
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { setActiveStoreSlug } from '@/lib/activeStore';
+import { setActiveStoreSlug, setHomepageStoreSlug, getAllLocalStores } from '@/lib/activeStore';
+import { isStoreDeleted } from '@/lib/firebaseDb';
+import { normalizeProductPrice } from '@/lib/importer/priceNormalizer.js';
+import { parseCatalogFile } from '@/lib/importer/fileImporter.js';
 
 export default function StoreImportPage() {
     const router = useRouter();
 
     // Workflow Stages: 'input' | 'analyzing' | 'preview' | 'creating' | 'done'
     const [stage, setStage] = useState('input');
+    const [inputMethod, setInputMethod] = useState('url'); // 'url' | 'file'
     const [targetUrl, setTargetUrl] = useState('');
     const [analysisLog, setAnalysisLog] = useState([]);
     const [errorMsg, setErrorMsg] = useState('');
 
-    // Extracted Data from Backend
+    // Extracted Data from Backend / File
     const [importData, setImportData] = useState(null);
 
     // Active Tab in Import Center: 'products' | 'banners' | 'categories' | 'branding'
@@ -49,22 +61,76 @@ export default function StoreImportPage() {
     const [primaryHeroBanner, setPrimaryHeroBanner] = useState('');
     const [selectedCategories, setSelectedCategories] = useState(new Set());
 
-    // Inline Product Editing State
+    // Inline Product Editing State: map of productId -> { name, price, compareAtPrice, category }
     const [editingProductId, setEditingProductId] = useState(null);
     const [editedProducts, setEditedProducts] = useState({});
 
-    // Destination Store State
+    // Bulk Pricing Controls
+    const [currencySymbol, setCurrencySymbol] = useState('$');
+    const [activeMarkup, setActiveMarkup] = useState(1.0);
+
+    // Filter & Search Controls in Preview
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterCategory, setFilterCategory] = useState('all');
+    const [minPrice, setMinPrice] = useState('');
+    const [maxPrice, setMaxPrice] = useState('');
+    const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
+
+    // Destination Store Mode: 'new' | 'append'
+    const [destMode, setDestMode] = useState('new');
+    const [existingStores, setExistingStores] = useState([]);
+    const [selectedExistingStoreId, setSelectedExistingStoreId] = useState('');
+
+    // Destination Store Form State
     const [destStoreName, setDestStoreName] = useState('');
     const [destStoreSlug, setDestStoreSlug] = useState('');
     const [destTheme, setDestTheme] = useState('viral_lander');
     const [destThemeColor, setDestThemeColor] = useState('#10B981');
     const [destDescription, setDestDescription] = useState('');
 
-    // Rights / Copyright Confirmation State
+    // 1-Click Homepage Setting & Rights Confirmation
+    const [setAsHomepage, setSetAsHomepage] = useState(false);
     const [rightsConfirmed, setRightsConfirmed] = useState(false);
 
-    // Auto-populate target URL if passed via query params (e.g. from cloner or dashboard)
-    React.useEffect(() => {
+    // Load Existing Stores for "Append" Option
+    useEffect(() => {
+        const loadStores = async () => {
+            const local = getAllLocalStores().filter(s => s && !isStoreDeleted(s.id) && !isStoreDeleted(s.username));
+            const map = new Map();
+            local.forEach(s => {
+                const slug = (s.username || s.id || '').toLowerCase();
+                if (slug) map.set(slug, s);
+            });
+
+            try {
+                const res = await fetch('/api/store/data').catch(() => null);
+                if (res && res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    if (Array.isArray(data.stores)) {
+                        data.stores.forEach(s => {
+                            const slug = (s.username || s.name || s.id || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+                            if (slug && !isStoreDeleted(slug) && !isStoreDeleted(s.id) && !map.has(slug)) {
+                                map.set(slug, {
+                                    id: s.id || `store_${slug}`,
+                                    name: s.name || slug,
+                                    username: slug
+                                });
+                            }
+                        });
+                    }
+                }
+            } catch {}
+
+            const storesList = Array.from(map.values());
+            setExistingStores(storesList);
+            if (storesList.length > 0) {
+                setSelectedExistingStoreId(storesList[0].username || storesList[0].id);
+            }
+        };
+
+        loadStores();
+
+        // Auto-populate target URL if passed via query params
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
             const queryUrl = params.get('url') || params.get('target');
@@ -74,7 +140,55 @@ export default function StoreImportPage() {
         }
     }, []);
 
-    // Analysis Execution
+    // Helper: Initialize Extracted Data into Preview State
+    const setupImportPreview = (data) => {
+        const cleanBanners = (data.banners || []).map((b, idx) => {
+            const imgUrl = typeof b === 'string' ? b : (b?.image || b?.url || '');
+            return {
+                id: (typeof b === 'object' && b.id) || `ban_${idx}`,
+                image: imgUrl,
+                title: (typeof b === 'object' && b.title) || `Banner ${idx + 1}`
+            };
+        }).filter(b => Boolean(b.image));
+
+        const allBannerUrls = new Set(cleanBanners.map(b => b.image));
+        setSelectedBannerUrls(allBannerUrls);
+        setPrimaryHeroBanner(cleanBanners[0]?.image || '');
+
+        const cleanCategories = (data.categories || ['Featured']).map(c => 
+            typeof c === 'string' ? c : (c?.name || c?.title || 'Featured')
+        ).filter(Boolean);
+        setSelectedCategories(new Set(cleanCategories.length > 0 ? cleanCategories : ['Featured']));
+
+        // Normalize initial product prices
+        const productsWithNormalizedPrices = (data.products || []).map(p => ({
+            ...p,
+            price: normalizeProductPrice(p.price),
+            compareAtPrice: p.compareAtPrice ? normalizeProductPrice(p.compareAtPrice) : Math.round(normalizeProductPrice(p.price) * 1.35 * 100) / 100
+        }));
+
+        setImportData({
+            ...data,
+            banners: cleanBanners,
+            categories: cleanCategories.length > 0 ? cleanCategories : ['Featured'],
+            products: productsWithNormalizedPrices
+        });
+
+        setSelectedProductIds(new Set(productsWithNormalizedPrices.map(p => p.id)));
+
+        // Pre-fill destination store inputs
+        const initialName = data.store?.name || 'Imported Store';
+        setDestStoreName(initialName);
+        setDestStoreSlug(initialName.toLowerCase().replace(/[^a-z0-9-]+/g, '-'));
+        setDestTheme(data.store?.theme || 'viral_lander');
+        setDestThemeColor(data.store?.themeColor || '#10B981');
+        setDestDescription(data.store?.description || `Curated catalog from ${initialName}.`);
+
+        setStage('preview');
+        toast.success(`Detected ${productsWithNormalizedPrices.length} products & ${cleanBanners.length} banners! 🎉`);
+    };
+
+    // Analysis Execution via Web Scraper
     const handleAnalyzeStore = async (e) => {
         e?.preventDefault();
         if (!targetUrl.trim()) {
@@ -86,7 +200,8 @@ export default function StoreImportPage() {
         setErrorMsg('');
         setAnalysisLog([
             'Verifying URL protocol and SSRF security policies...',
-            'Establishing secure connection to public storefront...'
+            'Establishing secure connection to public storefront...',
+            'Extracting product catalogs, variants, and high-res imagery...'
         ]);
 
         try {
@@ -102,50 +217,7 @@ export default function StoreImportPage() {
                 throw new Error(data.error || 'Unable to inspect this store.');
             }
 
-            // Populate preview
-            // Normalize banners so every banner is guaranteed to have a string image URL
-            const cleanBanners = (data.banners || []).map((b, idx) => {
-                const imgUrl = typeof b === 'string' ? b : (b?.image || b?.url || '');
-                return {
-                    id: (typeof b === 'object' && b.id) || `ban_${idx}`,
-                    image: imgUrl,
-                    title: (typeof b === 'object' && b.title) || `Banner ${idx + 1}`
-                };
-            }).filter(b => Boolean(b.image));
-
-            // Default: Select all banners and pick first image URL as hero
-            const allBannerUrls = new Set(cleanBanners.map(b => b.image));
-            setSelectedBannerUrls(allBannerUrls);
-            setPrimaryHeroBanner(cleanBanners[0]?.image || '');
-
-            // Default: Select all categories as clean strings
-            const cleanCategories = (data.categories || ['Featured']).map(c => 
-                typeof c === 'string' ? c : (c?.name || c?.title || 'Featured')
-            ).filter(Boolean);
-            const allCats = new Set(cleanCategories.length > 0 ? cleanCategories : ['Featured']);
-            setSelectedCategories(allCats);
-
-            // Populate preview with normalized data
-            setImportData({
-                ...data,
-                banners: cleanBanners,
-                categories: cleanCategories.length > 0 ? cleanCategories : ['Featured']
-            });
-            
-            // Default: Select all detected products
-            const allPIds = new Set((data.products || []).map(p => p.id));
-            setSelectedProductIds(allPIds);
-
-            // Pre-fill destination store inputs
-            const initialName = data.store?.name || 'Imported Store';
-            setDestStoreName(initialName);
-            setDestStoreSlug(initialName.toLowerCase().replace(/[^a-z0-9-]+/g, '-'));
-            setDestTheme(data.store?.theme || 'viral_lander');
-            setDestThemeColor(data.store?.themeColor || '#10B981');
-            setDestDescription(data.store?.description || `Curated catalog from ${initialName}.`);
-
-            setStage('preview');
-            toast.success(`Detected ${data.products?.length || 0} products & ${cleanBanners.length} banners! 🎉`);
+            setupImportPreview(data);
 
         } catch (err) {
             console.error('Import analysis failed:', err);
@@ -155,14 +227,167 @@ export default function StoreImportPage() {
         }
     };
 
-    // Product Selection Helpers
-    const toggleSelectAllProducts = () => {
+    // File Upload Handler (CSV or JSON)
+    const handleFileUpload = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const content = event.target?.result;
+            if (typeof content !== 'string') return;
+
+            const parsed = parseCatalogFile(content, file.name);
+            if (!parsed.success) {
+                toast.error(parsed.error || 'Failed to parse file');
+                return;
+            }
+
+            setupImportPreview(parsed);
+        };
+        reader.readAsText(file);
+    };
+
+    // ─── BULK PRICING TRANSFORMATIONS ───
+
+    // 1-Click Fix Cents (Divide by 100)
+    const handleDivideBy100 = () => {
         if (!importData?.products) return;
-        if (selectedProductIds.size === importData.products.length) {
-            setSelectedProductIds(new Set());
-        } else {
-            setSelectedProductIds(new Set(importData.products.map(p => p.id)));
-        }
+        const newOverrides = { ...editedProducts };
+        importData.products.forEach(p => {
+            const currentPrice = newOverrides[p.id]?.price !== undefined ? newOverrides[p.id].price : p.price;
+            const currentCompare = newOverrides[p.id]?.compareAtPrice !== undefined ? newOverrides[p.id].compareAtPrice : p.compareAtPrice;
+            newOverrides[p.id] = {
+                ...(newOverrides[p.id] || {}),
+                price: Math.round((currentPrice / 100) * 100) / 100,
+                compareAtPrice: currentCompare ? Math.round((currentCompare / 100) * 100) / 100 : 0
+            };
+        });
+        setEditedProducts(newOverrides);
+        toast.success('All prices converted from cents to dollars! (÷ 100) 💰');
+    };
+
+    // 1-Click Multiply by 100 (Revert)
+    const handleMultiplyBy100 = () => {
+        if (!importData?.products) return;
+        const newOverrides = { ...editedProducts };
+        importData.products.forEach(p => {
+            const currentPrice = newOverrides[p.id]?.price !== undefined ? newOverrides[p.id].price : p.price;
+            const currentCompare = newOverrides[p.id]?.compareAtPrice !== undefined ? newOverrides[p.id].compareAtPrice : p.compareAtPrice;
+            newOverrides[p.id] = {
+                ...(newOverrides[p.id] || {}),
+                price: Math.round((currentPrice * 100) * 100) / 100,
+                compareAtPrice: currentCompare ? Math.round((currentCompare * 100) * 100) / 100 : 0
+            };
+        });
+        setEditedProducts(newOverrides);
+        toast.success('Prices multiplied by 100. ↺');
+    };
+
+    // Apply Margin Markup (e.g. 1.15x, 1.25x, 1.5x)
+    const handleApplyMarkup = (multiplier) => {
+        if (!importData?.products) return;
+        setActiveMarkup(multiplier);
+        const newOverrides = { ...editedProducts };
+        importData.products.forEach(p => {
+            const basePrice = p.price || 0;
+            const newPrice = Math.round(basePrice * multiplier * 100) / 100;
+            newOverrides[p.id] = {
+                ...(newOverrides[p.id] || {}),
+                price: newPrice,
+                compareAtPrice: Math.round(newPrice * 1.35 * 100) / 100
+            };
+        });
+        setEditedProducts(newOverrides);
+        toast.success(`Applied ${Math.round((multiplier - 1) * 100)}% markup! 📈`);
+    };
+
+    // Charm Pricing (Round to .99)
+    const handleCharmPricing = () => {
+        if (!importData?.products) return;
+        const newOverrides = { ...editedProducts };
+        importData.products.forEach(p => {
+            const currentPrice = newOverrides[p.id]?.price !== undefined ? newOverrides[p.id].price : p.price;
+            if (currentPrice > 1) {
+                const charmed = Math.floor(currentPrice) + 0.99;
+                newOverrides[p.id] = {
+                    ...(newOverrides[p.id] || {}),
+                    price: charmed
+                };
+            }
+        });
+        setEditedProducts(newOverrides);
+        toast.success('All prices rounded to .99 charm pricing! 🎯');
+    };
+
+    // Single Product Fix Cents (e.g. 9999 -> 99.99)
+    const handleFixSingleProductPrice = (productId) => {
+        const prod = importData?.products?.find(p => p.id === productId);
+        if (!prod) return;
+        const currentPrice = editedProducts[productId]?.price !== undefined ? editedProducts[productId].price : prod.price;
+        const fixed = Math.round((currentPrice / 100) * 100) / 100;
+        setEditedProducts(prev => ({
+            ...prev,
+            [productId]: {
+                ...(prev[productId] || {}),
+                price: fixed,
+                compareAtPrice: Math.round(fixed * 1.35 * 100) / 100
+            }
+        }));
+        toast.success(`Updated to ${currencySymbol}${fixed.toFixed(2)}`);
+    };
+
+    // Check if any prices look like raw cents (>= 1000 and integer)
+    const centsCount = useMemo(() => {
+        if (!importData?.products) return 0;
+        return importData.products.filter(p => {
+            const pr = editedProducts[p.id]?.price !== undefined ? editedProducts[p.id].price : p.price;
+            return pr >= 1000 && Number.isInteger(pr);
+        }).length;
+    }, [importData, editedProducts]);
+
+    // Filtered Products for Preview
+    const filteredProducts = useMemo(() => {
+        if (!importData?.products) return [];
+        return importData.products.filter(p => {
+            const edited = editedProducts[p.id] || {};
+            const name = (edited.name !== undefined ? edited.name : p.name).toLowerCase();
+            const category = (edited.category !== undefined ? edited.category : p.category) || 'Featured';
+            const price = edited.price !== undefined ? edited.price : p.price;
+
+            // Search query filter
+            if (searchQuery.trim() && !name.includes(searchQuery.toLowerCase())) {
+                return false;
+            }
+
+            // Category filter
+            if (filterCategory !== 'all' && category !== filterCategory) {
+                return false;
+            }
+
+            // Price range filter
+            if (minPrice !== '' && price < parseFloat(minPrice)) return false;
+            if (maxPrice !== '' && price > parseFloat(maxPrice)) return false;
+
+            return true;
+        });
+    }, [importData, editedProducts, searchQuery, filterCategory, minPrice, maxPrice]);
+
+    // Product Selection Helpers
+    const toggleSelectAllFiltered = () => {
+        if (filteredProducts.length === 0) return;
+        const filteredIds = filteredProducts.map(p => p.id);
+        const allSelected = filteredIds.every(id => selectedProductIds.has(id));
+
+        setSelectedProductIds(prev => {
+            const next = new Set(prev);
+            if (allSelected) {
+                filteredIds.forEach(id => next.delete(id));
+            } else {
+                filteredIds.forEach(id => next.add(id));
+            }
+            return next;
+        });
     };
 
     const toggleProductSelect = (id) => {
@@ -174,7 +399,7 @@ export default function StoreImportPage() {
         });
     };
 
-    // Banner Selection Helpers
+    // Banner & Category Selection
     const toggleBannerSelect = (url) => {
         const cleanUrl = typeof url === 'string' ? url : (url?.image || url?.url || '');
         if (!cleanUrl) return;
@@ -193,7 +418,6 @@ export default function StoreImportPage() {
         });
     };
 
-    // Category Selection Helpers
     const toggleCategorySelect = (cat) => {
         const cleanCat = typeof cat === 'string' ? cat : (cat?.name || cat?.title || 'Featured');
         setSelectedCategories(prev => {
@@ -202,16 +426,6 @@ export default function StoreImportPage() {
             else next.add(cleanCat);
             return next;
         });
-    };
-
-    // Inline Product Edit Helpers
-    const handleSaveInlineEdit = (id, newFields) => {
-        setEditedProducts(prev => ({
-            ...prev,
-            [id]: { ...(prev[id] || {}), ...newFields }
-        }));
-        setEditingProductId(null);
-        toast.success('Product updated!');
     };
 
     // Execute Import & Store Creation
@@ -226,7 +440,7 @@ export default function StoreImportPage() {
             return;
         }
 
-        if (!destStoreName.trim()) {
+        if (destMode === 'new' && !destStoreName.trim()) {
             toast.error('Please enter a destination store name');
             return;
         }
@@ -234,32 +448,22 @@ export default function StoreImportPage() {
         setStage('creating');
 
         try {
-            // Merge original products with inline user modifications safely
+            // Merge original products with user edits
             const finalProducts = (importData.products || [])
                 .filter(p => selectedProductIds.has(p.id))
                 .map(p => {
                     const overrides = editedProducts[p.id] || {};
-                    const rawPrice = overrides.price !== undefined ? overrides.price : p.price;
-                    const numPrice = typeof rawPrice === 'object' ? (rawPrice?.amount || rawPrice?.value || 0) : rawPrice;
-                    const price = isNaN(parseFloat(numPrice)) ? 0 : parseFloat(numPrice);
-
-                    const rawCompare = overrides.compareAtPrice !== undefined ? overrides.compareAtPrice : p.compareAtPrice;
-                    const numCompare = typeof rawCompare === 'object' ? (rawCompare?.amount || rawCompare?.value || 0) : rawCompare;
-                    const compareAtPrice = isNaN(parseFloat(numCompare)) ? (price > 0 ? Math.round(price * 1.35 * 100) / 100 : 0) : parseFloat(numCompare);
-
-                    const rawCat = overrides.category !== undefined ? overrides.category : p.category;
-                    const category = typeof rawCat === 'string' ? rawCat : (rawCat?.name || rawCat?.title || 'Featured');
-
-                    const rawName = overrides.name !== undefined ? overrides.name : p.name;
-                    const name = typeof rawName === 'string' ? rawName : String(rawName || 'Product');
+                    const price = overrides.price !== undefined ? overrides.price : p.price;
+                    const compareAtPrice = overrides.compareAtPrice !== undefined ? overrides.compareAtPrice : p.compareAtPrice;
+                    const category = overrides.category !== undefined ? overrides.category : p.category;
+                    const name = overrides.name !== undefined ? overrides.name : p.name;
 
                     return {
                         ...p,
-                        ...overrides,
                         name,
                         price,
                         compareAtPrice,
-                        category,
+                        category: typeof category === 'string' ? category : (category?.name || 'Featured'),
                         image: p.image || p.images?.[0] || ''
                     };
                 });
@@ -276,17 +480,28 @@ export default function StoreImportPage() {
                 typeof c === 'string' ? c : (c?.name || '')
             ).filter(Boolean);
 
+            const chosenExisting = existingStores.find(s => (s.username === selectedExistingStoreId || s.id === selectedExistingStoreId));
+
+            const destinationStorePayload = destMode === 'append' ? {
+                id: chosenExisting?.id || selectedExistingStoreId,
+                name: chosenExisting?.name || selectedExistingStoreId,
+                slug: chosenExisting?.username || selectedExistingStoreId,
+                sourceUrl: targetUrl.trim()
+            } : {
+                name: destStoreName.trim(),
+                slug: destStoreSlug.trim(),
+                theme: destTheme,
+                themeColor: destThemeColor,
+                description: destDescription.trim(),
+                logo: importData.store?.logo || finalProducts[0]?.image || '',
+                heroBanner: cleanHeroUrl,
+                sourceUrl: targetUrl.trim()
+            };
+
             const payload = {
-                destinationStore: {
-                    name: destStoreName.trim(),
-                    slug: destStoreSlug.trim(),
-                    theme: destTheme,
-                    themeColor: destThemeColor,
-                    description: destDescription.trim(),
-                    logo: importData.store?.logo || finalProducts[0]?.image || '',
-                    heroBanner: cleanHeroUrl,
-                    sourceUrl: targetUrl.trim()
-                },
+                destinationStore: destinationStorePayload,
+                destinationMode: destMode,
+                setAsHomepage,
                 selectedProducts: finalProducts,
                 selectedBanners: bannerList,
                 selectedCategories: categoryList
@@ -304,32 +519,35 @@ export default function StoreImportPage() {
                 throw new Error(data.error || 'Failed to complete store import');
             }
 
-            // Sync with local edge caches so storefront renders instantly, guarded against quota exceptions
+            // Sync with local active store and homepage store
             if (typeof window !== 'undefined') {
                 const effectiveSlug = data.slug;
                 try {
                     localStorage.setItem(`store_${effectiveSlug}`, JSON.stringify(data.store));
-                } catch (e) {
-                    console.warn('Storage quota notice on store save:', e.message);
-                }
-                try {
                     localStorage.setItem(`cloned_store_${effectiveSlug}`, JSON.stringify(data.store));
-                } catch (e) {}
-                try {
                     localStorage.setItem(`gumshop_db_stores/store_${effectiveSlug}`, JSON.stringify(data.store));
-                } catch (e) {}
-                try {
-                    sessionStorage.setItem(`cloned_store_${effectiveSlug}`, JSON.stringify(data.store));
-                } catch (e) {}
-                try {
                     localStorage.removeItem('gumshop_stores_cleared');
-                } catch (e) {}
-                try {
+                    localStorage.removeItem('gumshop_empty_dashboard_ack');
                     setActiveStoreSlug(data.store);
-                } catch (e) {}
+
+                    if (setAsHomepage) {
+                        await setHomepageStoreSlug(effectiveSlug);
+                    }
+                } catch (e) {
+                    console.warn('Storage quota notice:', e.message);
+                }
             }
 
-            toast.success(`Store "${destStoreName}" published successfully! 🚀`);
+            toast.success(
+                destMode === 'append' 
+                    ? `Added ${finalProducts.length} products to store "${destinationStorePayload.name}"! 📦` 
+                    : `Store "${destStoreName}" published successfully! 🚀`
+            );
+
+            if (setAsHomepage) {
+                toast.success('Designated as official Root Homepage (/)! 🌟');
+            }
+
             router.push(`/shop/${data.slug}`);
 
         } catch (err) {
@@ -359,8 +577,8 @@ export default function StoreImportPage() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 flex items-center gap-1">
+                <div className="flex items-center gap-2 text-xs">
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold flex items-center gap-1">
                         <ShieldCheck size={12} /> SSRF Protected
                     </span>
                 </div>
@@ -369,19 +587,18 @@ export default function StoreImportPage() {
             {/* Main Stage */}
             <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
 
-                {/* ─── STAGE 1: URL INPUT ─── */}
+                {/* ─── STAGE 1: INPUT ─── */}
                 {stage === 'input' && (
-                    <div className="max-w-2xl mx-auto mt-6">
+                    <div className="max-w-2xl mx-auto py-8">
                         <div className="text-center mb-8">
-                            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-semibold text-emerald-400 mb-4 shadow-sm">
-                                <Zap size={14} className="fill-emerald-400" />
-                                <span>Zero-Friction Catalog & Banner Extraction</span>
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold mb-4">
+                                <Zap size={14} /> Zero-Friction Catalog & Banner Extraction
                             </div>
                             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                                 Import an External E-Commerce Store
                             </h2>
                             <p className="text-sm text-slate-400 mt-2 max-w-lg mx-auto leading-relaxed">
-                                Enter any public store or collection URL. Our engine analyzes the catalog, extracts high-res banners, and gives you complete control to review before publishing.
+                                Enter any public store URL or upload a CSV/JSON catalog file. Our engine analyzes the catalog, normalizes pricing, extracts high-res banners, and gives you complete control before publishing.
                             </p>
                         </div>
 
@@ -395,74 +612,129 @@ export default function StoreImportPage() {
                             </div>
                         )}
 
-                        <form onSubmit={handleAnalyzeStore} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
-                            <div>
-                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                                    Target Storefront URL
-                                </label>
-                                <div className="relative">
-                                    <Globe size={18} className="absolute left-4 top-3.5 text-slate-500" />
-                                    <input
-                                        type="text"
-                                        required
-                                        placeholder="https://example-brand.com or brand.myshopify.com"
-                                        value={targetUrl}
-                                        onChange={(e) => setTargetUrl(e.target.value)}
-                                        className="w-full pl-11 pr-4 py-3 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-2xl text-sm text-white placeholder-slate-600 focus:outline-none transition shadow-inner"
-                                    />
-                                </div>
-                                <p className="text-[11px] text-slate-500 mt-2 flex items-center gap-1.5">
-                                    <ShieldCheck size={13} className="text-slate-400" />
-                                    <span>Only publicly accessible data is read. Authenticated and private networks are rejected.</span>
-                                </p>
+                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+                            
+                            {/* Input Method Switcher */}
+                            <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800/80 text-xs font-bold">
+                                <button
+                                    type="button"
+                                    onClick={() => setInputMethod('url')}
+                                    className={`flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-2 ${
+                                        inputMethod === 'url' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    <Globe size={14} />
+                                    <span>Public Store URL</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setInputMethod('file')}
+                                    className={`flex-1 py-2.5 rounded-xl transition flex items-center justify-center gap-2 ${
+                                        inputMethod === 'file' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    <FileText size={14} />
+                                    <span>Upload CSV / JSON</span>
+                                </button>
                             </div>
 
-                            {/* Quick Presets / Examples */}
-                            <div className="mt-5 pt-4 border-t border-slate-800/80">
-                                <span className="text-xs font-semibold text-slate-400 mr-2">Try sample stores:</span>
-                                <div className="inline-flex flex-wrap gap-2 mt-1">
-                                    {[
-                                        { label: 'HighGear Toys', url: 'https://highgeartoys.com' },
-                                        { label: 'Gymshark Look', url: 'https://gymshark.com' },
-                                        { label: 'Allbirds Shoes', url: 'https://allbirds.com' }
-                                    ].map(sample => (
-                                        <button
-                                            key={sample.label}
-                                            type="button"
-                                            onClick={() => setTargetUrl(sample.url)}
-                                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-medium text-slate-300 transition"
-                                        >
-                                            {sample.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+                            {/* Method A: URL Scraper Form */}
+                            {inputMethod === 'url' && (
+                                <form onSubmit={handleAnalyzeStore} className="space-y-5">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                                            Target Storefront URL
+                                        </label>
+                                        <div className="relative">
+                                            <Globe size={18} className="absolute left-4 top-3.5 text-slate-500" />
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="https://example-brand.com or brand.myshopify.com"
+                                                value={targetUrl}
+                                                onChange={(e) => setTargetUrl(e.target.value)}
+                                                className="w-full pl-11 pr-4 py-3 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-2xl text-sm text-white placeholder-slate-600 focus:outline-none transition shadow-inner"
+                                            />
+                                        </div>
+                                        <p className="text-[11px] text-slate-500 mt-2 flex items-center gap-1.5">
+                                            <ShieldCheck size={13} className="text-slate-400" />
+                                            <span>Only publicly accessible data is read. Authenticated and private networks are rejected.</span>
+                                        </p>
+                                    </div>
 
-                            <button
-                                type="submit"
-                                className="w-full mt-6 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold text-sm shadow-lg shadow-emerald-500/20 transition active:scale-[0.99] flex items-center justify-center gap-2"
-                            >
-                                <Sparkles size={16} />
-                                <span>Analyze Store Catalog & Banners</span>
-                            </button>
-                        </form>
+                                    {/* Quick Presets / Examples */}
+                                    <div className="pt-2 border-t border-slate-800/80">
+                                        <span className="text-xs font-semibold text-slate-400 mr-2">Try sample stores:</span>
+                                        <div className="inline-flex flex-wrap gap-2 mt-1">
+                                            {[
+                                                { label: 'HighGear Toys', url: 'https://highgeartoys.com' },
+                                                { label: 'Gymshark Look', url: 'https://gymshark.com' },
+                                                { label: 'Allbirds Shoes', url: 'https://allbirds.com' }
+                                            ].map(sample => (
+                                                <button
+                                                    key={sample.label}
+                                                    type="button"
+                                                    onClick={() => setTargetUrl(sample.url)}
+                                                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-medium text-slate-300 transition"
+                                                >
+                                                    {sample.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold text-sm shadow-lg shadow-emerald-500/20 transition active:scale-[0.99] flex items-center justify-center gap-2"
+                                    >
+                                        <Sparkles size={16} />
+                                        <span>Analyze Store Catalog & Banners</span>
+                                    </button>
+                                </form>
+                            )}
+
+                            {/* Method B: File Upload (CSV or JSON) */}
+                            {inputMethod === 'file' && (
+                                <div className="space-y-4">
+                                    <label className="border-2 border-dashed border-slate-800 hover:border-emerald-500/50 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-950/40 group">
+                                        <div className="size-14 rounded-2xl bg-slate-800 group-hover:bg-emerald-500/10 flex items-center justify-center text-slate-400 group-hover:text-emerald-400 transition mb-3">
+                                            <Upload size={24} />
+                                        </div>
+                                        <div className="text-sm font-bold text-white group-hover:text-emerald-400 transition">
+                                            Drop Shopify CSV or GumShop JSON here
+                                        </div>
+                                        <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                                            Supports official Shopify <code>products_export.csv</code> and GumShop backup files.
+                                        </p>
+                                        <input
+                                            type="file"
+                                            accept=".csv,.json"
+                                            onChange={handleFileUpload}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                </div>
+                            )}
+
+                        </div>
                     </div>
                 )}
 
-                {/* ─── STAGE 2: ANALYZING SPINNER ─── */}
+                {/* ─── STAGE 2: ANALYZING ─── */}
                 {stage === 'analyzing' && (
-                    <div className="max-w-md mx-auto my-20 text-center">
-                        <div className="size-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-6 animate-pulse">
-                            <Loader2 size={32} className="animate-spin" />
+                    <div className="max-w-lg mx-auto py-16 text-center space-y-6">
+                        <div className="size-20 mx-auto rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 animate-pulse shadow-xl shadow-emerald-500/10">
+                            <Loader2 size={36} className="animate-spin" />
                         </div>
-                        <h3 className="text-xl font-extrabold text-white">Inspecting Storefront...</h3>
-                        <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                            Extracting product listings, pricing, categories, and hero marketing banners.
-                        </p>
-                        <div className="mt-6 p-4 rounded-2xl bg-slate-900 border border-slate-800 text-left text-xs font-mono text-slate-400 space-y-2">
-                            {analysisLog.map((log, i) => (
-                                <div key={i} className="flex items-center gap-2 text-emerald-400">
-                                    <Check size={12} />
+                        <div>
+                            <h3 className="text-xl font-bold text-white tracking-tight">Analyzing Public Storefront</h3>
+                            <p className="text-xs text-slate-400 mt-1 font-mono truncate max-w-sm mx-auto">{targetUrl}</p>
+                        </div>
+
+                        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-left font-mono text-xs space-y-2">
+                            {analysisLog.map((log, idx) => (
+                                <div key={idx} className="flex items-center gap-2 text-slate-400">
+                                    <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
                                     <span>{log}</span>
                                 </div>
                             ))}
@@ -470,52 +742,46 @@ export default function StoreImportPage() {
                     </div>
                 )}
 
-                {/* ─── STAGE 3: IMPORT PREVIEW & SELECTION CENTER ─── */}
+                {/* ─── STAGE 3: PREVIEW & CUSTOMIZATION ─── */}
                 {stage === 'preview' && importData && (
-                    <div className="space-y-6 animate-in fade-in duration-200">
+                    <div className="space-y-6">
                         
-                        {/* Summary Banner */}
-                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                                {importData.store?.logo && (
-                                    <div className="size-14 rounded-2xl bg-slate-800 border border-slate-700 p-1 shrink-0 overflow-hidden">
-                                        <img src={importData.store.logo} alt="Logo" className="w-full h-full object-cover rounded-xl" />
-                                    </div>
-                                )}
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h2 className="text-lg font-black text-white">{importData.store?.name}</h2>
-                                        <span className="text-[10px] font-mono uppercase bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                                            {importData.platform}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-slate-400 mt-0.5 max-w-lg line-clamp-1">
-                                        {importData.store?.description}
-                                    </p>
+                        {/* Summary Header & Top Publish Bar */}
+                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-lg font-black text-white">{importData.store?.name || 'Imported Store'}</h2>
+                                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30 uppercase">
+                                        {importData.platform || 'Verified'}
+                                    </span>
                                 </div>
+                                <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">
+                                    {importData.store?.description}
+                                </p>
                             </div>
 
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-                                <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] text-slate-300 bg-slate-950/60 px-3 py-2 rounded-xl border border-slate-800 hover:border-slate-700 transition">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                                <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
                                     <input 
                                         type="checkbox"
                                         checked={rightsConfirmed}
                                         onChange={(e) => setRightsConfirmed(e.target.checked)}
-                                        className="size-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-emerald-500"
+                                        className="size-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-0 focus:outline-none cursor-pointer accent-emerald-500"
                                     />
-                                    <span className="max-w-xs">I confirm I have permission/rights to use this imported content.</span>
+                                    <span>I have rights to import this content</span>
                                 </label>
+
                                 <div className="flex items-center gap-2">
                                     <button
                                         onClick={() => setStage('input')}
-                                        className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition"
+                                        className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={handleExecuteImport}
                                         disabled={!rightsConfirmed}
-                                        className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-xs font-extrabold shadow-md transition flex items-center justify-center gap-1.5 ${
+                                        className={`px-5 py-2.5 rounded-xl text-xs font-extrabold shadow-md transition flex items-center justify-center gap-1.5 ${
                                             rightsConfirmed
                                                 ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-emerald-500/20 active:scale-95'
                                                 : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-60'
@@ -525,6 +791,102 @@ export default function StoreImportPage() {
                                         <ArrowRight size={14} />
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Cents Warning Banner (if detected) */}
+                        {centsCount > 0 && (
+                            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                                <div className="flex items-center gap-2.5">
+                                    <AlertCircle size={18} className="text-amber-400 shrink-0" />
+                                    <div>
+                                        <span className="font-bold text-white">Notice:</span>{' '}
+                                        <span className="text-amber-200">
+                                            Detected {centsCount} products with prices ≥ $1,000 (likely raw cents like <code>9999</code> for $99.99).
+                                        </span>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleDivideBy100}
+                                    className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-sm transition shrink-0"
+                                >
+                                    ⚡ 1-Click Fix to Standard Dollars (÷ 100)
+                                </button>
+                            </div>
+                        )}
+
+                        {/* ─── BULK PRICING TOOLBAR ─── */}
+                        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+                            <div className="flex items-center gap-2">
+                                <DollarSign size={14} className="text-emerald-400" />
+                                <span className="font-bold text-white">Bulk Pricing Rules:</span>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                                {/* Fix Cents buttons */}
+                                <button
+                                    onClick={handleDivideBy100}
+                                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 border border-slate-700 transition font-bold"
+                                    title="Divide all prices by 100 (e.g. 9999 -> 99.99)"
+                                >
+                                    ÷ 100 (Fix Cents)
+                                </button>
+
+                                <button
+                                    onClick={handleMultiplyBy100}
+                                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 transition font-medium"
+                                    title="Multiply all prices by 100"
+                                >
+                                    × 100
+                                </button>
+
+                                <span className="text-slate-700">|</span>
+
+                                {/* Markup buttons */}
+                                <span className="text-slate-400 font-semibold">Markup:</span>
+                                {[
+                                    { label: '1.0x', val: 1.0 },
+                                    { label: '+15%', val: 1.15 },
+                                    { label: '+25%', val: 1.25 },
+                                    { label: '+50%', val: 1.5 }
+                                ].map(m => (
+                                    <button
+                                        key={m.label}
+                                        onClick={() => handleApplyMarkup(m.val)}
+                                        className={`px-2 py-1 rounded-lg text-xs font-bold transition border ${
+                                            activeMarkup === m.val
+                                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                                                : 'bg-slate-800 text-slate-400 hover:text-white border-slate-700'
+                                        }`}
+                                    >
+                                        {m.label}
+                                    </button>
+                                ))}
+
+                                <span className="text-slate-700">|</span>
+
+                                {/* Charm Pricing */}
+                                <button
+                                    onClick={handleCharmPricing}
+                                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition font-bold"
+                                    title="Round prices to .99"
+                                >
+                                    .99 Charm Pricing
+                                </button>
+
+                                {/* Currency Selector */}
+                                <select
+                                    value={currencySymbol}
+                                    onChange={(e) => setCurrencySymbol(e.target.value)}
+                                    className="px-2 py-1 rounded-lg bg-slate-800 text-white font-bold border border-slate-700 focus:outline-none"
+                                >
+                                    <option value="$">$ USD</option>
+                                    <option value="€">€ EUR</option>
+                                    <option value="£">£ GBP</option>
+                                    <option value="₹">₹ INR</option>
+                                    <option value="C$">C$ CAD</option>
+                                    <option value="A$">A$ AUD</option>
+                                </select>
                             </div>
                         </div>
 
@@ -579,174 +941,322 @@ export default function StoreImportPage() {
                                     <span>Destination Setup</span>
                                 </button>
                             </div>
-
-                            {activeTab === 'products' && (
-                                <button
-                                    onClick={toggleSelectAllProducts}
-                                    className="text-xs font-bold text-slate-400 hover:text-white underline decoration-slate-600"
-                                >
-                                    {selectedProductIds.size === importData.products?.length ? 'Deselect All' : 'Select All'}
-                                </button>
-                            )}
                         </div>
 
                         {/* ─── TAB: PRODUCTS ─── */}
                         {activeTab === 'products' && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {importData.products?.map((prod) => {
-                                    const isSelected = selectedProductIds.has(prod.id);
-                                    const isEditing = editingProductId === prod.id;
-                                    const edited = editedProducts[prod.id] || {};
-                                    const rawPrice = edited.price !== undefined ? edited.price : prod.price;
-                                    const numPrice = typeof rawPrice === 'object' ? (rawPrice?.amount || rawPrice?.value || 0) : rawPrice;
-                                    const displayPrice = isNaN(parseFloat(numPrice)) ? 0 : parseFloat(numPrice);
-
-                                    const rawName = edited.name !== undefined ? edited.name : prod.name;
-                                    const displayName = typeof rawName === 'string' ? rawName : String(rawName || 'Product');
-
-                                    const rawCat = edited.category !== undefined ? edited.category : prod.category;
-                                    const displayCategory = typeof rawCat === 'string' ? rawCat : (rawCat?.name || rawCat?.title || 'Featured');
-
-                                    const prodImg = prod.image || prod.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500';
-
-                                    return (
-                                        <div
-                                            key={prod.id}
-                                            className={`rounded-2xl p-4 border transition flex flex-col justify-between ${
-                                                isSelected 
-                                                    ? 'bg-slate-900 border-emerald-500/50 shadow-sm shadow-emerald-500/5' 
-                                                    : 'bg-slate-900/40 border-slate-800 opacity-60'
-                                            }`}
-                                        >
-                                            <div>
-                                                <div className="flex items-start justify-between gap-3 mb-3">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={isSelected}
-                                                        onChange={() => toggleProductSelect(prod.id)}
-                                                        className="size-4.5 rounded text-emerald-500 focus:ring-0 focus:outline-none cursor-pointer mt-1"
-                                                    />
-                                                    <div className="size-16 rounded-xl bg-slate-800 shrink-0 overflow-hidden border border-slate-700">
-                                                        <img 
-                                                            src={prodImg} 
-                                                            alt={displayName} 
-                                                            className="w-full h-full object-cover" 
-                                                            onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500'; }}
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                {isEditing ? (
-                                                    <div className="space-y-2 mt-2">
-                                                        <input
-                                                            type="text"
-                                                            value={displayName}
-                                                            onChange={(e) => setEditedProducts(prev => ({
-                                                                ...prev,
-                                                                [prod.id]: { ...(prev[prod.id] || {}), name: e.target.value }
-                                                            }))}
-                                                            className="w-full text-xs font-bold text-white bg-slate-950 border border-slate-700 rounded-lg p-1.5"
-                                                        />
-                                                        <div className="flex gap-2">
-                                                            <input
-                                                                type="number"
-                                                                step="0.01"
-                                                                value={displayPrice}
-                                                                onChange={(e) => setEditedProducts(prev => ({
-                                                                    ...prev,
-                                                                    [prod.id]: { ...(prev[prod.id] || {}), price: e.target.value }
-                                                                }))}
-                                                                className="w-1/2 text-xs text-white bg-slate-950 border border-slate-700 rounded-lg p-1.5"
-                                                            />
-                                                            <input
-                                                                type="text"
-                                                                value={displayCategory}
-                                                                onChange={(e) => setEditedProducts(prev => ({
-                                                                    ...prev,
-                                                                    [prod.id]: { ...(prev[prod.id] || {}), category: e.target.value }
-                                                                }))}
-                                                                className="w-1/2 text-xs text-white bg-slate-950 border border-slate-700 rounded-lg p-1.5"
-                                                            />
-                                                        </div>
-                                                        <button
-                                                            onClick={() => setEditingProductId(null)}
-                                                            className="w-full py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold text-xs"
-                                                        >
-                                                            Done Editing
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <div>
-                                                        <h4 className="text-xs font-bold text-white line-clamp-2 leading-snug">
-                                                            {displayName}
-                                                        </h4>
-                                                        <div className="flex items-center justify-between mt-2">
-                                                            <span className="text-sm font-black text-emerald-400">
-                                                                ${displayPrice.toFixed(2)}
-                                                            </span>
-                                                            <span className="text-[10px] font-semibold uppercase text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">
-                                                                {displayCategory}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {!isEditing && (
-                                                <div className="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                                                    <button
-                                                        onClick={() => setEditingProductId(prod.id)}
-                                                        className="text-[11px] text-slate-400 hover:text-white flex items-center gap-1 font-semibold"
-                                                    >
-                                                        <Edit2 size={12} /> Edit
-                                                    </button>
-                                                    <span className="text-[10px] text-slate-500 font-mono">
-                                                        {isSelected ? '✓ Included' : '✕ Excluded'}
-                                                    </span>
-                                                </div>
-                                            )}
+                            <div className="space-y-4">
+                                
+                                {/* Search, Category Filter & View Mode Bar */}
+                                <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
+                                    <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
+                                        {/* Search Input */}
+                                        <div className="relative flex-1 min-w-[160px]">
+                                            <Search size={14} className="absolute left-3 top-2.5 text-slate-500" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search products..."
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                className="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                                            />
                                         </div>
-                                    );
-                                })}
+
+                                        {/* Category Filter */}
+                                        <select
+                                            value={filterCategory}
+                                            onChange={(e) => setFilterCategory(e.target.value)}
+                                            className="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none"
+                                        >
+                                            <option value="all">All Categories</option>
+                                            {importData.categories?.map(c => (
+                                                <option key={c} value={c}>{c}</option>
+                                            ))}
+                                        </select>
+
+                                        {/* Price Range Filter */}
+                                        <div className="flex items-center gap-1 text-slate-400">
+                                            <span>Price:</span>
+                                            <input
+                                                type="number"
+                                                placeholder="Min"
+                                                value={minPrice}
+                                                onChange={(e) => setMinPrice(e.target.value)}
+                                                className="w-16 px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none"
+                                            />
+                                            <span>-</span>
+                                            <input
+                                                type="number"
+                                                placeholder="Max"
+                                                value={maxPrice}
+                                                onChange={(e) => setMaxPrice(e.target.value)}
+                                                className="w-16 px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Action buttons & View Toggle */}
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={toggleSelectAllFiltered}
+                                            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition text-xs"
+                                        >
+                                            Toggle All ({filteredProducts.length})
+                                        </button>
+
+                                        <div className="flex bg-slate-950 border border-slate-800 p-0.5 rounded-xl">
+                                            <button
+                                                onClick={() => setViewMode('grid')}
+                                                className={`p-1.5 rounded-lg transition ${viewMode === 'grid' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-white'}`}
+                                                title="Grid View"
+                                            >
+                                                <LayoutGrid size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => setViewMode('table')}
+                                                className={`p-1.5 rounded-lg transition ${viewMode === 'table' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-white'}`}
+                                                title="Compact Table View"
+                                            >
+                                                <TableIcon size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* VIEW 1: GRID VIEW */}
+                                {viewMode === 'grid' && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {filteredProducts.map((prod) => {
+                                            const isSelected = selectedProductIds.has(prod.id);
+                                            const isEditing = editingProductId === prod.id;
+                                            const edited = editedProducts[prod.id] || {};
+                                            const displayPrice = edited.price !== undefined ? edited.price : prod.price;
+                                            const displayName = edited.name !== undefined ? edited.name : prod.name;
+                                            const displayCategory = edited.category !== undefined ? edited.category : prod.category;
+                                            const prodImg = prod.image || prod.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500';
+
+                                            const isSuspectedCents = displayPrice >= 1000 && Number.isInteger(displayPrice);
+
+                                            return (
+                                                <div
+                                                    key={prod.id}
+                                                    className={`rounded-2xl p-4 border transition flex flex-col justify-between ${
+                                                        isSelected 
+                                                            ? 'bg-slate-900 border-emerald-500/50 shadow-sm shadow-emerald-500/5' 
+                                                            : 'bg-slate-900/40 border-slate-800 opacity-60'
+                                                    }`}
+                                                >
+                                                    <div>
+                                                        <div className="flex items-start justify-between gap-3 mb-3">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isSelected}
+                                                                onChange={() => toggleProductSelect(prod.id)}
+                                                                className="size-4.5 rounded text-emerald-500 focus:ring-0 focus:outline-none cursor-pointer mt-1"
+                                                            />
+                                                            <div className="size-16 rounded-xl bg-slate-800 shrink-0 overflow-hidden border border-slate-700">
+                                                                <img 
+                                                                    src={prodImg} 
+                                                                    alt={displayName} 
+                                                                    className="w-full h-full object-cover" 
+                                                                    onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500'; }}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {isEditing ? (
+                                                            <div className="space-y-2 mt-2">
+                                                                <input
+                                                                    type="text"
+                                                                    value={displayName}
+                                                                    onChange={(e) => setEditedProducts(prev => ({
+                                                                        ...prev,
+                                                                        [prod.id]: { ...(prev[prod.id] || {}), name: e.target.value }
+                                                                    }))}
+                                                                    className="w-full text-xs font-bold text-white bg-slate-950 border border-slate-700 rounded-lg p-1.5"
+                                                                />
+                                                                <div className="flex gap-2">
+                                                                    <input
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        value={displayPrice}
+                                                                        onChange={(e) => setEditedProducts(prev => ({
+                                                                            ...prev,
+                                                                            [prod.id]: { ...(prev[prod.id] || {}), price: parseFloat(e.target.value) || 0 }
+                                                                        }))}
+                                                                        className="w-1/2 text-xs font-mono font-bold text-emerald-400 bg-slate-950 border border-slate-700 rounded-lg p-1.5"
+                                                                    />
+                                                                    <button
+                                                                        onClick={() => setEditingProductId(null)}
+                                                                        className="w-1/2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold rounded-lg p-1.5 transition"
+                                                                    >
+                                                                        Save
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <h4 className="font-bold text-xs text-white line-clamp-2">{displayName}</h4>
+                                                                <p className="text-[10px] text-slate-500 font-mono mt-0.5 truncate">{displayCategory}</p>
+                                                                
+                                                                <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-800">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="font-mono font-bold text-emerald-400 text-sm">
+                                                                            {currencySymbol}{displayPrice.toFixed(2)}
+                                                                        </span>
+                                                                        {isSuspectedCents && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleFixSingleProductPrice(prod.id)}
+                                                                                className="px-1.5 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-[10px] border border-amber-500/30"
+                                                                                title="Fix likely cents value"
+                                                                            >
+                                                                                ÷100
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={() => setEditingProductId(prod.id)}
+                                                                        className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition"
+                                                                        title="Edit Title & Price"
+                                                                    >
+                                                                        <Edit2 size={12} />
+                                                                    </button>
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* VIEW 2: COMPACT TABLE VIEW */}
+                                {viewMode === 'table' && (
+                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left text-xs">
+                                                <thead className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                                                    <tr>
+                                                        <th className="py-3 px-4 w-10">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedProductIds.size === filteredProducts.length && filteredProducts.length > 0}
+                                                                onChange={toggleSelectAllFiltered}
+                                                                className="size-4 rounded text-emerald-500 focus:ring-0 focus:outline-none cursor-pointer"
+                                                            />
+                                                        </th>
+                                                        <th className="py-3 px-4">Product</th>
+                                                        <th className="py-3 px-4">Category</th>
+                                                        <th className="py-3 px-4 w-32">Price ({currencySymbol})</th>
+                                                        <th className="py-3 px-4 text-right">Quick Fix</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-800/60 text-slate-200">
+                                                    {filteredProducts.map((prod) => {
+                                                        const isSelected = selectedProductIds.has(prod.id);
+                                                        const edited = editedProducts[prod.id] || {};
+                                                        const displayPrice = edited.price !== undefined ? edited.price : prod.price;
+                                                        const displayName = edited.name !== undefined ? edited.name : prod.name;
+                                                        const displayCategory = edited.category !== undefined ? edited.category : prod.category;
+                                                        const prodImg = prod.image || prod.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100';
+                                                        const isSuspectedCents = displayPrice >= 1000 && Number.isInteger(displayPrice);
+
+                                                        return (
+                                                            <tr key={prod.id} className={`hover:bg-slate-800/30 transition ${isSelected ? '' : 'opacity-50'}`}>
+                                                                <td className="py-3 px-4">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={isSelected}
+                                                                        onChange={() => toggleProductSelect(prod.id)}
+                                                                        className="size-4 rounded text-emerald-500 focus:ring-0 focus:outline-none cursor-pointer"
+                                                                    />
+                                                                </td>
+                                                                <td className="py-3 px-4">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="size-10 rounded-xl bg-slate-800 overflow-hidden shrink-0 border border-slate-700">
+                                                                            <img src={prodImg} alt={displayName} className="w-full h-full object-cover" />
+                                                                        </div>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={displayName}
+                                                                            onChange={(e) => setEditedProducts(prev => ({
+                                                                                ...prev,
+                                                                                [prod.id]: { ...(prev[prod.id] || {}), name: e.target.value }
+                                                                            }))}
+                                                                            className="bg-transparent text-white font-bold text-xs focus:outline-none focus:bg-slate-950 px-2 py-1 rounded max-w-sm truncate"
+                                                                        />
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-3 px-4 text-slate-400 font-mono text-[11px]">
+                                                                    {displayCategory}
+                                                                </td>
+                                                                <td className="py-3 px-4">
+                                                                    <div className="flex items-center gap-1 font-mono font-bold text-emerald-400">
+                                                                        <span>{currencySymbol}</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            step="0.01"
+                                                                            value={displayPrice}
+                                                                            onChange={(e) => setEditedProducts(prev => ({
+                                                                                ...prev,
+                                                                                [prod.id]: { ...(prev[prod.id] || {}), price: parseFloat(e.target.value) || 0 }
+                                                                            }))}
+                                                                            className="w-20 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:border-emerald-500"
+                                                                        />
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-3 px-4 text-right">
+                                                                    {isSuspectedCents && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleFixSingleProductPrice(prod.id)}
+                                                                            className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-[10px] border border-amber-500/30"
+                                                                        >
+                                                                            ÷100 Fix
+                                                                        </button>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+
                             </div>
                         )}
 
                         {/* ─── TAB: BANNERS ─── */}
                         {activeTab === 'banners' && (
                             <div className="space-y-4">
-                                <div className="text-xs text-slate-400 mb-2">
-                                    Click any banner to set as the <strong>Primary Storefront Hero Banner</strong>. Checkboxes determine which banners are preserved in the gallery.
-                                </div>
-                                {(!importData.banners || importData.banners.length === 0) ? (
-                                    <div className="text-center py-12 bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                                        <ImageIcon size={32} className="mx-auto text-slate-600 mb-2" />
-                                        <p className="text-xs text-slate-400">No standalone hero banners detected on the target site.</p>
-                                        <p className="text-[11px] text-slate-500 mt-1">The primary product image will be used as the storefront header.</p>
+                                <p className="text-xs text-slate-400">
+                                    Select hero banners extracted from the external storefront. The primary hero will headline your landing page.
+                                </p>
+
+                                {importData.banners?.length === 0 ? (
+                                    <div className="text-center py-12 bg-slate-900 border border-slate-800 rounded-3xl">
+                                        <p className="text-sm text-slate-500">No public banner images were detected.</p>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {importData.banners.map((banner, idx) => {
-                                            const bannerUrl = typeof banner === 'string' ? banner : (banner?.image || banner?.url || '');
-                                            if (!bannerUrl) return null;
-                                            const isHero = primaryHeroBanner === bannerUrl;
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {importData.banners?.map((banner) => {
+                                            const bannerUrl = typeof banner === 'string' ? banner : banner.image;
                                             const isSelected = selectedBannerUrls.has(bannerUrl);
+                                            const isHero = primaryHeroBanner === bannerUrl;
 
                                             return (
                                                 <div
-                                                    key={banner.id || idx}
-                                                    className={`rounded-2xl overflow-hidden border transition relative group ${
-                                                        isHero 
-                                                            ? 'border-emerald-500 ring-2 ring-emerald-500/30' 
-                                                            : (isSelected ? 'border-slate-700' : 'border-slate-800 opacity-50')
+                                                    key={banner.id || bannerUrl}
+                                                    className={`rounded-2xl overflow-hidden border transition ${
+                                                        isSelected ? 'border-emerald-500/50 ring-1 ring-emerald-500/20' : 'border-slate-800 opacity-60'
                                                     }`}
                                                 >
-                                                    <div className="h-44 bg-slate-900 relative">
-                                                        <img 
-                                                            src={bannerUrl} 
-                                                            alt={`Banner ${idx + 1}`} 
-                                                            className="w-full h-full object-cover" 
-                                                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                                        />
+                                                    <div className="aspect-[21/9] bg-slate-800 relative overflow-hidden">
+                                                        <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" />
                                                         <div className="absolute top-3 left-3 flex items-center gap-2">
                                                             <input
                                                                 type="checkbox"
@@ -810,75 +1320,162 @@ export default function StoreImportPage() {
 
                         {/* ─── TAB: BRANDING & DESTINATION SETUP ─── */}
                         {activeTab === 'branding' && (
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-xl mx-auto space-y-4">
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-xl mx-auto space-y-5">
                                 <h3 className="text-sm font-bold text-white border-b border-slate-800 pb-3">Destination Store Configuration</h3>
                                 
+                                {/* Destination Mode: New vs Existing */}
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 mb-1">New Store Name</label>
-                                    <input
-                                        type="text"
-                                        value={destStoreName}
-                                        onChange={(e) => {
-                                            setDestStoreName(e.target.value);
-                                            setDestStoreSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-'));
-                                        }}
-                                        className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-400 mb-1">Store Slug</label>
-                                    <div className="flex items-center">
-                                        <span className="px-3 py-2.5 bg-slate-800 text-slate-500 rounded-l-xl text-xs font-mono">gumshop.online/shop/</span>
-                                        <input
-                                            type="text"
-                                            value={destStoreSlug}
-                                            onChange={(e) => setDestStoreSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-'))}
-                                            className="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-r-xl text-sm text-white font-mono focus:outline-none focus:border-emerald-500"
-                                        />
+                                    <label className="block text-xs font-semibold text-slate-400 mb-2">Import Destination</label>
+                                    <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs font-bold">
+                                        <button
+                                            type="button"
+                                            onClick={() => setDestMode('new')}
+                                            className={`flex-1 py-2 rounded-xl transition ${destMode === 'new' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                        >
+                                            + Create New Store
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setDestMode('append')}
+                                            className={`flex-1 py-2 rounded-xl transition ${destMode === 'append' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                                        >
+                                            ⇄ Merge into Existing Store
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-400 mb-1">Store Theme</label>
-                                    <select
-                                        value={destTheme}
-                                        onChange={(e) => setDestTheme(e.target.value)}
-                                        className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500"
-                                    >
-                                        <option value="viral_lander">Viral Lander (High Converting)</option>
-                                        <option value="tech_hardware">Tech Hardware & RC</option>
-                                        <option value="clean_beauty">Clean Minimalist Beauty</option>
-                                        <option value="fashion_lookbook">Fashion Lookbook</option>
-                                        <option value="digital_creator">Digital Creator</option>
-                                    </select>
+                                {destMode === 'append' ? (
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-400 mb-1">Select Target Store</label>
+                                        <select
+                                            value={selectedExistingStoreId}
+                                            onChange={(e) => setSelectedExistingStoreId(e.target.value)}
+                                            className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500"
+                                        >
+                                            {existingStores.map(s => (
+                                                <option key={s.id || s.username} value={s.username || s.id}>
+                                                    {s.name} (/shop/{s.username})
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <p className="text-[11px] text-slate-500 mt-1">
+                                            Imported products will be added to this store without modifying its existing branding.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-400 mb-1">New Store Name</label>
+                                            <input
+                                                type="text"
+                                                value={destStoreName}
+                                                onChange={(e) => {
+                                                    setDestStoreName(e.target.value);
+                                                    setDestStoreSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-'));
+                                                }}
+                                                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-400 mb-1">Store Slug</label>
+                                            <div className="flex items-center">
+                                                <span className="px-3 py-2.5 bg-slate-800 text-slate-500 rounded-l-xl text-xs font-mono">gumshop.online/shop/</span>
+                                                <input
+                                                    type="text"
+                                                    value={destStoreSlug}
+                                                    onChange={(e) => setDestStoreSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-'))}
+                                                    className="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-r-xl text-sm text-white font-mono focus:outline-none focus:border-emerald-500"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-400 mb-1">Store Theme</label>
+                                            <select
+                                                value={destTheme}
+                                                onChange={(e) => setDestTheme(e.target.value)}
+                                                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500"
+                                            >
+                                                <option value="viral_lander">Viral Lander (High Converting)</option>
+                                                <option value="tech_hardware">Tech Hardware & RC</option>
+                                                <option value="clean_beauty">Clean Beauty / Minimal</option>
+                                                <option value="fashion_lookbook">Fashion Lookbook</option>
+                                                <option value="digital_creator">Digital Creator</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-400 mb-1">Theme Accent Color</label>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="color"
+                                                    value={destThemeColor}
+                                                    onChange={(e) => setDestThemeColor(e.target.value)}
+                                                    className="size-10 rounded-xl border border-slate-800 cursor-pointer bg-transparent"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={destThemeColor}
+                                                    onChange={(e) => setDestThemeColor(e.target.value)}
+                                                    className="flex-1 px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white font-mono focus:outline-none"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-400 mb-1">Store Description</label>
+                                            <textarea
+                                                rows={3}
+                                                value={destDescription}
+                                                onChange={(e) => setDestDescription(e.target.value)}
+                                                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 resize-none"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* ⭐ Set as Root Homepage Checkbox */}
+                                <div className="pt-3 border-t border-slate-800">
+                                    <label className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 cursor-pointer hover:bg-amber-500/15 transition">
+                                        <input
+                                            type="checkbox"
+                                            checked={setAsHomepage}
+                                            onChange={(e) => setSetAsHomepage(e.target.checked)}
+                                            className="size-4.5 rounded text-amber-500 focus:ring-0 focus:outline-none cursor-pointer accent-amber-500"
+                                        />
+                                        <div className="text-xs">
+                                            <div className="font-bold text-amber-300 flex items-center gap-1.5">
+                                                <Star size={13} className="text-amber-400 fill-amber-400" />
+                                                <span>Designate as Root Website Homepage (/)</span>
+                                            </div>
+                                            <div className="text-slate-400 text-[11px] mt-0.5">
+                                                Directs root visitors (gumshop.online/) to this store upon publishing.
+                                            </div>
+                                        </div>
+                                    </label>
                                 </div>
 
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-400 mb-1">Store Tagline / Bio</label>
-                                    <textarea
-                                        rows={2}
-                                        value={destDescription}
-                                        onChange={(e) => setDestDescription(e.target.value)}
-                                        className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
-                                    />
-                                </div>
                             </div>
                         )}
 
                     </div>
                 )}
 
-                {/* ─── STAGE 4: CREATING SPINNER ─── */}
+                {/* ─── STAGE 4: CREATING / SAVING ─── */}
                 {stage === 'creating' && (
-                    <div className="max-w-md mx-auto my-20 text-center">
-                        <div className="size-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-6 animate-pulse">
-                            <Loader2 size={32} className="animate-spin" />
+                    <div className="max-w-lg mx-auto py-16 text-center space-y-6">
+                        <div className="size-20 mx-auto rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 animate-pulse shadow-xl shadow-emerald-500/10">
+                            <Loader2 size={36} className="animate-spin" />
                         </div>
-                        <h3 className="text-xl font-extrabold text-white">Generating Storefront...</h3>
-                        <p className="text-xs text-slate-400 mt-2">
-                            Configuring database, hero banners, and publishing products to your new isolated shop.
-                        </p>
+                        <div>
+                            <h3 className="text-xl font-bold text-white tracking-tight">
+                                {destMode === 'append' ? 'Appending to Store Catalog' : 'Publishing Imported Store'}
+                            </h3>
+                            <p className="text-xs text-slate-400 mt-1">
+                                Persisting products, price rules, and high-res media to database...
+                            </p>
+                        </div>
                     </div>
                 )}
 

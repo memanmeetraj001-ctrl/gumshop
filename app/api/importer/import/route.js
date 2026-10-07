@@ -1,31 +1,39 @@
 import { NextResponse } from 'next/server';
-import { createStore, createProduct, recordImportHistory } from '@/lib/firebaseDb';
+import { createStore, createProduct, recordImportHistory, getStore, getStoreByUsername } from '@/lib/firebaseDb';
 import { serverSaveStore, serverSaveProducts } from '@/lib/serverDb';
+import { normalizeProductPrice } from '@/lib/importer/priceNormalizer.js';
 
 /**
  * POST /api/importer/import
  * Executes import of selected products, banners, and categories into a target store.
+ * Supports:
+ * - Direct creation of a new independent store OR merging into existing store
+ * - Hardened price normalization (preventing cents or locale formatting bugs)
+ * - 1-Click root homepage designation
  */
 export async function POST(req) {
     try {
         const body = await req.json().catch(() => ({}));
         const { 
             destinationStore, 
+            destinationMode = 'new', // 'new' | 'append'
+            setAsHomepage = false,
+            isCents = false,
             selectedProducts = [], 
             selectedBanners = [], 
             selectedCategories = [] 
         } = body;
 
-        if (!destinationStore || !destinationStore.name) {
+        if (!destinationStore || (!destinationStore.name && !destinationStore.id && !destinationStore.slug)) {
             return NextResponse.json({ 
                 success: false, 
                 error: 'Destination store configuration is required.' 
             }, { status: 400 });
         }
 
-        const rawSlug = destinationStore.slug || destinationStore.name;
+        const rawSlug = destinationStore.slug || destinationStore.username || destinationStore.name || 'store';
         const cleanSlug = rawSlug.toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-') || `store-${Date.now()}`;
-        const storeId = `store_${cleanSlug}`;
+        const storeId = destinationStore.id || `store_${cleanSlug}`;
 
         // 1. Prepare sanitized store record
         const rawHero = destinationStore.heroBanner || (selectedBanners && selectedBanners[0]) || '';
@@ -37,12 +45,25 @@ export async function POST(req) {
             typeof c === 'string' ? c : (c?.name || c?.title || c?.slug || c?.category || '')
         ).filter(Boolean);
 
-        const storeRecord = {
+        let existingStore = null;
+        if (destinationMode === 'append') {
+            try {
+                existingStore = (await getStore(storeId)) || (await getStoreByUsername(cleanSlug));
+            } catch {}
+        }
+
+        const storeRecord = existingStore ? {
+            ...existingStore,
+            categories: Array.from(new Set([...(existingStore.categories || []), ...cleanCategories])),
+            banners: Array.from(new Set([...(existingStore.banners || []), ...cleanBanners])),
+            productsCount: (existingStore.productsCount || 0) + selectedProducts.length,
+            updatedAt: new Date().toISOString()
+        } : {
             id: storeId,
             userId: storeId,
-            name: destinationStore.name.trim(),
+            name: (destinationStore.name || cleanSlug).trim(),
             username: cleanSlug,
-            description: destinationStore.description || `Official store for ${destinationStore.name.trim()}.`,
+            description: destinationStore.description || `Official store for ${(destinationStore.name || cleanSlug).trim()}.`,
             logo: destinationStore.logo || selectedProducts[0]?.image || '',
             favicon: destinationStore.favicon || '',
             banner: cleanHeroBanner,
@@ -61,8 +82,10 @@ export async function POST(req) {
         // 2. Prepare and sanitize products scoped strictly to this storeId
         const savedProducts = selectedProducts.map((p, idx) => {
             const prodId = `prod_${cleanSlug}_${idx}_${Math.random().toString(36).substring(2, 6)}`;
-            const price = parseFloat(p.price || 0);
-            const compareAt = parseFloat(p.compareAtPrice) || (price > 0 ? Math.round(price * 1.35 * 100) / 100 : 0);
+            const price = normalizeProductPrice(p.price, { isCents });
+            const compareAt = p.compareAtPrice 
+                ? normalizeProductPrice(p.compareAtPrice, { isCents }) 
+                : (price > 0 ? Math.round(price * 1.35 * 100) / 100 : 0);
 
             return {
                 id: prodId,
@@ -100,7 +123,7 @@ export async function POST(req) {
             }
             await recordImportHistory({
                 sourceUrl: destinationStore.sourceUrl || '',
-                destinationStoreName: destinationStore.name.trim(),
+                destinationStoreName: destinationStore.name ? destinationStore.name.trim() : cleanSlug,
                 destinationStoreSlug: cleanSlug,
                 productsDetected: selectedProducts.length,
                 productsImported: savedProducts.length,
@@ -108,10 +131,10 @@ export async function POST(req) {
                 status: 'COMPLETED'
             }).catch(() => {});
         } catch (dbErr) {
-            console.warn('Firebase persist error (will rely on edge client mirror):', dbErr.message);
+            console.warn('Persist warning:', dbErr.message);
         }
 
-        return NextResponse.json({
+        const res = NextResponse.json({
             success: true,
             storeId,
             slug: cleanSlug,
@@ -119,6 +142,17 @@ export async function POST(req) {
             productsCount: savedProducts.length,
             redirectUrl: `/shop/${cleanSlug}`
         });
+
+        // Set Homepage cookie if requested
+        if (setAsHomepage) {
+            res.cookies.set('gumshop_homepage_store', cleanSlug, {
+                path: '/',
+                maxAge: 31536000,
+                sameSite: 'lax'
+            });
+        }
+
+        return res;
 
     } catch (err) {
         console.error('API /api/importer/import error:', err);
