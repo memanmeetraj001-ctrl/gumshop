@@ -27,7 +27,9 @@ import {
     AlertCircle,
     ArrowRight,
     Smartphone,
-    Zap
+    Zap,
+    Target,
+    BarChart3
 } from "lucide-react";
 import Loading from "@/components/Loading";
 
@@ -73,7 +75,12 @@ export default function StoreSettings() {
             text: "⚡ FLASH SALE: 25% OFF STOREWIDE — Today Only!",
             countdownHours: 3
         },
-        customDomain: ""
+        customDomain: "",
+        tracking: {
+            metaPixelId: "",
+            tiktokPixelId: "",
+            googleAnalyticsId: ""
+        }
     });
 
     useEffect(() => {
@@ -108,7 +115,8 @@ export default function StoreSettings() {
                     customDomain: baseStore.customDomain || "",
                     socials: { ...prev.socials, ...(baseStore.socials || {}) },
                     shipping: { ...prev.shipping, ...(baseStore.shipping || {}) },
-                    flashSale: { ...prev.flashSale, ...(baseStore.flashSale || {}) }
+                    flashSale: { ...prev.flashSale, ...(baseStore.flashSale || {}) },
+                    tracking: { ...prev.tracking, ...(baseStore.tracking || {}) }
                 }));
             } catch (err) {
                 console.error("Error fetching store:", err);
@@ -381,6 +389,7 @@ export default function StoreSettings() {
                 socials: storeInfo.socials || {},
                 shipping: storeInfo.shipping || { standardFee: 4.99, expressFee: 9.99, freeShippingThreshold: 50.00 },
                 flashSale: storeInfo.flashSale || { enabled: true, text: "⚡ FLASH SALE: 25% OFF STOREWIDE — Today Only!", countdownHours: 3 },
+                tracking: storeInfo.tracking || { metaPixelId: '', tiktokPixelId: '', googleAnalyticsId: '' },
                 status: storeInfo.status || "approved",
                 products: currentProducts,
                 updatedAt: new Date().toISOString()
@@ -566,6 +575,7 @@ export default function StoreSettings() {
                     { id: 'socials', label: 'Brand Socials', icon: Share2 },
                     { id: 'shipping', label: 'Shipping Rules', icon: Truck },
                     { id: 'palettes', label: 'Brand Palettes', icon: Palette },
+                    { id: 'tracking', label: 'Ad Pixels & Analytics', icon: Target },
                 ].map(tab => {
                     const Icon = tab.icon;
                     return (
@@ -1241,6 +1251,83 @@ export default function StoreSettings() {
                                     </div>
                                 </button>
                             ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* 5. Ad Pixels & Analytics Tab */}
+                {activeTab === 'tracking' && (
+                    <div className="space-y-6 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm animate-in fade-in">
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                <Target size={18} className="text-rose-500" />
+                                <span>Ad Tracking Pixels & Analytics</span>
+                            </h3>
+                            <p className="text-xs text-slate-500 mt-1">
+                                Inject conversion tracking tags into your main storefront and mobile bio store to track ROAS, PageViews, AddToCart, and Purchases.
+                            </p>
+                        </div>
+
+                        <div className="space-y-4 max-w-2xl">
+                            {/* Meta Pixel */}
+                            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="size-6 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs font-black">f</div>
+                                    <label className="text-xs font-bold text-slate-800">Meta (Facebook & Instagram) Pixel ID</label>
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. 123456789012345"
+                                    value={storeInfo.tracking?.metaPixelId || ''}
+                                    onChange={(e) => setStoreInfo({
+                                        ...storeInfo,
+                                        tracking: { ...storeInfo.tracking, metaPixelId: e.target.value.trim() }
+                                    })}
+                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono outline-none focus:border-blue-500 transition"
+                                />
+                                <p className="text-[11px] text-slate-500 mt-1">
+                                    Automatically fires standard <code>PageView</code> and <code>InitiateCheckout</code> events.
+                                </p>
+                            </div>
+
+                            {/* TikTok Pixel */}
+                            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="size-6 rounded-lg bg-black text-white flex items-center justify-center text-xs font-black">TT</div>
+                                    <label className="text-xs font-bold text-slate-800">TikTok Pixel ID</label>
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. C9ABCDEF123456"
+                                    value={storeInfo.tracking?.tiktokPixelId || ''}
+                                    onChange={(e) => setStoreInfo({
+                                        ...storeInfo,
+                                        tracking: { ...storeInfo.tracking, tiktokPixelId: e.target.value.trim() }
+                                    })}
+                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono outline-none focus:border-black transition"
+                                />
+                                <p className="text-[11px] text-slate-500 mt-1">
+                                    Optimizes TikTok Ad conversion campaigns for Link-in-Bio mobile traffic.
+                                </p>
+                            </div>
+
+                            {/* Google Analytics 4 */}
+                            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="size-6 rounded-lg bg-amber-500 text-white flex items-center justify-center text-xs font-black">G</div>
+                                    <label className="text-xs font-bold text-slate-800">Google Analytics 4 (GA4) Measurement ID</label>
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. G-ABC123XYZ"
+                                    value={storeInfo.tracking?.googleAnalyticsId || ''}
+                                    onChange={(e) => setStoreInfo({
+                                        ...storeInfo,
+                                        tracking: { ...storeInfo.tracking, googleAnalyticsId: e.target.value.trim() }
+                                    })}
+                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono outline-none focus:border-amber-500 transition"
+                                />
+                            </div>
                         </div>
                     </div>
                 )}

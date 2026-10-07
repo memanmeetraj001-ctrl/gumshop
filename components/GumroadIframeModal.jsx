@@ -32,6 +32,7 @@ export default function GumroadIframeModal({
 }) {
     // 2-Step Checkout State: 'address' -> 'payment'
     const [checkoutStep, setCheckoutStep] = useState('address'); // 'address' | 'payment'
+    const [hasOrderBump, setHasOrderBump] = useState(false);
     const [isIframeLoading, setIsIframeLoading] = useState(true);
     const [iframeFailed, setIframeFailed] = useState(false);
     const [customLinkInput, setCustomLinkInput] = useState('');
@@ -95,9 +96,10 @@ export default function GumroadIframeModal({
         gumroadUrl: product.gumroadUrl || ''
     }] : []);
 
-    const orderTotal = total !== undefined 
+    const baseOrderTotal = total !== undefined 
         ? parseFloat(total) 
         : orderItems.reduce((acc, item) => acc + (parseFloat(item.price || 0) * (item.quantity || 1)), 0);
+    const orderTotal = baseOrderTotal + (hasOrderBump ? 9.99 : 0);
 
     const activeStore = getActiveStoreSync();
     const storeName = activeStore?.name || product?.storeName || 'GumShop Store';
@@ -440,6 +442,34 @@ export default function GumroadIframeModal({
                                         className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 outline-none focus:border-black focus:bg-white transition"
                                     />
                                 </div>
+                            </div>
+
+                            {/* ⚡ High-Converting 1-Click Order Bump Checkbox */}
+                            <div className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${hasOrderBump ? 'bg-amber-50/90 border-amber-400 shadow-sm ring-2 ring-amber-400/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
+                                <label className="flex items-start gap-3 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={hasOrderBump}
+                                        onChange={(e) => setHasOrderBump(e.target.checked)}
+                                        className="mt-0.5 size-4 rounded accent-black text-black cursor-pointer"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full">
+                                                ⚡ 1-TIME EXCLUSIVE OFFER
+                                            </span>
+                                            <span className="text-xs font-bold text-slate-900">
+                                                Add VIP Digital Accelerator & Resource Bundle
+                                            </span>
+                                            <span className="text-xs font-black text-emerald-600">
+                                                +$9.99 <span className="line-through text-slate-400 font-normal text-[11px]">$49.00</span>
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                                            Unlock instant access to all companion templates, audio masterclasses, and high-converting swipe files. Check to add to your order.
+                                        </p>
+                                    </div>
+                                </label>
                             </div>
 
                             <button
