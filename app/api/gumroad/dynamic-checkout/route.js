@@ -21,6 +21,7 @@ export async function POST(req) {
             items = [], 
             shippingFee = 0, 
             discountAmount = 0,
+            couponCode = '',
             customer = {},
             gumroadProductUrl
         } = body;
@@ -38,7 +39,31 @@ export async function POST(req) {
                 try {
                     const dbProduct = await getProduct(item.productId || item.id);
                     if (dbProduct && parseFloat(dbProduct.price) > 0) {
-                        authoritativePrice = parseFloat(dbProduct.price);
+                        const baseRetail = parseFloat(dbProduct.price);
+                        
+                        // Check if item has a matched size/edition variant delta
+                        let sizeDelta = 0;
+                        if (Array.isArray(dbProduct.sizes) && (item.selectedSize || item.variant)) {
+                            const variantStr = String(item.selectedSize || item.variant || '').toLowerCase();
+                            const matchedSize = dbProduct.sizes.find(s => 
+                                s.name && variantStr.includes(s.name.toLowerCase())
+                            );
+                            if (matchedSize && matchedSize.priceDelta) {
+                                sizeDelta = parseFloat(matchedSize.priceDelta) || 0;
+                            }
+                        }
+
+                        const variantBasePrice = baseRetail + sizeDelta;
+                        const clientPrice = parseFloat(item.price || 0);
+                        const minAcceptableTierPrice = Math.round(variantBasePrice * 0.70 * 100) / 100;
+                        
+                        // Respect valid client price if matching variant delta or valid volume tier break (up to 30% off)
+                        if (clientPrice >= minAcceptableTierPrice && clientPrice <= variantBasePrice * 1.5) {
+                            authoritativePrice = clientPrice;
+                        } else {
+                            authoritativePrice = variantBasePrice;
+                        }
+
                         if (dbProduct.gumroadUrl) productGumroadUrl = dbProduct.gumroadUrl;
                     }
                 } catch {}
@@ -135,6 +160,7 @@ export async function POST(req) {
                     name: customer.name || '',
                     shippingAddress: customer.address || 'Provided during Gumroad checkout'
                 },
+                couponCode: couponCode ? String(couponCode).toUpperCase() : null,
                 checkoutInitiatedAt: new Date().toISOString()
             };
 

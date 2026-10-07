@@ -72,6 +72,8 @@ export default function Cart() {
             const itemPrice = parseFloat(product.price || 29.99);
             resolved.push({
                 ...product,
+                id: key,
+                productId: product.id || key,
                 price: itemPrice,
                 quantity: value,
             });
@@ -82,8 +84,8 @@ export default function Cart() {
         setCartArray(resolved);
     };
 
-    const handleDeleteItemFromCart = (productId) => {
-        dispatch(deleteItemFromCart({ productId }));
+    const handleDeleteItemFromCart = (key) => {
+        dispatch(deleteItemFromCart({ productId: key, itemKey: key }));
     };
 
     useEffect(() => {

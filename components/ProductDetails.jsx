@@ -99,9 +99,11 @@ const ProductDetails = ({ product, storeInfo }) => {
     const currentTier = quantityTiers.find(t => t.qty === selectedQuantity) || quantityTiers[0];
 
     const handleAddToCart = () => {
+        const itemKey = activeVariantLabel ? `${productId}__${activeVariantLabel}` : productId;
         for (let i = 0; i < selectedQuantity; i++) {
             dispatch(addToCart({ 
                 productId, 
+                itemKey,
                 product: {
                     ...product,
                     name: `${product.name} (${activeVariantLabel})`,

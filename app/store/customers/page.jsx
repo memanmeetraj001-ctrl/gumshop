@@ -29,8 +29,9 @@ export default function StoreCustomersPage() {
     const [currentStore, setCurrentStore] = useState(null);
     const [loading, setLoading] = useState(true);
     const [orders, setOrders] = useState([]);
+    const [bioLeads, setBioLeads] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedSegment, setSelectedSegment] = useState('all'); // 'all' | 'vip' | 'repeat' | 'first-time'
+    const [selectedSegment, setSelectedSegment] = useState('all'); // 'all' | 'vip' | 'repeat' | 'first-time' | 'leads'
     const [selectedCustomer, setSelectedCustomer] = useState(null);
 
     useEffect(() => {
@@ -42,6 +43,7 @@ export default function StoreCustomersPage() {
                 setCurrentStore(store);
 
                 const storeId = store?.id || 'store_default';
+                const cleanSlug = (store?.username || store?.name || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
                 let fetchedOrders = [];
 
                 try {
@@ -70,8 +72,28 @@ export default function StoreCustomersPage() {
                     } catch {}
                 }
 
+                // Load Stan Store Lead Magnet Subscribers
+                let loadedLeads = [];
+                if (typeof window !== 'undefined') {
+                    try {
+                        const raw1 = localStorage.getItem(`gumshop_customers_${cleanSlug}`);
+                        const raw2 = localStorage.getItem(`gumshop_customers_${storeId}`);
+                        const list1 = raw1 ? JSON.parse(raw1) : [];
+                        const list2 = raw2 ? JSON.parse(raw2) : [];
+                        loadedLeads = Array.isArray(list1) ? [...list1] : [];
+                        if (Array.isArray(list2)) {
+                            list2.forEach(l => {
+                                if (l && l.email && !loadedLeads.some(x => x.email === l.email)) {
+                                    loadedLeads.push(l);
+                                }
+                            });
+                        }
+                    } catch {}
+                }
+
                 if (isMounted) {
                     setOrders(fetchedOrders);
+                    setBioLeads(loadedLeads);
                 }
             } catch (err) {
                 console.warn('Failed to load customers:', err);
@@ -84,7 +106,7 @@ export default function StoreCustomersPage() {
         return () => { isMounted = false; };
     }, [user]);
 
-    // Aggregate orders into customer profiles
+    // Aggregate orders and Stan Store leads into customer profiles
     const customers = useMemo(() => {
         const map = new Map();
 
@@ -105,6 +127,7 @@ export default function StoreCustomersPage() {
                     city: order.shippingCity || order.city || order.shippingAddress?.city || 'Unknown',
                     country: order.shippingCountry || order.country || order.shippingAddress?.country || '',
                     address: order.shippingAddress?.line1 || order.shippingAddress || '',
+                    source: 'Storefront Order',
                     ordersCount: 1,
                     totalSpent: orderTotal,
                     orders: [order],
@@ -125,11 +148,37 @@ export default function StoreCustomersPage() {
             }
         });
 
+        // Merge Stan Store Bio Leads
+        bioLeads.forEach(lead => {
+            if (!lead || !lead.email) return;
+            const email = lead.email.toLowerCase().trim();
+            if (map.has(email)) {
+                const existing = map.get(email);
+                existing.source = 'Storefront & Bio Lead';
+            } else {
+                map.set(email, {
+                    id: lead.id || `lead_${email}`,
+                    name: lead.name || email.split('@')[0],
+                    email: email,
+                    phone: lead.phone || '',
+                    city: 'Digital Lead',
+                    country: '',
+                    address: '',
+                    source: lead.source || 'Stan Bio Lead Magnet',
+                    ordersCount: 0,
+                    totalSpent: 0,
+                    orders: [],
+                    firstOrderDate: lead.lastOrderDate || new Date().toISOString(),
+                    lastOrderDate: lead.lastOrderDate || new Date().toISOString(),
+                });
+            }
+        });
+
         return Array.from(map.values()).map(c => ({
             ...c,
             aov: c.ordersCount > 0 ? (c.totalSpent / c.ordersCount) : 0
-        })).sort((a, b) => b.totalSpent - a.totalSpent);
-    }, [orders]);
+        })).sort((a, b) => b.totalSpent - a.totalSpent || (b.ordersCount - a.ordersCount));
+    }, [orders, bioLeads]);
 
     // Filter customers
     const filteredCustomers = useMemo(() => {
@@ -139,13 +188,15 @@ export default function StoreCustomersPage() {
             const matchesSearch = 
                 c.name.toLowerCase().includes(query) || 
                 c.email.toLowerCase().includes(query) || 
-                c.city.toLowerCase().includes(query);
+                c.city.toLowerCase().includes(query) ||
+                (c.source && c.source.toLowerCase().includes(query));
             if (!matchesSearch) return false;
 
             // Segment filter
             if (selectedSegment === 'vip') return c.totalSpent >= 100;
             if (selectedSegment === 'repeat') return c.ordersCount > 1;
             if (selectedSegment === 'first-time') return c.ordersCount === 1;
+            if (selectedSegment === 'leads') return c.ordersCount === 0 || c.source?.includes('Lead');
             return true;
         });
     }, [customers, searchTerm, selectedSegment]);
@@ -164,13 +215,14 @@ export default function StoreCustomersPage() {
             return;
         }
 
-        const headers = ["Customer Name", "Email", "Orders Count", "Total Spent ($)", "AOV ($)", "City", "First Order", "Last Order"];
+        const headers = ["Customer Name", "Email", "Orders Count", "Total Spent ($)", "AOV ($)", "Source", "City", "First Order", "Last Order"];
         const rows = customers.map(c => [
             `"${c.name.replace(/"/g, '""')}"`,
             `"${c.email}"`,
             c.ordersCount,
             c.totalSpent.toFixed(2),
             c.aov.toFixed(2),
+            `"${(c.source || 'Storefront Order').replace(/"/g, '""')}"`,
             `"${c.city}"`,
             `"${new Date(c.firstOrderDate).toLocaleDateString()}"`,
             `"${new Date(c.lastOrderDate).toLocaleDateString()}"`
@@ -275,7 +327,8 @@ export default function StoreCustomersPage() {
                         { id: 'all', label: `All (${customers.length})` },
                         { id: 'vip', label: `VIP $100+ (${customers.filter(c => c.totalSpent >= 100).length})` },
                         { id: 'repeat', label: `Repeat (${customers.filter(c => c.ordersCount > 1).length})` },
-                        { id: 'first-time', label: `New (${customers.filter(c => c.ordersCount === 1).length})` }
+                        { id: 'first-time', label: `New (${customers.filter(c => c.ordersCount === 1).length})` },
+                        { id: 'leads', label: `Bio Leads (${customers.filter(c => c.ordersCount === 0 || c.source?.includes('Lead')).length})` }
                     ].map(seg => (
                         <button
                             key={seg.id}
@@ -345,15 +398,21 @@ export default function StoreCustomersPage() {
                                             {customer.email}
                                         </td>
 
-                                        {/* Orders Count */}
+                                        {/* Orders Count & Source */}
                                         <td className="py-4 px-4">
-                                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                                                customer.ordersCount > 1 
-                                                    ? 'bg-purple-100 text-purple-700' 
-                                                    : 'bg-slate-100 text-slate-600'
-                                            }`}>
-                                                {customer.ordersCount} {customer.ordersCount === 1 ? 'order' : 'orders'}
-                                            </span>
+                                            {customer.ordersCount > 0 ? (
+                                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                                    customer.ordersCount > 1 
+                                                        ? 'bg-purple-100 text-purple-700' 
+                                                        : 'bg-slate-100 text-slate-600'
+                                                }`}>
+                                                    {customer.ordersCount} {customer.ordersCount === 1 ? 'order' : 'orders'}
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                    Bio Lead Magnet
+                                                </span>
+                                            )}
                                         </td>
 
                                         {/* Total Spend */}
@@ -446,37 +505,50 @@ export default function StoreCustomersPage() {
                             </div>
                         </div>
 
-                        {/* Order History Timeline */}
+                        {/* Order History Timeline or Lead Status */}
                         <div>
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Order History Timeline</h4>
-                            <div className="space-y-3">
-                                {selectedCustomer.orders.map((ord, idx) => (
-                                    <div key={idx} className="p-4 rounded-2xl border border-slate-100 bg-white hover:border-slate-200 transition shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-mono font-bold text-xs text-slate-900">Order #{ord.id || ord.orderId || `ORD-${idx+1}`}</span>
-                                                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                                                    {ord.status || 'completed'}
-                                                </span>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+                                {selectedCustomer.orders.length > 0 ? "Order History Timeline" : "Subscriber Information"}
+                            </h4>
+                            {selectedCustomer.orders.length === 0 ? (
+                                <div className="p-4 rounded-2xl border border-rose-100 bg-rose-50/50 text-slate-700 space-y-1 text-xs">
+                                    <p className="font-bold text-rose-800 flex items-center gap-1.5">
+                                        <Sparkles size={14} /> Source: {selectedCustomer.source || 'Stan Bio Lead Magnet'}
+                                    </p>
+                                    <p className="text-slate-500 text-[11px]">
+                                        Subscribed on {new Date(selectedCustomer.firstOrderDate).toLocaleDateString()}. No checkout orders placed yet.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {selectedCustomer.orders.map((ord, idx) => (
+                                        <div key={idx} className="p-4 rounded-2xl border border-slate-100 bg-white hover:border-slate-200 transition shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono font-bold text-xs text-slate-900">Order #{ord.id || ord.orderId || `ORD-${idx+1}`}</span>
+                                                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                                        {ord.status || 'completed'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-2">
+                                                    <Calendar size={11} /> {new Date(ord.createdAt || Date.now()).toLocaleDateString()}
+                                                    {ord.items && <span>• {ord.items.length} items</span>}
+                                                </p>
                                             </div>
-                                            <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-2">
-                                                <Calendar size={11} /> {new Date(ord.createdAt || Date.now()).toLocaleDateString()}
-                                                {ord.items && <span>• {ord.items.length} items</span>}
-                                            </p>
-                                        </div>
-                                        <div className="text-right flex items-center gap-3">
-                                            <span className="font-black text-emerald-600 text-sm">
-                                                ${(Number(ord.total || ord.amount || ord.price) || 0).toFixed(2)}
-                                            </span>
-                                            {ord.trackingNumber && (
-                                                <span className="text-[10px] font-mono bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-100">
-                                                    {ord.trackingNumber}
+                                            <div className="text-right flex items-center gap-3">
+                                                <span className="font-black text-emerald-600 text-sm">
+                                                    ${(Number(ord.total || ord.amount || ord.price) || 0).toFixed(2)}
                                                 </span>
-                                            )}
+                                                {ord.trackingNumber && (
+                                                    <span className="text-[10px] font-mono bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-100">
+                                                        {ord.trackingNumber}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* Direct Actions */}

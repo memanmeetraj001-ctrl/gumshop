@@ -7,6 +7,8 @@ import { getServerGumroadToken } from '@/lib/serverVault';
 import { PaymentStatus, OrderStatus, FulfillmentStatus, ShipmentStatus } from '@/lib/paymentStatus';
 import { getServerOrder, saveServerOrder } from '@/lib/serverOrderStore';
 
+import { incrementCouponUsage } from '@/lib/firebaseDb';
+
 /**
  * GET /api/gumroad/verify-order
  * Strict Server-Side Payment Verification & Reconciliation
@@ -103,6 +105,10 @@ export async function GET(req) {
 
                         // Persist verified order to resilient storage
                         await saveServerOrder(orderId, verifiedOrder);
+
+                        if (existingOrder?.couponCode || verifiedOrder?.couponCode) {
+                            incrementCouponUsage(existingOrder?.couponCode || verifiedOrder?.couponCode).catch(() => {});
+                        }
 
                         return NextResponse.json({
                             verified: true,

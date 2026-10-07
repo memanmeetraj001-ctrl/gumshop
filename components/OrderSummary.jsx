@@ -133,9 +133,14 @@ const OrderSummary = ({ totalPrice, items }) => {
         const fallbackSessionId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         try {
             const discountAmount = calculateDiscount();
-            const upsellAmount = includeRushProtection ? RUSH_PROTECTION_FEE : 0;
-            const finalTotal = totalPrice - discountAmount + upsellAmount;
             const activeStore = getActiveStoreSync();
+            const storeShippingConfig = activeStore?.shipping || {};
+            const standardShippingFee = typeof storeShippingConfig.standardFee === 'number' ? storeShippingConfig.standardFee : 4.99;
+            const freeShippingThreshold = typeof storeShippingConfig.freeShippingThreshold === 'number' ? storeShippingConfig.freeShippingThreshold : 50.00;
+            const isFreeShipping = coupon?.type === 'shipping' || (totalPrice >= freeShippingThreshold);
+            const calculatedShippingFee = isFreeShipping ? 0 : standardShippingFee;
+            const finalShippingFee = calculatedShippingFee + (includeRushProtection ? RUSH_PROTECTION_FEE : 0);
+
             const storeSlug = activeStore?.username || (typeof window !== 'undefined' ? (window.location.pathname.match(/\/shop\/([^\/]+)/)?.[1] || '') : '');
             const storeScopedUrl = (typeof window !== 'undefined' && storeSlug) ? (localStorage.getItem(`gumroad_url_${storeSlug}`) || localStorage.getItem(`gumroad_product_url_${storeSlug}`)) : '';
             const persistentUrl = activeStore?.gumroadProductUrl || storeScopedUrl || (typeof window !== 'undefined' ? (localStorage.getItem('gumshop_gumroad_url') || localStorage.getItem('gumroad_product_url') || '') : '');
@@ -168,7 +173,8 @@ const OrderSummary = ({ totalPrice, items }) => {
                     accessToken: activeStore?.gumroadToken || persistentToken || '',
                     items: checkoutItems,
                     discountAmount: discountAmount,
-                    shippingFee: upsellAmount,
+                    couponCode: coupon ? coupon.code : '',
+                    shippingFee: finalShippingFee,
                     customer: {
                         address: selectedAddress?.street || '',
                         city: selectedAddress?.city || '',
@@ -202,7 +208,14 @@ const OrderSummary = ({ totalPrice, items }) => {
         return handleDynamicCheckout();
     };
 
-    const finalSubtotal = totalPrice - calculateDiscount() + (includeRushProtection ? RUSH_PROTECTION_FEE : 0);
+    const activeStore = getActiveStoreSync();
+    const storeShippingConfig = activeStore?.shipping || {};
+    const standardShippingFee = typeof storeShippingConfig.standardFee === 'number' ? storeShippingConfig.standardFee : 4.99;
+    const freeShippingThreshold = typeof storeShippingConfig.freeShippingThreshold === 'number' ? storeShippingConfig.freeShippingThreshold : 50.00;
+    const isFreeShipping = coupon?.type === 'shipping' || (totalPrice >= freeShippingThreshold);
+    const calculatedShippingFee = isFreeShipping ? 0 : standardShippingFee;
+    const totalShippingFee = calculatedShippingFee + (includeRushProtection ? RUSH_PROTECTION_FEE : 0);
+    const finalSubtotal = Math.max(0, totalPrice - calculateDiscount() + totalShippingFee);
 
     return (
         <div className='w-full max-w-lg lg:max-w-[360px] bg-white border border-slate-200/90 text-slate-700 text-sm rounded-3xl p-6 sm:p-7 shadow-xl'>
@@ -215,8 +228,12 @@ const OrderSummary = ({ totalPrice, items }) => {
                     <span className="font-semibold text-slate-900">{currency}{totalPrice.toFixed(2)}</span>
                 </div>
                 <div className='flex justify-between text-slate-600'>
-                    <span>Express Shipping:</span>
-                    <span className="font-bold text-emerald-600">FREE</span>
+                    <span>Standard Shipping:</span>
+                    {calculatedShippingFee === 0 ? (
+                        <span className="font-bold text-emerald-600">FREE</span>
+                    ) : (
+                        <span className="font-semibold text-slate-900">{currency}{calculatedShippingFee.toFixed(2)}</span>
+                    )}
                 </div>
                 {includeRushProtection && (
                     <div className='flex justify-between text-emerald-700 font-semibold'>
