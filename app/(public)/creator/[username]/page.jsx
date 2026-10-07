@@ -133,7 +133,7 @@ const VERIFIED_PHYSICAL_REVIEWS = [
         handle: '@sarah_design',
         rating: 5,
         badge: '🛡️ Verified Delivery',
-        text: 'Customer support on WhatsApp confirmed my shipping address in 2 minutes. Package arrived in mint condition. Will definitely buy again!',
+        text: 'Instant email confirmation verified my shipping address in 2 minutes. Package arrived in mint condition. Will definitely buy again!',
         initial: 'S',
         bg: 'bg-amber-100 text-amber-800'
     },
