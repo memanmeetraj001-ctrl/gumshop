@@ -73,10 +73,10 @@ export default function SuperStorefront() {
     }, [dispatch]);
 
     useEffect(() => {
-        if (reduxProducts && reduxProducts.length > 0 && products.length === 0) {
+        if (!activeStore && reduxProducts && reduxProducts.length > 0 && products.length === 0) {
             setProducts(reduxProducts);
         }
-    }, [reduxProducts, products.length]);
+    }, [reduxProducts, products.length, activeStore]);
 
     // Extract dynamic unique categories
     const categories = useMemo(() => {

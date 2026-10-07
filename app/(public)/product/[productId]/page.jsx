@@ -66,6 +66,8 @@ export default function Product() {
 
                 if (foundProduct) {
                     setProduct(foundProduct);
+                } else {
+                    setProduct(null);
                 }
             } catch (err) {
                 console.error("Error loading product:", err);
