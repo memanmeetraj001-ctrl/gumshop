@@ -1,6 +1,6 @@
 'use client'
 import { usePathname } from "next/navigation"
-import { HomeIcon, LayoutListIcon, SquarePenIcon, SquarePlusIcon, TicketPercentIcon, SettingsIcon, Sparkles, Film, ExternalLink, Smartphone } from "lucide-react"
+import { HomeIcon, LayoutListIcon, SquarePenIcon, SquarePlusIcon, TicketPercentIcon, SettingsIcon, Sparkles, Film, ExternalLink, Smartphone, Package, Users, Tag } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { getActiveStoreSync } from "@/lib/activeStore"
@@ -18,6 +18,10 @@ const StoreSidebar = ({ storeInfo }) => {
         { name: 'Creator Bio Link', href: `/creator/${storeSlug}`, icon: Smartphone, highlight: true, external: true, badge: 'Bio' },
         { name: 'Manage Products', href: '/store/manage-product', icon: SquarePenIcon },
         { name: 'Add Product', href: '/store/add-product', icon: SquarePlusIcon },
+        { name: 'Orders & Shipping', href: '/store/orders', icon: Package },
+        { name: 'Customers CRM', href: '/store/customers', icon: Users },
+        { name: 'Coupons & Discounts', href: '/store/coupons', icon: TicketPercentIcon },
+        { name: 'Marketing & Upsells', href: '/store/marketing', icon: Tag },
         { name: 'Gumroad Payments', href: '/settings/integrations/gumroad', icon: SettingsIcon },
         { name: 'Store Settings', href: '/store/settings', icon: SettingsIcon },
     ];

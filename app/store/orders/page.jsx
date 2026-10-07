@@ -20,7 +20,9 @@ import {
     Mail,
     MapPin,
     Calendar,
-    DollarSign
+    DollarSign,
+    Printer,
+    ExternalLink
 } from "lucide-react";
 
 export default function StoreOrders() {
@@ -32,6 +34,7 @@ export default function StoreOrders() {
     // Status Update Modal State
     const [editingOrder, setEditingOrder] = useState(null);
     const [newStatus, setNewStatus] = useState('shipped');
+    const [carrier, setCarrier] = useState('USPS');
     const [trackingNumber, setTrackingNumber] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -186,9 +189,133 @@ export default function StoreOrders() {
         toast.success("Orders CSV downloaded successfully!");
     };
 
+    const getCarrierTrackingUrl = (carrierName, trackNum) => {
+        if (!trackNum) return null;
+        const cleanNum = trackNum.trim();
+        const c = (carrierName || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (c.includes('usps')) return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${cleanNum}`;
+        if (c.includes('fedex')) return `https://www.fedex.com/fedextrack/?trknbr=${cleanNum}`;
+        if (c.includes('ups')) return `https://www.ups.com/track?tracknum=${cleanNum}`;
+        if (c.includes('dhl')) return `https://www.dhl.com/en/express/tracking.html?AWB=${cleanNum}`;
+        if (c.includes('bluedart')) return `https://www.bluedart.com/tracking?track=${cleanNum}`;
+        if (c.includes('indiapost')) return `https://www.indiapost.gov.in/_layouts/15/dpt.cpt.ui/track.aspx?${cleanNum}`;
+        if (c.includes('royalmail')) return `https://www.royalmail.com/track-your-item#/tracking-results/${cleanNum}`;
+        return `https://www.google.com/search?q=${encodeURIComponent('tracking ' + cleanNum)}`;
+    };
+
+    const handlePrintInvoice = (order) => {
+        if (!order) return;
+        const storeName = currentStore?.name || "GumShop Store";
+        const customerName = order.customer?.name || order.customerName || "Valued Customer";
+        const customerEmail = order.customer?.email || order.email || "N/A";
+        const address = typeof order.customer?.shippingAddress === 'string' 
+            ? order.customer.shippingAddress 
+            : (order.address?.street || order.shippingAddress || "Standard Ground Shipping");
+        const orderDate = new Date(order.createdAt || Date.now()).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        const items = Array.isArray(order.orderItems) ? order.orderItems : 
+            (typeof order.items === 'string' ? [{ name: order.items, quantity: 1, price: order.total }] : [{ name: "Catalog Product", quantity: 1, price: order.total }]);
+        const totalAmount = Number(order.total || 0).toFixed(2);
+
+        const printHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Packing Slip & Invoice #${order.id}</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #1e293b; line-height: 1.5; }
+                    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 24px; margin-bottom: 30px; }
+                    .logo { font-size: 26px; font-weight: 900; color: #0f172a; }
+                    .badge { display: inline-block; padding: 4px 12px; background: #ecfdf5; color: #047857; font-weight: 700; font-size: 11px; border-radius: 9999px; text-transform: uppercase; margin-top: 6px; }
+                    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 30px; }
+                    .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 800; margin-bottom: 8px; }
+                    .table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+                    .table th { background: #f8fafc; padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; color: #475569; border-bottom: 1px solid #cbd5e1; }
+                    .table td { padding: 14px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+                    .total-box { margin-left: auto; width: 280px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; }
+                    .total-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: #475569; }
+                    .total-row.grand { font-size: 18px; font-weight: 900; color: #0f172a; border-top: 2px solid #cbd5e1; padding-top: 10px; margin-top: 8px; }
+                    .footer { text-align: center; margin-top: 60px; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div>
+                        <div class="logo">${storeName}</div>
+                        <span class="badge">PACKING SLIP & TAX INVOICE</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-weight: 800; font-size: 16px;">Order #${order.id}</div>
+                        <div style="color: #64748b; font-size: 12px; margin-top: 4px;">Date: ${orderDate}</div>
+                        ${order.trackingNumber ? `<div style="font-family: monospace; font-size: 11px; color: #047857; margin-top: 4px;">Carrier: ${order.carrier || 'Standard'} • ${order.trackingNumber}</div>` : ''}
+                    </div>
+                </div>
+
+                <div class="grid">
+                    <div>
+                        <div class="section-title">Ship To Customer</div>
+                        <div style="font-weight: 700; font-size: 14px;">${customerName}</div>
+                        <div style="color: #475569; font-size: 13px; white-space: pre-line; margin-top: 4px;">${address}</div>
+                        <div style="color: #64748b; font-size: 12px; margin-top: 4px;">Email: ${customerEmail}</div>
+                    </div>
+                    <div>
+                        <div class="section-title">Fulfillment Details</div>
+                        <div style="font-size: 13px; color: #475569;">Status: <b style="text-transform: capitalize; color: #047857;">${order.status || 'Fulfilled'}</b></div>
+                        <div style="font-size: 13px; color: #475569; margin-top: 4px;">Payment Method: <b>Online Checkout (Verified)</b></div>
+                    </div>
+                </div>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Item Description</th>
+                            <th style="text-align: center;">Qty</th>
+                            <th style="text-align: right;">Price</th>
+                            <th style="text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map(it => `
+                            <tr>
+                                <td style="font-weight: 600;">${it.name || 'Catalog Item'}</td>
+                                <td style="text-align: center;">${it.quantity || 1}</td>
+                                <td style="text-align: right;">$${Number(it.price || 0).toFixed(2)}</td>
+                                <td style="text-align: right; font-weight: 700;">$${(Number(it.quantity || 1) * Number(it.price || 0)).toFixed(2)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+
+                <div class="total-box">
+                    <div class="total-row"><span>Subtotal:</span><span>$${totalAmount}</span></div>
+                    <div class="total-row"><span>Shipping:</span><span>FREE</span></div>
+                    <div class="total-row grand"><span>Total Paid:</span><span>$${totalAmount}</span></div>
+                </div>
+
+                <div class="footer">
+                    <p>Thank you for shopping with <b>${storeName}</b>! For any customer support questions, contact us via your store portal.</p>
+                </div>
+
+                <script>
+                    window.onload = function() { window.print(); };
+                </script>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '_blank', 'width=850,height=900');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(printHtml);
+            printWindow.document.close();
+        } else {
+            toast.error("Please allow pop-ups to print packing slips.");
+        }
+    };
+
     const handleOpenStatusModal = (order) => {
         setEditingOrder(order);
         setNewStatus(order.status || 'shipped');
+        setCarrier(order.carrier || 'USPS');
         setTrackingNumber(order.trackingNumber || '');
     };
 
@@ -200,6 +327,7 @@ export default function StoreOrders() {
         try {
             const updates = { 
                 status: newStatus,
+                carrier: carrier,
                 trackingNumber: trackingNumber.trim() || undefined
             };
 
@@ -488,6 +616,28 @@ export default function StoreOrders() {
 
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                                    Shipping Carrier
+                                </label>
+                                <select
+                                    value={carrier}
+                                    onChange={(e) => setCarrier(e.target.value)}
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-emerald-500 focus:bg-white transition mb-3"
+                                >
+                                    <option value="USPS">USPS (United States Postal Service)</option>
+                                    <option value="FedEx">FedEx Express / Ground</option>
+                                    <option value="UPS">UPS (United Parcel Service)</option>
+                                    <option value="DHL">DHL Express</option>
+                                    <option value="BlueDart">BlueDart Express</option>
+                                    <option value="IndiaPost">India Post Speed Post</option>
+                                    <option value="RoyalMail">Royal Mail</option>
+                                    <option value="CanadaPost">Canada Post</option>
+                                    <option value="AustraliaPost">Australia Post</option>
+                                    <option value="Custom">Other Carrier / Courier</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                                     Shipping Tracking Number
                                 </label>
                                 <input 
@@ -573,15 +723,37 @@ export default function StoreOrders() {
                             {viewingOrder.trackingNumber && (
                                 <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center justify-between">
                                     <div>
-                                        <p className="font-bold text-[11px] uppercase tracking-wider text-emerald-800">Tracking Number</p>
+                                        <p className="font-bold text-[11px] uppercase tracking-wider text-emerald-800">
+                                            {viewingOrder.carrier || 'Carrier'} Tracking Number
+                                        </p>
                                         <p className="font-mono font-bold mt-0.5">{viewingOrder.trackingNumber}</p>
                                     </div>
-                                    <Truck size={20} className="text-emerald-600" />
+                                    <div className="flex items-center gap-2">
+                                        <a
+                                            href={getCarrierTrackingUrl(viewingOrder.carrier, viewingOrder.trackingNumber)}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg shadow-xs transition"
+                                        >
+                                            <span>Track Live</span>
+                                            <ExternalLink size={11} />
+                                        </a>
+                                        <Truck size={20} className="text-emerald-600" />
+                                    </div>
                                 </div>
                             )}
                         </div>
 
-                        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end">
+                        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                            <button
+                                type="button"
+                                onClick={() => handlePrintInvoice(viewingOrder)}
+                                className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition"
+                            >
+                                <Printer size={13} className="text-emerald-600" />
+                                <span>Print Packing Slip</span>
+                            </button>
+
                             <button
                                 onClick={() => setViewingOrder(null)}
                                 className="px-5 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 transition"
