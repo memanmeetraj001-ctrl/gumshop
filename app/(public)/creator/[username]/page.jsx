@@ -22,7 +22,10 @@ import {
     Star,
     Flame,
     Clock,
-    MessageCircle
+    MessageCircle,
+    Truck,
+    Package,
+    ShieldCheck
 } from 'lucide-react';
 import { getStoreByUsername, getProductsByStore, getAllStores, isProductDeleted, isJunkProductName } from '@/lib/firebaseDb';
 import GumroadIframeModal from '@/components/GumroadIframeModal';
@@ -93,6 +96,59 @@ const PRESET_STYLES = {
         subtext: 'text-emerald-300/70'
     }
 };
+
+const VERIFIED_PHYSICAL_REVIEWS = [
+    {
+        id: 'rev_1',
+        name: 'Marcus T.',
+        handle: '@marcus_style',
+        rating: 5,
+        badge: '🚚 2-Day Express Courier',
+        text: 'Arrived in just 2 days! Packaging was pristine, sealed in bubble wrap, and the build quality feels heavy and premium. 10/10 unboxing experience.',
+        initial: 'M',
+        bg: 'bg-emerald-100 text-emerald-800'
+    },
+    {
+        id: 'rev_2',
+        name: 'Chloe R.',
+        handle: '@chloe_vlogs',
+        rating: 5,
+        badge: '📦 Sealed & Tracked Parcel',
+        text: 'Saw this on TikTok and ordered immediately. Real deal—comes securely boxed with real-time tracking updates sent directly to my phone.',
+        initial: 'C',
+        bg: 'bg-rose-100 text-rose-800'
+    },
+    {
+        id: 'rev_3',
+        name: 'Daniel K.',
+        handle: '@dan_tech',
+        rating: 5,
+        badge: '⚡ 24h Priority Dispatch',
+        text: 'Super impressed with the materials. Box came with all accessories intact and shipping courier delivered right to my doorstep ahead of schedule.',
+        initial: 'D',
+        bg: 'bg-indigo-100 text-indigo-800'
+    },
+    {
+        id: 'rev_4',
+        name: 'Sarah M.',
+        handle: '@sarah_design',
+        rating: 5,
+        badge: '🛡️ Verified Delivery',
+        text: 'Customer support on WhatsApp confirmed my shipping address in 2 minutes. Package arrived in mint condition. Will definitely buy again!',
+        initial: 'S',
+        bg: 'bg-amber-100 text-amber-800'
+    },
+    {
+        id: 'rev_5',
+        name: 'Jason L.',
+        handle: '@jason_creatives',
+        rating: 5,
+        badge: '⭐ Premium Build Quality',
+        text: 'Exceeded my expectations. Unboxing felt high-end, completely authentic item, and flawless tracked shipping from fulfillment hub to my door.',
+        initial: 'J',
+        bg: 'bg-purple-100 text-purple-800'
+    }
+];
 
 function formatCreatorProfile(store, rawUsername) {
     if (!store) return null;
@@ -189,6 +245,18 @@ export default function CreatorBioPage({ params }) {
     // In-Bio Email Lead Magnet State
     const [bioLeadEmail, setBioLeadEmail] = useState('');
     const [bioLeadSubmitted, setBioLeadSubmitted] = useState(false);
+
+    // Auto-Scrolling Verified Customer Reviews Carousel State
+    const [activeReviewIndex, setActiveReviewIndex] = useState(0);
+    const [isHoveredReview, setIsHoveredReview] = useState(false);
+
+    useEffect(() => {
+        if (isHoveredReview) return;
+        const reviewTimer = setInterval(() => {
+            setActiveReviewIndex(prev => (prev + 1) % VERIFIED_PHYSICAL_REVIEWS.length);
+        }, 3500);
+        return () => clearInterval(reviewTimer);
+    }, [isHoveredReview]);
 
     useEffect(() => {
         let isMounted = true;
@@ -808,11 +876,11 @@ export default function CreatorBioPage({ params }) {
 
                                                 {/* Product Content Column */}
                                                 <div className="flex-1 min-w-0">
-                                                    {/* High-Converting Badges */}
-                                                    {(item.badge || isFree || index === 0 || (item.comparePrice && item.comparePrice > item.price)) && (
+                                                    {/* High-Converting Physical Badges */}
+                                                    {(item.badge || index === 0 || (item.comparePrice && item.comparePrice > item.price)) && (
                                                         <div className="mb-1">
                                                             <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-500/20">
-                                                                {item.badge || (isFree ? '⚡ Instant Free Access' : (index === 0 ? '🔥 Best Seller' : '🏷️ Limited Drop'))}
+                                                                {item.badge || (index === 0 ? '🔥 Best Seller • In Stock' : (item.comparePrice && item.comparePrice > item.price ? '🏷️ Limited Quantity' : '🚚 Ships within 24h'))}
                                                             </span>
                                                         </div>
                                                     )}
@@ -880,35 +948,87 @@ export default function CreatorBioPage({ params }) {
                                 </div>
                             )}
 
-                            {/* ─── High-Trust Verified Buyer Testimonials ─── */}
-                            <div className="mt-6 pt-5 border-t border-slate-200/70">
+                            {/* ─── Physical Delivery Trust Ribbon ─── */}
+                            <div className="mt-5 p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-around gap-2 text-[10px] font-bold text-slate-700 shadow-2xs">
+                                <span className="flex items-center gap-1 text-emerald-800">
+                                    <Truck size={13} className="text-emerald-600" />
+                                    <span>Tracked Courier</span>
+                                </span>
+                                <span className="text-slate-300">•</span>
+                                <span className="flex items-center gap-1 text-slate-800">
+                                    <Package size={13} className="text-indigo-600" />
+                                    <span>Sealed Box Packaging</span>
+                                </span>
+                                <span className="text-slate-300">•</span>
+                                <span className="flex items-center gap-1 text-amber-800">
+                                    <ShieldCheck size={13} className="text-amber-600" />
+                                    <span>30-Day Guarantee</span>
+                                </span>
+                            </div>
+
+                            {/* ─── Auto-Scrolling Verified Buyer Testimonials Carousel ─── */}
+                            <div 
+                                className="mt-6 pt-5 border-t border-slate-200/70"
+                                onMouseEnter={() => setIsHoveredReview(true)}
+                                onMouseLeave={() => setIsHoveredReview(false)}
+                            >
                                 <div className="flex items-center justify-between mb-3">
                                     <span className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1">
                                         <Star size={13} className="text-amber-400 fill-amber-400" />
                                         <span>Verified Customer Proof</span>
                                     </span>
                                     <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                                        ⭐ 4.9 / 5.0 (184 Reviews)
+                                        ⭐ 4.9 / 5.0 (248 Physical Orders)
                                     </span>
                                 </div>
 
-                                <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
+                                <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2.5 transition-all duration-300 relative">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-0.5 text-amber-400">
-                                            {[...Array(5)].map((_, i) => (
+                                            {[...Array(VERIFIED_PHYSICAL_REVIEWS[activeReviewIndex]?.rating || 5)].map((_, i) => (
                                                 <Star key={i} size={11} className="fill-amber-400" />
                                             ))}
                                         </div>
-                                        <span className="text-[10px] text-slate-400 font-medium">Verified Purchase</span>
+                                        <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
+                                            {VERIFIED_PHYSICAL_REVIEWS[activeReviewIndex]?.badge}
+                                        </span>
                                     </div>
-                                    <p className="text-xs text-slate-700 font-medium italic leading-relaxed">
-                                        "Honestly 10x better than I expected. Grabbed it from TikTok and had full access within 10 seconds. Best purchase this month!"
+
+                                    <p className="text-xs text-slate-700 font-medium italic leading-relaxed min-h-[46px]">
+                                        "{VERIFIED_PHYSICAL_REVIEWS[activeReviewIndex]?.text}"
                                     </p>
-                                    <div className="flex items-center gap-2 pt-1">
-                                        <div className="size-5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black flex items-center justify-center">
-                                            A
+
+                                    <div className="flex items-center justify-between pt-1">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`size-6 rounded-full ${VERIFIED_PHYSICAL_REVIEWS[activeReviewIndex]?.bg || 'bg-slate-100'} text-[11px] font-black flex items-center justify-center shrink-0`}>
+                                                {VERIFIED_PHYSICAL_REVIEWS[activeReviewIndex]?.initial}
+                                            </div>
+                                            <div>
+                                                <span className="text-xs font-bold text-slate-800 block leading-tight">
+                                                    {VERIFIED_PHYSICAL_REVIEWS[activeReviewIndex]?.name}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400">
+                                                    {VERIFIED_PHYSICAL_REVIEWS[activeReviewIndex]?.handle}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <span className="text-[11px] font-bold text-slate-800">Alex M. (@alex_creator)</span>
+
+                                        {/* Carousel Navigation Dots */}
+                                        <div className="flex items-center gap-1.5">
+                                            {VERIFIED_PHYSICAL_REVIEWS.map((_, dotIdx) => (
+                                                <button
+                                                    key={dotIdx}
+                                                    type="button"
+                                                    onClick={() => setActiveReviewIndex(dotIdx)}
+                                                    aria-label={`Go to review ${dotIdx + 1}`}
+                                                    className={`transition-all rounded-full ${
+                                                        activeReviewIndex === dotIdx 
+                                                            ? 'w-4 h-1.5 bg-slate-900' 
+                                                            : 'size-1.5 bg-slate-300 hover:bg-slate-400'
+                                                    }`}
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

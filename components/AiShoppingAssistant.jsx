@@ -9,11 +9,11 @@ export default function AiShoppingAssistant({ products = [], storeName = 'Store'
         {
             id: 'm_welcome',
             sender: 'ai',
-            text: `Hi! 👋 I'm your AI Shopping Assistant for ${storeName}. Ask me anything about our digital downloads, special deals, or how instant delivery works!`,
+            text: `Hi! 👋 I'm your AI Shopping Assistant for ${storeName}. Ask me anything about our products, express courier shipping, or tracking your order!`,
             suggestions: [
                 '🔥 Best sellers',
                 '⚡ Any discount codes?',
-                '📦 How does delivery work?'
+                '📦 How does shipping work?'
             ]
         }
     ]);
@@ -59,16 +59,16 @@ export default function AiShoppingAssistant({ products = [], storeName = 'Store'
             if (lowerQuery.includes('best') || lowerQuery.includes('seller') || lowerQuery.includes('popular') || lowerQuery.includes('recommend')) {
                 aiReply.text = `Here are our top-rated flagship items from ${storeName}:`;
                 aiReply.matchedProducts = products.slice(0, 2);
-                aiReply.suggestions = ['⚡ Any discount codes?', '📦 How does delivery work?'];
+                aiReply.suggestions = ['⚡ Any discount codes?', '📦 How does shipping work?'];
             } else if (lowerQuery.includes('discount') || lowerQuery.includes('code') || lowerQuery.includes('coupon') || lowerQuery.includes('deal') || lowerQuery.includes('sale')) {
                 aiReply.text = `🎉 Yes! Use code SAVE10 at checkout for an instant 10% discount on your order.`;
                 aiReply.couponCode = 'SAVE10';
-                aiReply.suggestions = ['🔥 Show best sellers', '📦 Instant delivery guarantee'];
-            } else if (lowerQuery.includes('delivery') || lowerQuery.includes('how') || lowerQuery.includes('download') || lowerQuery.includes('work') || lowerQuery.includes('receive')) {
-                aiReply.text = `⚡ Instant Digital Delivery: Immediately after payment, your files and lifetime access links are displayed on-screen and delivered directly to your email receipt within 5 seconds.`;
+                aiReply.suggestions = ['🔥 Show best sellers', '📦 Express shipping details'];
+            } else if (lowerQuery.includes('delivery') || lowerQuery.includes('shipping') || lowerQuery.includes('ship') || lowerQuery.includes('track') || lowerQuery.includes('receive')) {
+                aiReply.text = `📦 Tracked Courier Shipping: All physical orders are carefully packed in protective packaging and dispatched within 24–48 hours. You'll receive a live courier tracking number sent directly via SMS & email the moment it ships!`;
                 aiReply.suggestions = ['🔥 What are your bestsellers?', '⚡ Any discount codes?'];
-            } else if (lowerQuery.includes('refund') || lowerQuery.includes('guarantee') || lowerQuery.includes('support')) {
-                aiReply.text = `🛡️ Peace of Mind Guarantee: All purchases include full download access and dedicated customer support directly via email and WhatsApp.`;
+            } else if (lowerQuery.includes('refund') || lowerQuery.includes('guarantee') || lowerQuery.includes('return') || lowerQuery.includes('support')) {
+                aiReply.text = `🛡️ 30-Day Physical Guarantee: All products arrive brand new, factory sealed, with transit damage insurance and dedicated support on WhatsApp.`;
                 aiReply.suggestions = ['🔥 Browse best sellers'];
             } else {
                 // Fuzzy search against product titles

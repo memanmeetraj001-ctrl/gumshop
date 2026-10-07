@@ -42,7 +42,7 @@ export default function InAppBrowserBanner() {
                         <Smartphone size={13} />
                     </span>
                     <p className="truncate text-slate-200">
-                        Viewing in app? Tap <strong className="text-white">•••</strong> & select <strong className="text-emerald-400">Open in Browser</strong> for instant file downloads.
+                        Viewing in app? Tap <strong className="text-white">•••</strong> & select <strong className="text-emerald-400">Open in Browser</strong> for smooth checkout & live package tracking.
                     </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
