@@ -166,7 +166,11 @@ function formatCreatorProfile(store, rawUsername) {
         handle: bioProfile.handle || store.username || cleanUser,
         verified: bioProfile.verified !== undefined ? bioProfile.verified : true,
         bio: bioProfile.tagline || store.bio || store.description || store.tagline || `Official storefront for ${displayName}. Browse our curated collection.`,
-        avatar: bioProfile.avatar || store.avatar || store.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}`,
+        avatar: (() => {
+            const raw = bioProfile.avatar || store.avatar || store.logo || '';
+            const safe = raw.startsWith('http://') ? raw.replace('http://', 'https://') : raw;
+            return safe || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}`;
+        })(),
         socials: mergedSocials,
         customLinks: bioProfile.customLinks || [],
         leadMagnet: bioProfile.leadMagnet || null,
@@ -264,22 +268,12 @@ export default function CreatorBioPage({ params }) {
 
     useEffect(() => {
         let isMounted = true;
+        // Generous safety timer to prevent premature "Store Not Found" flashes on cold mobile loads
         const safetyTimer = setTimeout(() => {
-            setLoading(false);
-        }, 800);
+            if (isMounted) setLoading(false);
+        }, 8000);
 
         const loadCreatorStore = async () => {
-            if (cleanUser === 'demo') {
-                const demoData = getStoreAndCatalogSync('demo');
-                if (isMounted) {
-                    setStoreInfo(demoData.store);
-                    setCreator(formatCreatorProfile(demoData.store, 'demo'));
-                    setProducts(demoData.products || []);
-                    setLoading(false);
-                }
-                return;
-            }
-
             try {
                 const { store, products: resolvedProducts } = await getStoreAndCatalog(rawUsername);
                 if (isMounted) {
@@ -287,6 +281,11 @@ export default function CreatorBioPage({ params }) {
                         setStoreInfo(store);
                         setCreator(formatCreatorProfile(store, rawUsername));
                         setProducts(resolvedProducts || []);
+                    } else if (cleanUser === 'demo') {
+                        const demoData = getStoreAndCatalogSync('demo');
+                        setStoreInfo(demoData.store);
+                        setCreator(formatCreatorProfile(demoData.store, 'demo'));
+                        setProducts(demoData.products || []);
                     } else {
                         setStoreInfo(null);
                         setCreator(null);
@@ -295,6 +294,12 @@ export default function CreatorBioPage({ params }) {
                 }
             } catch (err) {
                 console.error("Error loading creator bio:", err);
+                if (isMounted && cleanUser === 'demo') {
+                    const demoData = getStoreAndCatalogSync('demo');
+                    setStoreInfo(demoData.store);
+                    setCreator(formatCreatorProfile(demoData.store, 'demo'));
+                    setProducts(demoData.products || []);
+                }
             } finally {
                 clearTimeout(safetyTimer);
                 if (isMounted) setLoading(false);

@@ -181,9 +181,16 @@ export default function StanStoreBioEditor() {
                     ...currentStore,
                     id: targetStoreId,
                     username: cleanSlug,
+                    name: profile.displayName || currentStore.name,
+                    avatar: profile.avatar || currentStore.avatar || currentStore.logo,
+                    logo: profile.avatar || currentStore.logo || currentStore.avatar,
+                    bio: profile.tagline || currentStore.bio || currentStore.description,
+                    description: profile.tagline || currentStore.description || currentStore.bio,
+                    themeColor: profile.themeColor || currentStore.themeColor,
                     bioProfile: profile,
                     updatedAt: new Date().toISOString()
                 };
+                setCurrentStore(updatedStore);
 
                 // Sync local caches
                 if (typeof window !== 'undefined') {
@@ -288,9 +295,16 @@ export default function StanStoreBioEditor() {
                 ...currentStore,
                 id: targetStoreId,
                 username: cleanSlug,
+                name: profile.displayName || currentStore.name,
+                avatar: profile.avatar || currentStore.avatar || currentStore.logo,
+                logo: profile.avatar || currentStore.logo || currentStore.avatar,
+                bio: profile.tagline || currentStore.bio || currentStore.description,
+                description: profile.tagline || currentStore.description || currentStore.bio,
+                themeColor: profile.themeColor || currentStore.themeColor,
                 bioProfile: profile,
                 updatedAt: new Date().toISOString()
             };
+            setCurrentStore(updatedStore);
 
             // 1. LocalStorage caches for instant synchronous reflection across all views
             if (typeof window !== 'undefined') {

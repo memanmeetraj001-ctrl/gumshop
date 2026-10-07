@@ -42,10 +42,10 @@ export default function StoreShop({ params }) {
     const [activeCategory, setActiveCategory] = useState('All');
 
     useEffect(() => {
-        // Safety timeout so merchant stores NEVER get stuck on loading screen
+        // Safety timeout so merchant stores NEVER get stuck on loading screen (generous to allow network fetch)
         const safetyTimer = setTimeout(() => {
             setLoading(false);
-        }, 800);
+        }, 8000);
 
         const fetchStoreData = async () => {
             try {

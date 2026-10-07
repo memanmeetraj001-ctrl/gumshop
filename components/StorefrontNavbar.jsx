@@ -31,28 +31,37 @@ export default function StorefrontNavbar({ store }) {
                 <div className="flex items-center justify-between h-16 sm:h-20 gap-4">
                     
                     {/* Merchant Store Logo & Brand Name */}
-                    <Link href={`/shop/${storeSlug}`} className="flex items-center gap-3 group">
-                        {store?.logo ? (
-                            <img 
-                                src={store.logo} 
-                                alt={store.name || "Store"} 
-                                className="size-9 sm:size-10 rounded-xl object-cover border border-slate-200 shadow-xs group-hover:scale-105 transition-transform" 
-                            />
-                        ) : (
-                            <div className="size-9 sm:size-10 rounded-xl bg-gradient-to-tr from-slate-900 to-slate-700 text-white font-extrabold flex items-center justify-center text-sm shadow-xs">
-                                {store?.name?.charAt(0) || 'S'}
-                            </div>
-                        )}
-                        <div className="flex flex-col">
-                            <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 group-hover:text-emerald-600 transition">
-                                {store?.name || "Official Store"}
-                            </span>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 flex items-center gap-1">
-                                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                Verified Merchant
-                            </span>
-                        </div>
-                    </Link>
+                    {(() => {
+                        const logoSrc = store?.logo || store?.avatar || store?.bioProfile?.avatar;
+                        return (
+                            <Link href={`/shop/${storeSlug}`} className="flex items-center gap-3 group">
+                                {logoSrc ? (
+                                    <img 
+                                        src={logoSrc} 
+                                        alt={store?.name || "Store"} 
+                                        className="size-9 sm:size-10 rounded-xl object-cover border border-slate-200 shadow-xs group-hover:scale-105 transition-transform" 
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(store?.name || 'Store')}`;
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="size-9 sm:size-10 rounded-xl bg-gradient-to-tr from-slate-900 to-slate-700 text-white font-extrabold flex items-center justify-center text-sm shadow-xs">
+                                        {store?.name?.charAt(0) || 'S'}
+                                    </div>
+                                )}
+                                <div className="flex flex-col">
+                                    <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 group-hover:text-emerald-600 transition">
+                                        {store?.name || "Official Store"}
+                                    </span>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 flex items-center gap-1">
+                                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        Verified Merchant
+                                    </span>
+                                </div>
+                            </Link>
+                        );
+                    })()}
 
                     {/* Store Navigation Links */}
                     <nav className="hidden sm:flex items-center gap-5 text-xs sm:text-sm font-semibold text-slate-600">

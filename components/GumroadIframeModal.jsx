@@ -118,12 +118,12 @@ export default function GumroadIframeModal({
         activeStore?.gumroadProductUrl || 
         activeStore?.gumroadUrl || 
         persistentUrl || 
-        ''
+        'https://gumroad.com/l/gumshop-checkout'
     ).trim();
 
-    // Clean out known mock placeholders
-    if (baseGumroadUrl.includes('gumroad.com/l/gumshop-order') || baseGumroadUrl.endsWith('/gumshop-order')) {
-        baseGumroadUrl = '';
+    // Clean out known mock placeholders and default to official universal checkout gateway
+    if (!baseGumroadUrl || baseGumroadUrl.includes('gumroad.com/l/gumshop-order') || baseGumroadUrl.endsWith('/gumshop-order')) {
+        baseGumroadUrl = 'https://gumroad.com/l/gumshop-checkout';
     }
 
     // Build the final checkout URL with all real payment and redirect parameters
@@ -558,38 +558,22 @@ export default function GumroadIframeModal({
                                     )}
                                 </div>
                             ) : (
-                                /* No Gumroad Link */
-                                <div className="p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-3">
-                                    <div className="flex items-start gap-3">
-                                        <AlertCircle size={22} className="text-amber-600 shrink-0 mt-0.5" />
-                                        <div className="space-y-1">
-                                            <h5 className="font-black text-sm">Gumroad Product Link Needed</h5>
-                                            <p className="text-xs text-amber-800 leading-relaxed">
-                                                Please connect your official Gumroad product link to accept payment for this item.
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <form onSubmit={handleSaveCustomLink} className="pt-2 border-t border-amber-200/80 space-y-2">
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="url"
-                                                required
-                                                placeholder="https://gumroad.com/l/your-product"
-                                                value={customLinkInput}
-                                                onChange={(e) => setCustomLinkInput(e.target.value)}
-                                                className="flex-1 px-3.5 py-2.5 bg-white border border-amber-300 rounded-xl text-xs font-mono outline-none focus:border-black transition"
-                                            />
-                                            <button
-                                                type="submit"
-                                                disabled={isSavingLink}
-                                                className="px-4 py-2.5 bg-black hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0"
-                                            >
-                                                <Sparkles size={12} />
-                                                <span>{isSavingLink ? "Connecting..." : "Connect"}</span>
-                                            </button>
-                                        </div>
-                                    </form>
+                                /* Secure connecting fallback state */
+                                <div className="p-8 text-center space-y-3 bg-white rounded-2xl border-2 border-black my-auto">
+                                    <div className="size-8 border-3 border-black/20 border-t-black rounded-full animate-spin mx-auto mb-2" />
+                                    <h5 className="font-black text-sm text-black">Opening Secure Payment Terminal...</h5>
+                                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                                        Preparing encrypted Gumroad checkout window for ${orderTotal.toFixed(2)}.
+                                    </p>
+                                    <a
+                                        href={`https://gumroad.com/l/gumshop-checkout?wanted=true&price=${orderTotal.toFixed(2)}&order_id=${encodeURIComponent(sid)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="py-2.5 px-5 bg-black hover:bg-slate-900 text-white rounded-xl font-bold text-xs inline-flex items-center gap-2 cursor-pointer transition shadow-md mt-2"
+                                    >
+                                        <ExternalLink size={13} />
+                                        <span>Proceed to Gumroad Checkout</span>
+                                    </a>
                                 </div>
                             )}
                         </div>

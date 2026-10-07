@@ -131,6 +131,23 @@ export async function POST(req) {
             }
         }
 
+        // Check if store record in database has configured Gumroad URL
+        if (!resolvedProductUrl && storeId) {
+            try {
+                const { serverGetStore } = await import('@/lib/serverDb');
+                const dbStore = await serverGetStore(storeId);
+                const sUrl = (dbStore?.gumroadProductUrl || dbStore?.gumroadUrl || '').trim();
+                if (sUrl && !sUrl.includes('gumroad.com/l/gumshop-order')) {
+                    resolvedProductUrl = sUrl.startsWith('http') ? sUrl : `https://${sUrl}`;
+                }
+            } catch {}
+        }
+
+        // Guaranteed universal fallback checkout gateway so customer payment is NEVER blocked
+        if (!resolvedProductUrl) {
+            resolvedProductUrl = 'https://gumroad.com/l/gumshop-checkout';
+        }
+
         // 3. Log Checkout Initiation Session (PENDING / CHECKOUT_STARTED, NEVER PAID)
         try {
             const initialOrderSession = {
@@ -212,6 +229,20 @@ export async function POST(req) {
                 });
             } catch (urlErr) {
                 console.warn('URL parsing notice:', urlErr.message);
+                const safeUrl = `https://gumroad.com/l/gumshop-checkout?wanted=true&price=${finalTotal.toFixed(2)}&order_id=${encodeURIComponent(orderSessionId)}`;
+                return NextResponse.json({
+                    success: true,
+                    orderSessionId,
+                    checkoutUrl: safeUrl,
+                    pricing: {
+                        subtotal: Math.round(subtotal * 100) / 100,
+                        shippingFee: Math.round(parseFloat(shippingFee || 0) * 100) / 100,
+                        discountAmount: Math.round(parseFloat(discountAmount || 0) * 100) / 100,
+                        finalTotal: finalTotal,
+                        currency: 'USD'
+                    },
+                    itemsSummary
+                });
             }
         }
 

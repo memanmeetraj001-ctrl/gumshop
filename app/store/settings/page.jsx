@@ -54,6 +54,8 @@ export default function StoreSettings() {
         username: "",
         description: "",
         logo: "",
+        avatar: "",
+        bioProfile: null,
         gumroadToken: "",
         gumroadProductUrl: "",
         themeColor: "#10B981",
@@ -105,11 +107,19 @@ export default function StoreSettings() {
 
                 const baseStore = store;
                 const cleanId = baseStore.id || `store_${baseStore.username || 'shop'}`;
+                const resolvedAvatar = baseStore.logo || baseStore.avatar || baseStore.bioProfile?.avatar || "";
 
                 setStoreInfo(prev => ({
                     ...prev,
                     ...baseStore,
                     id: cleanId,
+                    logo: resolvedAvatar || prev.logo || "",
+                    avatar: resolvedAvatar || prev.avatar || "",
+                    bioProfile: baseStore.bioProfile || prev.bioProfile || {
+                        displayName: baseStore.name || "My Store",
+                        avatar: resolvedAvatar,
+                        tagline: baseStore.description || ""
+                    },
                     gumroadToken: persistentToken,
                     gumroadProductUrl: persistentProductUrl || baseStore.gumroadProductUrl || "",
                     customDomain: baseStore.customDomain || "",
@@ -143,10 +153,20 @@ export default function StoreSettings() {
                 let targetStoreId = storeInfo.id || `store_${cleanSlug}`;
                 targetStoreId = targetStoreId.replace(/^store_store_/, 'store_');
 
+                const activeAvatar = storeInfo.logo || storeInfo.avatar || storeInfo.bioProfile?.avatar || "";
                 const payload = {
                     ...storeInfo,
                     id: targetStoreId,
                     username: cleanSlug,
+                    logo: activeAvatar,
+                    avatar: activeAvatar,
+                    bioProfile: {
+                        ...(storeInfo.bioProfile || {}),
+                        displayName: storeInfo.name || storeInfo.bioProfile?.displayName || 'My Store',
+                        avatar: activeAvatar || storeInfo.bioProfile?.avatar || '',
+                        tagline: storeInfo.description || storeInfo.bioProfile?.tagline || '',
+                        themeColor: storeInfo.themeColor || storeInfo.bioProfile?.themeColor || '#10B981'
+                    },
                     updatedAt: new Date().toISOString()
                 };
 
@@ -375,13 +395,22 @@ export default function StoreSettings() {
                 } catch {}
             }
 
+            const activeAvatar = storeInfo.logo || storeInfo.avatar || storeInfo.bioProfile?.avatar || "";
             const payloadToSave = {
                 id: targetStoreId,
                 userId: user?.uid || targetStoreId,
                 name: storeInfo.name || "My Store",
                 username: cleanSlug,
                 description: storeInfo.description || "",
-                logo: storeInfo.logo || user?.image || user?.photoURL || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200",
+                logo: activeAvatar,
+                avatar: activeAvatar,
+                bioProfile: {
+                    ...(storeInfo.bioProfile || {}),
+                    displayName: storeInfo.name || storeInfo.bioProfile?.displayName || "My Store",
+                    avatar: activeAvatar,
+                    tagline: storeInfo.description || storeInfo.bioProfile?.tagline || "",
+                    themeColor: storeInfo.themeColor || storeInfo.bioProfile?.themeColor || "#10B981"
+                },
                 gumroadToken: persistentToken,
                 gumroadProductUrl: storeInfo.gumroadProductUrl || "",
                 themeColor: storeInfo.themeColor || "#10B981",
@@ -636,6 +665,42 @@ export default function StoreSettings() {
                                     />
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Store Avatar & Logo Input */}
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                                Store Logo / Profile Picture URL
+                            </label>
+                            <div className="flex items-center gap-3">
+                                <img
+                                    src={storeInfo.logo || storeInfo.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(storeInfo.name || 'Store')}`}
+                                    alt="Preview"
+                                    className="size-12 rounded-2xl border border-slate-200 object-cover shrink-0 shadow-xs"
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(storeInfo.name || 'Store')}`;
+                                    }}
+                                />
+                                <input
+                                    type="url"
+                                    value={storeInfo.logo || storeInfo.avatar || ""}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setStoreInfo(prev => ({
+                                            ...prev,
+                                            logo: val,
+                                            avatar: val,
+                                            bioProfile: { ...(prev.bioProfile || {}), avatar: val }
+                                        }));
+                                    }}
+                                    placeholder="https://images.unsplash.com/... or image URL"
+                                    className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-emerald-500 focus:bg-white transition"
+                                />
+                            </div>
+                            <p className="text-[11px] text-slate-400 mt-1.5">
+                                Synchronized across your desktop storefront, mobile Link-in-Bio, and checkout headers.
+                            </p>
                         </div>
 
                         <div>

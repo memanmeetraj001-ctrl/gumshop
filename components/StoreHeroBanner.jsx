@@ -72,20 +72,27 @@ export default function StoreHeroBanner({ store, totalProducts = 0 }) {
                     
                     {/* Store Logo with Border */}
                     <div className="shrink-0 relative group">
-                        {store?.logo ? (
-                            <img 
-                                src={store.logo} 
-                                alt={storeName} 
-                                className="size-28 sm:size-36 rounded-3xl object-cover border-4 border-slate-800/80 shadow-2xl shadow-emerald-500/10" 
-                            />
-                        ) : (
-                            <div 
-                                className="size-28 sm:size-36 rounded-3xl font-black text-4xl flex items-center justify-center shadow-2xl text-white"
-                                style={{ backgroundColor: themeColor }}
-                            >
-                                {storeName.charAt(0)}
-                            </div>
-                        )}
+                        {(() => {
+                            const logoSrc = store?.logo || store?.avatar || store?.bioProfile?.avatar;
+                            return logoSrc ? (
+                                <img 
+                                    src={logoSrc} 
+                                    alt={storeName} 
+                                    className="size-28 sm:size-36 rounded-3xl object-cover border-4 border-slate-800/80 shadow-2xl shadow-emerald-500/10" 
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(storeName || 'Store')}`;
+                                    }}
+                                />
+                            ) : (
+                                <div 
+                                    className="size-28 sm:size-36 rounded-3xl font-black text-4xl flex items-center justify-center shadow-2xl text-white"
+                                    style={{ backgroundColor: themeColor }}
+                                >
+                                    {storeName.charAt(0)}
+                                </div>
+                            );
+                        })()}
                         <span className="absolute -bottom-2 -right-2 bg-emerald-500 text-slate-950 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border-2 border-slate-900 shadow-sm">
                             LIVE
                         </span>
