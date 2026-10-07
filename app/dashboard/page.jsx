@@ -49,6 +49,7 @@ export default function MasterDashboardPage() {
     const [shops, setShops] = useState([]);
     const [activeStore, setActiveStore] = useState(null);
     const [homepageStoreSlug, setHomepageStoreSlugState] = useState('');
+    const [authChecking, setAuthChecking] = useState(true);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'archived'
@@ -249,20 +250,52 @@ export default function MasterDashboardPage() {
     };
 
     useEffect(() => {
-        fetch('/api/admin/auth')
-            .then(r => r.json())
-            .then(data => {
-                if (!data.authenticated) router.replace('/login');
-                else {
-                    loadShops();
-                    loadImportHistory();
-                    loadOrders();
-                    getHomepageStoreSlug().then(slug => {
-                        if (slug) setHomepageStoreSlugState(slug);
-                    });
+        let isMounted = true;
+        const checkMasterAuth = async () => {
+            try {
+                const storedToken = typeof window !== 'undefined' ? localStorage.getItem('gumshop_admin_token') : null;
+                const headers = {};
+                if (storedToken) {
+                    headers['Authorization'] = `Bearer ${storedToken}`;
                 }
-            })
-            .catch(() => router.replace('/login'));
+
+                const res = await fetch(`/api/admin/auth?t=${Date.now()}`, {
+                    cache: 'no-store',
+                    credentials: 'include',
+                    headers
+                });
+                const data = await res.json().catch(() => ({}));
+
+                if (!isMounted) return;
+
+                if (!data.authenticated) {
+                    if (typeof window !== 'undefined') {
+                        localStorage.removeItem('gumshop_admin_token');
+                    }
+                    window.location.href = '/login';
+                    return;
+                }
+
+                if (data.token && typeof window !== 'undefined') {
+                    localStorage.setItem('gumshop_admin_token', data.token);
+                }
+
+                setAuthChecking(false);
+                loadShops();
+                loadImportHistory();
+                loadOrders();
+                getHomepageStoreSlug().then(slug => {
+                    if (slug && isMounted) setHomepageStoreSlugState(slug);
+                });
+            } catch (err) {
+                console.warn("Master auth check error:", err);
+                if (isMounted) {
+                    window.location.href = '/login';
+                }
+            }
+        };
+
+        checkMasterAuth();
 
         const handleStoreChange = () => {
             const current = getActiveStoreSync();
@@ -282,6 +315,7 @@ export default function MasterDashboardPage() {
         window.addEventListener('stores_updated', handleStoresUpdated);
         window.addEventListener('homepage_store_changed', handleHomepageChange);
         return () => {
+            isMounted = false;
             window.removeEventListener('active_store_changed', handleStoreChange);
             window.removeEventListener('stores_updated', handleStoresUpdated);
             window.removeEventListener('homepage_store_changed', handleHomepageChange);
@@ -289,13 +323,19 @@ export default function MasterDashboardPage() {
     }, []);
 
     const handleLogout = async () => {
-        await fetch('/api/admin/auth', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'logout' })
-        });
-        toast.success('Logged out');
-        router.replace('/');
+        try {
+            await fetch('/api/admin/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ action: 'logout' })
+            });
+        } catch {}
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('gumshop_admin_token');
+        }
+        toast.success('Command Center session closed');
+        window.location.href = '/login';
     };
 
     // Store Deletion
@@ -616,6 +656,15 @@ export default function MasterDashboardPage() {
         const val = parseFloat(o.total || o.amount || o.price || 0);
         return sum + (isNaN(val) ? 0 : val);
     }, 0);
+
+    if (authChecking) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-3">
+                <div className="size-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-xs font-mono text-slate-400">Verifying Master Command Center Access...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">

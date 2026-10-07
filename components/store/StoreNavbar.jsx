@@ -73,12 +73,16 @@ const StoreNavbar = ({ storeInfo }) => {
             await fetch('/api/admin/auth', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ action: 'logout' })
             });
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('gumshop_admin_token');
+            }
             if (logout) await logout();
         } catch (e) {}
         toast.success("Admin session closed");
-        router.replace('/');
+        window.location.href = '/login';
     };
 
     const handleSetHomepageInNav = async (e, s) => {

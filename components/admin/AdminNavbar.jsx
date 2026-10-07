@@ -11,12 +11,16 @@ const AdminNavbar = () => {
             await fetch('/api/admin/auth', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ action: 'logout' })
             })
         } catch (e) {
             console.error('Logout error:', e)
         }
-        router.push('/login')
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('gumshop_admin_token');
+        }
+        window.location.href = '/login';
     }
 
     return (

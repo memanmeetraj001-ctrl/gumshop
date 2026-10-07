@@ -14,14 +14,36 @@ export default function LoginGate() {
 
     // If already authenticated, go straight to dashboard
     useEffect(() => {
-        fetch('/api/admin/auth')
-            .then(r => r.json())
-            .then(data => {
-                if (data.authenticated) router.replace('/dashboard');
-                else setChecking(false);
-            })
-            .catch(() => setChecking(false));
-    }, [router]);
+        const checkAuth = async () => {
+            try {
+                const storedToken = typeof window !== 'undefined' ? localStorage.getItem('gumshop_admin_token') : null;
+                const headers = {};
+                if (storedToken) {
+                    headers['Authorization'] = `Bearer ${storedToken}`;
+                }
+
+                const res = await fetch(`/api/admin/auth?t=${Date.now()}`, {
+                    cache: 'no-store',
+                    credentials: 'include',
+                    headers
+                });
+                const data = await res.json().catch(() => ({}));
+                if (data.authenticated) {
+                    if (data.token && typeof window !== 'undefined') {
+                        localStorage.setItem('gumshop_admin_token', data.token);
+                    }
+                    window.location.href = '/dashboard';
+                    return;
+                }
+            } catch (err) {
+                console.warn('Auth check error:', err);
+            } finally {
+                setChecking(false);
+            }
+        };
+
+        checkAuth();
+    }, []);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -31,14 +53,18 @@ export default function LoginGate() {
             const res = await fetch('/api/admin/auth', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password }),
+                credentials: 'include',
+                body: JSON.stringify({ password: password.trim() }),
             });
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
             if (data.success) {
+                if (data.token && typeof window !== 'undefined') {
+                    localStorage.setItem('gumshop_admin_token', data.token);
+                }
                 toast.success('Welcome back to Store HQ! 🚀');
-                router.replace('/dashboard');
+                window.location.href = '/dashboard';
             } else {
-                toast.error('Wrong master password');
+                toast.error(data.error || 'Wrong master password');
                 setPassword('');
             }
         } catch {
@@ -50,8 +76,9 @@ export default function LoginGate() {
 
     if (checking) {
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-3">
                 <div className="size-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-xs text-slate-400">Verifying session...</p>
             </div>
         );
     }
@@ -106,7 +133,7 @@ export default function LoginGate() {
                         <button
                             type="submit"
                             disabled={loading || !password.trim()}
-                            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-sm rounded-2xl shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2"
+                            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-sm rounded-2xl shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 cursor-pointer"
                         >
                             {loading ? (
                                 <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
