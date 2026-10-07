@@ -1,9 +1,9 @@
 'use client'
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/lib/AuthContext";
 import { getStoreByUserId, updateStore, updateUser } from "@/lib/firebaseDb";
-import { getActiveStore } from "@/lib/activeStore";
+import { getActiveStore, setActiveStoreSlug } from "@/lib/activeStore";
 import { database } from "@/lib/firebase";
 const ref = () => null;
 const update = () => Promise.resolve();
@@ -36,6 +36,9 @@ export default function StoreSettings() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('general');
     const [isSaving, setIsSaving] = useState(false);
+    const [autoSaveStatus, setAutoSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
+    const isInitialMount = useRef(true);
+    const autoSaveTimerRef = useRef(null);
     const [isVerifyingGumroad, setIsVerifyingGumroad] = useState(false);
     const [gumroadAccount, setGumroadAccount] = useState(null);
     const [gumroadProducts, setGumroadProducts] = useState([]);
@@ -111,9 +114,84 @@ export default function StoreSettings() {
                 console.error("Error fetching store:", err);
             }
             setLoading(false);
+            setTimeout(() => {
+                isInitialMount.current = false;
+            }, 600);
         };
         if (!authLoading) fetchStore();
     }, [user, authLoading]);
+
+    // Debounced Auto-Save
+    useEffect(() => {
+        if (loading || isInitialMount.current) return;
+        if (!storeInfo.name && !storeInfo.username) return;
+
+        setAutoSaveStatus('saving');
+        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+
+        autoSaveTimerRef.current = setTimeout(async () => {
+            try {
+                const cleanSlug = (storeInfo.username || storeInfo.name || 'shop').toLowerCase().replace(/[^a-z0-9-]+/g, '') || `shop-${Date.now()}`;
+                let targetStoreId = storeInfo.id || `store_${cleanSlug}`;
+                targetStoreId = targetStoreId.replace(/^store_store_/, 'store_');
+
+                const payload = {
+                    ...storeInfo,
+                    id: targetStoreId,
+                    username: cleanSlug,
+                    updatedAt: new Date().toISOString()
+                };
+
+                // Sync local caches
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem(`store_${cleanSlug}`, JSON.stringify(payload));
+                    localStorage.setItem(`cloned_store_${cleanSlug}`, JSON.stringify(payload));
+                    localStorage.setItem(targetStoreId, JSON.stringify(payload));
+                    localStorage.setItem('gumshop_active_store', JSON.stringify(payload));
+                    localStorage.setItem('active_store_slug', cleanSlug);
+                    localStorage.setItem(`gumshop_db_stores/${targetStoreId}`, JSON.stringify(payload));
+                    localStorage.setItem(`gumshop_db_stores/store_${cleanSlug}`, JSON.stringify(payload));
+                    if (storeInfo.gumroadProductUrl) localStorage.setItem(`gumroad_url_${cleanSlug}`, storeInfo.gumroadProductUrl);
+                    if (storeInfo.gumroadToken) localStorage.setItem(`gumroad_token_${cleanSlug}`, storeInfo.gumroadToken);
+                    if (storeInfo.socials) localStorage.setItem(`gumshop_socials_${cleanSlug}`, JSON.stringify(storeInfo.socials));
+                    window.dispatchEvent(new Event('active_store_changed'));
+                }
+
+                // Background sync to server API
+                fetch('/api/store/data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ store: payload })
+                }).catch(() => {});
+
+                if (storeInfo.gumroadToken || storeInfo.gumroadProductUrl) {
+                    fetch('/api/store/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            gumroadToken: storeInfo.gumroadToken || '',
+                            gumroadProductUrl: storeInfo.gumroadProductUrl || '',
+                            storeId: targetStoreId,
+                            storeName: payload.name,
+                            customDomain: payload.customDomain || ''
+                        })
+                    }).catch(() => {});
+                }
+
+                setAutoSaveStatus('saved');
+                setTimeout(() => {
+                    setAutoSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
+                }, 3000);
+            } catch (e) {
+                console.warn("Auto-save sync notice:", e);
+                setAutoSaveStatus('idle');
+            }
+        }, 800);
+
+        return () => {
+            if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+        };
+    }, [storeInfo, loading]);
 
     const handleVerifyGumroad = async () => {
         if (!storeInfo.gumroadToken) {
@@ -267,7 +345,9 @@ export default function StoreSettings() {
 
     const handleSaveSettings = async (e) => {
         if (e?.preventDefault) e.preventDefault();
+        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
         setIsSaving(true);
+        setAutoSaveStatus('saving');
         try {
             const cleanSlug = (storeInfo.username || storeInfo.name || 'shop').toLowerCase().replace(/[^a-z0-9-]+/g, '') || `shop-${Date.now()}`;
             let targetStoreId = storeInfo.id || `store_${cleanSlug}`;
@@ -334,28 +414,30 @@ export default function StoreSettings() {
             if (persistentToken) {
                 setGumroadToken(persistentToken);
             }
+            setActiveStoreSlug(cleanSlug);
 
-            fetch('/api/store/config', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    gumroadToken: persistentToken,
-                    gumroadProductUrl: payloadToSave.gumroadProductUrl,
-                    storeId: targetStoreId,
-                    storeName: payloadToSave.name,
-                    customDomain: payloadToSave.customDomain
+            // Await both server calls so data is persisted before completing
+            await Promise.allSettled([
+                fetch('/api/store/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        gumroadToken: persistentToken,
+                        gumroadProductUrl: payloadToSave.gumroadProductUrl,
+                        storeId: targetStoreId,
+                        storeName: payloadToSave.name,
+                        customDomain: payloadToSave.customDomain
+                    })
+                }),
+                fetch('/api/store/data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        store: payloadToSave,
+                        products: currentProducts
+                    })
                 })
-            }).catch(() => {});
-
-            // Sync updated store branding & products to dedicated server database API (Supabase)
-            fetch('/api/store/data', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    store: payloadToSave,
-                    products: currentProducts
-                })
-            }).catch(() => {});
+            ]);
 
             // 4. Cache in localStorage so public storefront & seller layout resolve immediately
             if (typeof window !== 'undefined') {
@@ -380,9 +462,11 @@ export default function StoreSettings() {
             }
 
             setStoreInfo(prev => ({ ...prev, id: targetStoreId, ...payloadToSave }));
+            setAutoSaveStatus('saved');
             toast.success("Store settings updated successfully! 🎉");
         } catch (error) {
             console.error("Update error:", error);
+            setAutoSaveStatus('idle');
             toast.error(error.message || "Failed to update settings");
         } finally {
             setIsSaving(false);
@@ -416,7 +500,31 @@ export default function StoreSettings() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                    {/* Auto-save Status Badge */}
+                    {autoSaveStatus === 'saving' && (
+                        <span className="inline-flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 text-xs font-medium">
+                            <RefreshCw size={12} className="animate-spin" />
+                            <span>Auto-saving...</span>
+                        </span>
+                    )}
+                    {autoSaveStatus === 'saved' && (
+                        <span className="inline-flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 text-xs font-medium">
+                            <CheckCircle2 size={13} className="text-emerald-600" />
+                            <span>Saved</span>
+                        </span>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={handleSaveSettings}
+                        disabled={isSaving}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-xs font-bold text-white shadow-sm shadow-emerald-600/20 transition disabled:opacity-50"
+                    >
+                        <Save size={14} />
+                        <span>{isSaving ? "Saving..." : "Save"}</span>
+                    </button>
+
                     <button
                         onClick={() => {
                             navigator.clipboard.writeText(storeUrl);
@@ -425,7 +533,7 @@ export default function StoreSettings() {
                         className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 transition"
                     >
                         <Copy size={14} />
-                        <span>Copy Store Link</span>
+                        <span>Copy Link</span>
                     </button>
                     <a
                         href={storeUrl}
@@ -1138,7 +1246,24 @@ export default function StoreSettings() {
                 )}
 
                 {/* Save Submit Button */}
-                <div className="flex justify-end pt-4">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100">
+                    <div className="text-xs text-slate-500 flex items-center gap-2">
+                        {autoSaveStatus === 'saving' && (
+                            <span className="flex items-center gap-1.5 text-amber-600 font-medium">
+                                <RefreshCw size={12} className="animate-spin" />
+                                <span>Auto-saving background updates...</span>
+                            </span>
+                        )}
+                        {autoSaveStatus === 'saved' && (
+                            <span className="flex items-center gap-1.5 text-emerald-600 font-medium">
+                                <CheckCircle2 size={13} />
+                                <span>All changes automatically saved to cloud & device.</span>
+                            </span>
+                        )}
+                        {autoSaveStatus === 'idle' && (
+                            <span>Edits are automatically saved as you type.</span>
+                        )}
+                    </div>
                     <button
                         type="submit"
                         disabled={isSaving}

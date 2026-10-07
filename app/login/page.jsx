@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, Zap, Eye, EyeOff, ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
@@ -12,6 +12,7 @@ export default function LoginGate() {
     const [loading, setLoading] = useState(false);
     const [isAlreadyAuth, setIsAlreadyAuth] = useState(false);
     const [checking, setChecking] = useState(true);
+    const isSubmittingRef = useRef(false);
 
     // Passive auth status check - never auto-redirects to avoid loops
     useEffect(() => {
@@ -46,30 +47,41 @@ export default function LoginGate() {
     }, []);
 
     const handleLogin = async (e) => {
-        e.preventDefault();
-        if (!password.trim()) return;
+        e?.preventDefault?.();
+        if (isSubmittingRef.current || loading) return;
+        const trimmed = password.trim();
+        if (!trimmed) return;
+
+        isSubmittingRef.current = true;
         setLoading(true);
+        toast.dismiss();
+
         try {
             const res = await fetch('/api/admin/auth', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ password: password.trim() }),
+                body: JSON.stringify({ password: trimmed }),
             });
             const data = await res.json().catch(() => ({}));
-            if (data.success) {
+            if (data.success && data.authenticated) {
                 if (data.token && typeof window !== 'undefined') {
                     localStorage.setItem('gumshop_admin_token', data.token);
                 }
+                toast.dismiss();
                 toast.success('Welcome back to Store HQ! 🚀');
-                window.location.href = '/dashboard';
+                router.replace('/dashboard');
+                return;
             } else {
+                toast.dismiss();
                 toast.error(data.error || 'Wrong master password');
                 setPassword('');
             }
         } catch {
+            toast.dismiss();
             toast.error('Something went wrong. Please check connection.');
         } finally {
+            isSubmittingRef.current = false;
             setLoading(false);
         }
     };

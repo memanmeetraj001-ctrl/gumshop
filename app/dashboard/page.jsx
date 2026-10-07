@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -56,6 +56,7 @@ export default function MasterDashboardPage() {
     const [inPagePassword, setInPagePassword] = useState('');
     const [inPageShow, setInPageShow] = useState(false);
     const [inPageSubmitting, setInPageSubmitting] = useState(false);
+    const inPageSubmittingRef = useRef(false);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'archived'
@@ -333,7 +334,8 @@ export default function MasterDashboardPage() {
 
     const handleInPageLogin = async (e) => {
         e?.preventDefault?.();
-        if (!inPagePassword.trim()) return;
+        if (inPageSubmittingRef.current || !inPagePassword.trim()) return;
+        inPageSubmittingRef.current = true;
         setInPageSubmitting(true);
         try {
             const res = await fetch('/api/admin/auth', {
@@ -344,6 +346,7 @@ export default function MasterDashboardPage() {
             });
             const data = await res.json().catch(() => ({}));
             if (data.success) {
+                toast.dismiss();
                 if (data.token && typeof window !== 'undefined') {
                     localStorage.setItem('gumshop_admin_token', data.token);
                 }
@@ -356,11 +359,14 @@ export default function MasterDashboardPage() {
                     if (slug) setHomepageStoreSlugState(slug);
                 });
             } else {
+                toast.dismiss();
                 toast.error(data.error || 'Invalid master password');
             }
         } catch {
+            toast.dismiss();
             toast.error('Authentication request failed. Please retry.');
         } finally {
+            inPageSubmittingRef.current = false;
             setInPageSubmitting(false);
         }
     };

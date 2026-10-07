@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { 
     Smartphone, 
@@ -23,10 +23,11 @@ import {
     Zap,
     Download,
     Flame,
-    Star
+    Star,
+    RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
-import { getActiveStore, getActiveStoreSync } from '@/lib/activeStore';
+import { getActiveStore, getActiveStoreSync, setActiveStoreSlug } from '@/lib/activeStore';
 import { getProductsByStore } from '@/lib/firebaseDb';
 import Loading from '@/components/Loading';
 import toast from 'react-hot-toast';
@@ -53,6 +54,9 @@ export default function StanStoreBioEditor() {
     const { user, loading: authLoading } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [autoSaveStatus, setAutoSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
+    const isInitialMount = useRef(true);
+    const autoSaveTimerRef = useRef(null);
     const [copied, setCopied] = useState(false);
     const [activeTab, setActiveTab] = useState('branding'); // 'branding' | 'socials' | 'links' | 'products'
     
@@ -147,11 +151,72 @@ export default function StanStoreBioEditor() {
                 console.error("Error loading bio editor:", err);
             } finally {
                 setLoading(false);
+                setTimeout(() => {
+                    isInitialMount.current = false;
+                }, 600);
             }
         };
 
         if (!authLoading) initEditor();
     }, [user, authLoading]);
+
+    // Debounced Auto-Save on profile edits
+    useEffect(() => {
+        if (loading || isInitialMount.current || !currentStore) return;
+        if (!profile.displayName && !profile.handle) return;
+
+        setAutoSaveStatus('saving');
+        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+
+        autoSaveTimerRef.current = setTimeout(async () => {
+            try {
+                const cleanSlug = (profile.handle || currentStore.username || currentStore.name || 'shop').toLowerCase().replace(/[^a-z0-9-]+/g, '') || 'shop';
+                const targetStoreId = currentStore.id || `store_${cleanSlug}`;
+
+                const updatedStore = {
+                    ...currentStore,
+                    id: targetStoreId,
+                    username: cleanSlug,
+                    bioProfile: profile,
+                    updatedAt: new Date().toISOString()
+                };
+
+                // Sync local caches
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem(`store_${cleanSlug}`, JSON.stringify(updatedStore));
+                    localStorage.setItem(`cloned_store_${cleanSlug}`, JSON.stringify(updatedStore));
+                    localStorage.setItem(targetStoreId, JSON.stringify(updatedStore));
+                    localStorage.setItem('gumshop_active_store', JSON.stringify(updatedStore));
+                    localStorage.setItem('active_store_slug', cleanSlug);
+                    localStorage.setItem(`gumshop_db_stores/${targetStoreId}`, JSON.stringify(updatedStore));
+                    localStorage.setItem(`gumshop_db_stores/store_${cleanSlug}`, JSON.stringify(updatedStore));
+                    window.dispatchEvent(new Event('active_store_changed'));
+                }
+
+                // Background sync to server API
+                fetch('/api/store/data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        store: updatedStore,
+                        products: catalogProducts
+                    })
+                }).catch(() => {});
+
+                setAutoSaveStatus('saved');
+                setTimeout(() => {
+                    setAutoSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
+                }, 3000);
+            } catch (e) {
+                console.warn("Bio editor auto-save notice:", e);
+                setAutoSaveStatus('idle');
+            }
+        }, 800);
+
+        return () => {
+            if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+        };
+    }, [profile, currentStore, loading]);
 
     // Handle Copy Bio Link
     const handleCopyBioLink = () => {
@@ -208,9 +273,11 @@ export default function StanStoreBioEditor() {
     // Save Changes
     const handleSaveBioProfile = async () => {
         if (!currentStore) return;
+        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
         setSaving(true);
+        setAutoSaveStatus('saving');
         try {
-            const cleanSlug = (profile.handle || currentStore.username || currentStore.name || 'shop').toLowerCase().replace(/[^a-z0-9-]+/g, '');
+            const cleanSlug = (profile.handle || currentStore.username || currentStore.name || 'shop').toLowerCase().replace(/[^a-z0-9-]+/g, '') || 'shop';
             const targetStoreId = currentStore.id || `store_${cleanSlug}`;
 
             const updatedStore = {
@@ -227,14 +294,18 @@ export default function StanStoreBioEditor() {
                 localStorage.setItem(`cloned_store_${cleanSlug}`, JSON.stringify(updatedStore));
                 localStorage.setItem(targetStoreId, JSON.stringify(updatedStore));
                 localStorage.setItem('gumshop_active_store', JSON.stringify(updatedStore));
+                localStorage.setItem('active_store_slug', cleanSlug);
                 localStorage.setItem(`gumshop_db_stores/${targetStoreId}`, JSON.stringify(updatedStore));
                 localStorage.setItem(`gumshop_db_stores/store_${cleanSlug}`, JSON.stringify(updatedStore));
                 window.dispatchEvent(new Event('active_store_changed'));
                 window.dispatchEvent(new Event('products_updated'));
             }
 
-            // 2. Dual-layer API sync to server (Supabase / Edge backend)
-            fetch('/api/store/data', {
+            // Sync active store cookie
+            setActiveStoreSlug(cleanSlug);
+
+            // 2. Dual-layer API sync to server (Supabase / Edge backend) - Await to guarantee persistence
+            await fetch('/api/store/data', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -252,12 +323,14 @@ export default function StanStoreBioEditor() {
             }
 
             setCurrentStore(updatedStore);
+            setAutoSaveStatus('saved');
             toast.success("Mobile Stan Storefront published successfully! 🚀", {
                 duration: 3500,
                 icon: '📱'
             });
         } catch (err) {
             console.error("Save error:", err);
+            setAutoSaveStatus('idle');
             toast.error("Failed to save mobile store settings.");
         } finally {
             setSaving(false);
@@ -305,6 +378,20 @@ export default function StanStoreBioEditor() {
 
                     {/* Action Bar */}
                     <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                        {/* Auto-save Status Badge */}
+                        {autoSaveStatus === 'saving' && (
+                            <span className="inline-flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 text-xs font-medium">
+                                <RefreshCw size={12} className="animate-spin" />
+                                <span>Auto-saving...</span>
+                            </span>
+                        )}
+                        {autoSaveStatus === 'saved' && (
+                            <span className="inline-flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 text-xs font-medium">
+                                <CheckCircle2 size={13} className="text-emerald-600" />
+                                <span>Saved</span>
+                            </span>
+                        )}
+
                         <button
                             onClick={handleCopyBioLink}
                             className="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition"
