@@ -167,11 +167,14 @@ export default function AiShoppingAssistant({ products = [], storeName = 'Store'
                                             <button
                                                 onClick={() => {
                                                     navigator.clipboard.writeText(msg.couponCode);
-                                                    toast.success("Coupon copied!");
+                                                    if (typeof window !== 'undefined') {
+                                                        sessionStorage.setItem('active_coupon', msg.couponCode);
+                                                    }
+                                                    toast.success(`Coupon ${msg.couponCode} copied & active!`);
                                                 }}
                                                 className="text-[10px] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-md hover:bg-emerald-700 transition"
                                             >
-                                                Copy Code
+                                                Apply Code
                                             </button>
                                         </div>
                                     )}
@@ -195,15 +198,19 @@ export default function AiShoppingAssistant({ products = [], storeName = 'Store'
                                                             {parseFloat(p.price) === 0 ? 'Free' : `$${parseFloat(p.price || 0).toFixed(2)}`}
                                                         </p>
                                                     </div>
-                                                    {onSelectProduct && (
-                                                        <button
-                                                            onClick={() => onSelectProduct(p)}
-                                                            className="p-1.5 rounded-lg bg-slate-950 text-white hover:bg-slate-800 text-[10px] font-bold shrink-0 flex items-center gap-0.5"
-                                                        >
-                                                            <span>Buy</span>
-                                                            <ArrowRight size={10} />
-                                                        </button>
-                                                    )}
+                                                    <button
+                                                        onClick={() => {
+                                                            if (onSelectProduct) {
+                                                                onSelectProduct(p);
+                                                            } else if (p.id) {
+                                                                window.location.href = `/product/${p.id}`;
+                                                            }
+                                                        }}
+                                                        className="p-1.5 rounded-lg bg-slate-950 text-white hover:bg-slate-800 text-[10px] font-bold shrink-0 flex items-center gap-0.5"
+                                                    >
+                                                        <span>Buy</span>
+                                                        <ArrowRight size={10} />
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>

@@ -435,7 +435,8 @@ export default function StoreSettings() {
                         gumroadProductUrl: payloadToSave.gumroadProductUrl,
                         storeId: targetStoreId,
                         storeName: payloadToSave.name,
-                        customDomain: payloadToSave.customDomain
+                        customDomain: payloadToSave.customDomain,
+                        tracking: payloadToSave.tracking
                     })
                 }),
                 fetch('/api/store/data', {
@@ -493,7 +494,7 @@ export default function StoreSettings() {
         { id: '#78716C', name: 'Minimalist Stone', bg: 'bg-stone-500' },
     ];
 
-    const storeSlug = storeInfo.username || storeInfo.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'demo';
+    const storeSlug = storeInfo.username || (storeInfo.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'demo';
     const storeUrl = `https://gumshop.online/shop/${storeSlug}`;
 
     return (

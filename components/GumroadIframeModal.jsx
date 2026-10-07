@@ -151,6 +151,10 @@ export default function GumroadIframeModal({
             urlObj.searchParams.set('items', itemsSummary);
 
             if (typeof window !== 'undefined') {
+                const activeCoupon = sessionStorage.getItem('active_coupon');
+                if (activeCoupon) {
+                    urlObj.searchParams.set('offer_code', activeCoupon.trim());
+                }
                 const origin = window.location.origin;
                 // Redirect user to thank-you ONLY AFTER Gumroad completes actual payment
                 const thankYouRedirect = `${origin}/thank-you?orderId=${encodeURIComponent(sid)}&store=${encodeURIComponent(storeId)}&total=${orderTotal.toFixed(2)}`;

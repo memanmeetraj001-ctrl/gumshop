@@ -226,7 +226,7 @@ export default function StoreShop({ params }) {
             {/* AI Shopping Assistant (generative_ui) */}
             <AiShoppingAssistant 
                 products={products} 
-                storeName={storeInfo.name || 'Store'} 
+                storeName={storeInfo?.name || 'Store'} 
                 themeColor="#10B981" 
             />
         </div>

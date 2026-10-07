@@ -113,7 +113,7 @@ export default function StoreCustomersPage() {
         orders.forEach(order => {
             if (!order) return;
             const email = (order.customerEmail || order.email || order.buyerEmail || '').toLowerCase().trim();
-            const name = order.customerName || order.name || order.buyerName || (email ? email.split('@')[0] : 'Guest Customer');
+            const name = String(order.customerName || order.name || order.buyerName || (email ? email.split('@')[0] : 'Guest Customer'));
             const key = email || `customer_${name.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
 
             const orderTotal = Number(order.total || order.amount || order.price || 0);

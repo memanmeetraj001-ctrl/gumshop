@@ -660,8 +660,8 @@ export default function MasterDashboardPage() {
     // Filtered list
     const filteredShops = shops.filter(shop => {
         const matchesQuery = 
-            shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            shop.username.toLowerCase().includes(searchQuery.toLowerCase());
+            (shop.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (shop.username || '').toLowerCase().includes(searchQuery.toLowerCase());
         const matchesStatus = statusFilter === 'all' || (shop.status || 'active') === statusFilter;
         return matchesQuery && matchesStatus;
     });

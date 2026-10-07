@@ -38,6 +38,13 @@ function ThankYouContent() {
     const [statusMessage, setStatusMessage] = useState('Verifying your payment with Gumroad servers...');
     const [isReverifying, setIsReverifying] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [origin, setOrigin] = useState('');
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setOrigin(window.location.origin);
+        }
+    }, []);
 
     const verifyOrderOnServer = async (orderId, storeId) => {
         if (!orderId) {
@@ -232,12 +239,12 @@ function ThankYouContent() {
                                     <input 
                                         type="text" 
                                         readOnly 
-                                        value={`${typeof window !== 'undefined' ? window.location.origin : 'https://www.gumshop.online'}/shop/${encodeURIComponent(resolvedStoreSlug || 'store')}?ref=${encodeURIComponent(order?.id || orderIdParam || 'vip')}`} 
+                                        value={`${origin || 'https://www.gumshop.online'}/shop/${encodeURIComponent(resolvedStoreSlug || 'store')}?ref=${encodeURIComponent(order?.id || orderIdParam || 'vip')}`} 
                                         className="flex-1 bg-white border border-slate-300 text-slate-800 text-xs px-3 py-2 rounded-xl font-mono select-all focus:outline-none"
                                     />
                                     <button
                                         onClick={() => {
-                                            const refUrl = `${window.location.origin}/shop/${encodeURIComponent(resolvedStoreSlug || 'store')}?ref=${encodeURIComponent(order?.id || orderIdParam || 'vip')}`;
+                                            const refUrl = `${origin || (typeof window !== 'undefined' ? window.location.origin : 'https://www.gumshop.online')}/shop/${encodeURIComponent(resolvedStoreSlug || 'store')}?ref=${encodeURIComponent(order?.id || orderIdParam || 'vip')}`;
                                             navigator.clipboard.writeText(refUrl);
                                             toast.success("Referral link copied!");
                                         }}
@@ -249,7 +256,7 @@ function ThankYouContent() {
                                 </div>
                                 <div className="flex gap-2 pt-1">
                                     <a
-                                        href={`https://wa.me/?text=${encodeURIComponent(`Check out this store I just bought from! You can get an exclusive discount here: ${typeof window !== 'undefined' ? window.location.origin : 'https://www.gumshop.online'}/shop/${encodeURIComponent(resolvedStoreSlug || 'store')}?ref=${encodeURIComponent(order?.id || orderIdParam || 'vip')}`)}`}
+                                        href={`https://wa.me/?text=${encodeURIComponent(`Check out this store I just bought from! You can get an exclusive discount here: ${origin || 'https://www.gumshop.online'}/shop/${encodeURIComponent(resolvedStoreSlug || 'store')}?ref=${encodeURIComponent(order?.id || orderIdParam || 'vip')}`)}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="flex-1 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 text-[11px] font-bold flex items-center justify-center gap-1.5 transition active:scale-98"

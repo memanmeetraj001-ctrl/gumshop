@@ -49,11 +49,14 @@ export default function ExitIntentModal({ onApplyCoupon }) {
     }, [hasTriggered]);
 
     const handleClaimDiscount = () => {
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('active_coupon', 'SAVE10');
+            sessionStorage.setItem('gumshop_exit_dismissed', 'true');
+        }
         if (onApplyCoupon) {
             onApplyCoupon('SAVE10', 10);
         }
         toast.success("Coupon 'SAVE10' applied! 10% discount activated 🎉");
-        sessionStorage.setItem('gumshop_exit_dismissed', 'true');
         setIsOpen(false);
     };
 

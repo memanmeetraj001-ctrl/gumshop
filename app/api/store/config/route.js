@@ -7,6 +7,7 @@ let serverStoreConfig = {
     gumroadProductUrl: '',
     activeStoreId: '',
     storeName: '',
+    tracking: {},
     updatedAt: null
 };
 
@@ -44,7 +45,7 @@ export async function GET() {
 export async function POST(req) {
     try {
         const body = await req.json().catch(() => ({}));
-        const { gumroadToken, gumroadProductUrl, storeId, storeName, customDomain } = body;
+        const { gumroadToken, gumroadProductUrl, storeId, storeName, customDomain, tracking } = body;
 
         const cookieStore = await cookies();
 
@@ -53,6 +54,7 @@ export async function POST(req) {
         if (gumroadProductUrl) serverStoreConfig.gumroadProductUrl = gumroadProductUrl.trim();
         if (storeId) serverStoreConfig.activeStoreId = storeId;
         if (storeName) serverStoreConfig.storeName = storeName;
+        if (tracking) serverStoreConfig.tracking = tracking;
         serverStoreConfig.updatedAt = new Date().toISOString();
 
         // Set persistent cookies (30-day expiry)
@@ -71,7 +73,8 @@ export async function POST(req) {
             gumroadProductUrl: gumroadProductUrl ? gumroadProductUrl.trim() : (serverStoreConfig.gumroadProductUrl || ''),
             storeId: storeId || serverStoreConfig.activeStoreId || '',
             storeName: storeName || serverStoreConfig.storeName || '',
-            customDomain: customDomain || ''
+            customDomain: customDomain || '',
+            tracking: tracking || serverStoreConfig.tracking || {}
         };
 
         cookieStore.set(CONFIG_COOKIE_NAME, encodeURIComponent(JSON.stringify(payloadToSave)), {

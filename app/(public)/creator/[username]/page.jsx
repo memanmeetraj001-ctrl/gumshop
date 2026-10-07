@@ -197,8 +197,13 @@ export default function CreatorBioPage({ params }) {
     
     // High-Conversion Sales States
     const [showStickyBar, setShowStickyBar] = useState(false);
-    const [liveViewerCount] = useState(() => Math.floor(Math.random() * 8) + 14); // 14 to 21 live viewers
+    const [liveViewerCount, setLiveViewerCount] = useState(18); // SSR deterministic default
     const [countdown, setCountdown] = useState({ hours: 2, minutes: 48, seconds: 32 });
+
+    // Client-side initialization to avoid hydration mismatch
+    useEffect(() => {
+        setLiveViewerCount(Math.floor(Math.random() * 8) + 14); // 14 to 21 live viewers
+    }, []);
 
     // Live Ticking Countdown Timer
     useEffect(() => {
@@ -778,20 +783,20 @@ export default function CreatorBioPage({ params }) {
                                         <div className="flex items-center gap-1.5 mb-1">
                                             <span className="text-xs">🎁</span>
                                             <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
-                                                Free Resource
+                                                VIP Drops Club
                                             </span>
                                         </div>
                                         <h4 className="text-xs sm:text-sm font-extrabold text-white leading-snug">
-                                            {creator.leadMagnet.title || 'Free Creator Playbook'}
+                                            {creator.leadMagnet.title || 'VIP Members Club & Secret Drops'}
                                         </h4>
                                         <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-                                            {creator.leadMagnet.subtitle || 'Enter your email for instant digital delivery.'}
+                                            {creator.leadMagnet.subtitle || 'Enter your email for private launch alerts, restocks, and exclusive promo codes.'}
                                         </p>
 
                                         {bioLeadSubmitted ? (
                                             <div className="mt-2.5 p-2 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
                                                 <CheckCircle2 size={14} className="text-emerald-400" />
-                                                <span>Access link sent! Check your inbox.</span>
+                                                <span>You’re on the VIP list! Welcome aboard.</span>
                                             </div>
                                         ) : (
                                             <form onSubmit={handleBioLeadSubmit} className="mt-3 flex gap-1.5">
@@ -898,13 +903,13 @@ export default function CreatorBioPage({ params }) {
                                                         </span>
 
                                                         {isFree ? (
-                                                            /* Free Download CTA Button */
+                                                            /* Free Sample CTA Button */
                                                             <button
                                                                 onClick={() => handleFreeDownloadClick(item)}
                                                                 className="py-1.5 px-3 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs transition active:scale-95 shadow-2xs flex items-center gap-1"
                                                             >
-                                                                <Download size={13} />
-                                                                <span>Free Download</span>
+                                                                <Package size={13} className="text-emerald-600" />
+                                                                <span>Claim Free Sample</span>
                                                             </button>
                                                         ) : (
                                                             /* Instant Buy via Gumroad CTA Button */
@@ -1108,20 +1113,20 @@ export default function CreatorBioPage({ params }) {
                         </button>
 
                         <div className="size-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
-                            <Download size={22} />
+                            <Package size={22} />
                         </div>
 
                         <h3 className="text-lg font-extrabold text-slate-950">
-                            Download {freeDownloadModal.product?.name}
+                            Claim Free Sample: {freeDownloadModal.product?.name}
                         </h3>
                         <p className="text-xs text-slate-500 mt-1">
-                            Enter your email to receive direct instant access to the files and templates.
+                            Enter your email to receive private drop details and claim your complimentary sample.
                         </p>
 
                         {freeDownloadModal.submitted ? (
                             <div className="mt-4 p-3 bg-emerald-50 text-emerald-800 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-1.5">
                                 <CheckCircle2 size={16} className="text-emerald-600" />
-                                <span>Check your inbox! Download link sent.</span>
+                                <span>Sample request confirmed! Check your email.</span>
                             </div>
                         ) : (
                             <form onSubmit={handleFreeDownloadSubmit} className="mt-4 space-y-3">
@@ -1146,8 +1151,8 @@ export default function CreatorBioPage({ params }) {
                                     type="submit"
                                     className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-md transition active:scale-98 flex items-center justify-center gap-1.5"
                                 >
-                                    <Download size={14} />
-                                    <span>Get Free Instant Download</span>
+                                    <Package size={14} />
+                                    <span>Request Complimentary Sample</span>
                                 </button>
                             </form>
                         )}
