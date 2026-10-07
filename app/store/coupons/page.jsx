@@ -190,11 +190,12 @@ export default function StoreCoupons() {
                         <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-2">
                             Discount Type
                         </label>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             {[
                                 { id: 'percentage', label: 'Percentage', icon: Percent },
                                 { id: 'fixed', label: 'Fixed Amount', icon: DollarSign },
                                 { id: 'shipping', label: 'Free Shipping', icon: Truck },
+                                { id: 'bogo', label: 'BOGO (Buy 1 Get 1)', icon: Tag },
                             ].map(t => {
                                 const Icon = t.icon;
                                 const isSelected = couponType === t.id;

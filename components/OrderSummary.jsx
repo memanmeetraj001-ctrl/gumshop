@@ -26,6 +26,8 @@ const OrderSummary = ({ totalPrice, items }) => {
     const [couponCodeInput, setCouponCodeInput] = useState('');
     const [coupon, setCoupon] = useState('');
     const [isCheckingOut, setIsCheckingOut] = useState(false);
+    const [includeRushProtection, setIncludeRushProtection] = useState(false);
+    const RUSH_PROTECTION_FEE = 3.99;
     const [checkoutModal, setCheckoutModal] = useState({
         isOpen: false,
         gumroadUrl: '',
@@ -49,9 +51,17 @@ const OrderSummary = ({ totalPrice, items }) => {
         try {
             const couponData = await getCoupon(couponCodeInput.trim().toUpperCase());
             if (couponData && (!couponData.expiresAt || new Date(couponData.expiresAt) > new Date())) {
+                // 1. Min Spend verification
                 if (couponData.minSpend && totalPrice < Number(couponData.minSpend)) {
                     return toast.error(`Minimum cart subtotal of $${couponData.minSpend} required for coupon ${couponData.code}`);
                 }
+                // 2. Usage Cap verification
+                if (couponData.usageLimit && Number(couponData.usageLimit) > 0) {
+                    if (Number(couponData.usedCount || 0) >= Number(couponData.usageLimit)) {
+                        return toast.error(`Coupon ${couponData.code} has reached its maximum usage limit`);
+                    }
+                }
+                // 3. Product or Store scope
                 if (couponData.productId && couponData.productId !== 'ALL') {
                     if (!items.some(item => item.id === couponData.productId)) {
                         return toast.error("This coupon is for a specific product not currently in your cart");
@@ -63,12 +73,22 @@ const OrderSummary = ({ totalPrice, items }) => {
                     }
                 }
 
+                // 4. BOGO verification (requires >= 2 items)
+                if (couponData.type === 'bogo') {
+                    const totalQty = items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+                    if (totalQty < 2) {
+                        return toast.error("BOGO promotion requires at least 2 items in your cart");
+                    }
+                }
+
                 setCoupon(couponData);
                 const discountLabel = couponData.type === 'fixed' 
                     ? `$${couponData.discount} off` 
                     : couponData.type === 'shipping' 
                         ? 'Free Shipping' 
-                        : `${couponData.discount}% off`;
+                        : couponData.type === 'bogo'
+                            ? 'Buy 1 Get 1 Free / 50% Off'
+                            : `${couponData.discount}% off`;
                 toast.success(`Coupon applied! ${discountLabel} 🎉`);
             } else {
                 toast.error("Invalid or expired coupon");
@@ -82,6 +102,19 @@ const OrderSummary = ({ totalPrice, items }) => {
         if (!coupon) return 0;
         if (coupon.type === 'fixed') {
             return Math.min(totalPrice, Number(coupon.discount || 0));
+        }
+        if (coupon.type === 'bogo') {
+            const allPrices = [];
+            items.forEach(item => {
+                const qty = Number(item.quantity) || 1;
+                for (let q = 0; q < qty; q++) {
+                    allPrices.push(Number(item.price) || 0);
+                }
+            });
+            allPrices.sort((a, b) => a - b);
+            const freeCount = Math.floor(allPrices.length / 2);
+            const discountPct = Number(coupon.discount || 100) / 100;
+            return allPrices.slice(0, freeCount).reduce((sum, p) => sum + (p * discountPct), 0);
         }
         if (coupon.productId && coupon.productId !== 'ALL') {
             const applicableTotal = items.filter(i => i.id === coupon.productId).reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -100,13 +133,30 @@ const OrderSummary = ({ totalPrice, items }) => {
         const fallbackSessionId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         try {
             const discountAmount = calculateDiscount();
-            const finalTotal = totalPrice - discountAmount;
+            const upsellAmount = includeRushProtection ? RUSH_PROTECTION_FEE : 0;
+            const finalTotal = totalPrice - discountAmount + upsellAmount;
             const activeStore = getActiveStoreSync();
             const storeSlug = activeStore?.username || (typeof window !== 'undefined' ? (window.location.pathname.match(/\/shop\/([^\/]+)/)?.[1] || '') : '');
             const storeScopedUrl = (typeof window !== 'undefined' && storeSlug) ? (localStorage.getItem(`gumroad_url_${storeSlug}`) || localStorage.getItem(`gumroad_product_url_${storeSlug}`)) : '';
             const persistentUrl = activeStore?.gumroadProductUrl || storeScopedUrl || (typeof window !== 'undefined' ? (localStorage.getItem('gumshop_gumroad_url') || localStorage.getItem('gumroad_product_url') || '') : '');
             const storeScopedToken = (typeof window !== 'undefined' && storeSlug) ? localStorage.getItem(`gumroad_token_${storeSlug}`) : '';
             const persistentToken = activeStore?.gumroadToken || storeScopedToken || (typeof window !== 'undefined' ? (localStorage.getItem('gumshop_gumroad_token') || localStorage.getItem('gumroad_access_token') || '') : '');
+
+            const checkoutItems = items.map(item => ({
+                productId: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity
+            }));
+
+            if (includeRushProtection) {
+                checkoutItems.push({
+                    productId: 'addon_priority_rush_insurance',
+                    name: '⚡ Priority Rush Processing & Transit Insurance',
+                    price: RUSH_PROTECTION_FEE,
+                    quantity: 1
+                });
+            }
 
             const res = await fetch('/api/gumroad/dynamic-checkout', {
                 method: 'POST',
@@ -116,14 +166,9 @@ const OrderSummary = ({ totalPrice, items }) => {
                     storeName: activeStore?.name || 'GumShop Order',
                     gumroadProductUrl: activeStore?.gumroadProductUrl || persistentUrl || '',
                     accessToken: activeStore?.gumroadToken || persistentToken || '',
-                    items: items.map(item => ({
-                        productId: item.id,
-                        name: item.name,
-                        price: item.price,
-                        quantity: item.quantity
-                    })),
+                    items: checkoutItems,
                     discountAmount: discountAmount,
-                    shippingFee: 0,
+                    shippingFee: upsellAmount,
                     customer: {
                         address: selectedAddress?.street || '',
                         city: selectedAddress?.city || '',
@@ -157,6 +202,8 @@ const OrderSummary = ({ totalPrice, items }) => {
         return handleDynamicCheckout();
     };
 
+    const finalSubtotal = totalPrice - calculateDiscount() + (includeRushProtection ? RUSH_PROTECTION_FEE : 0);
+
     return (
         <div className='w-full max-w-lg lg:max-w-[360px] bg-white border border-slate-200/90 text-slate-700 text-sm rounded-3xl p-6 sm:p-7 shadow-xl'>
             <h2 className='text-lg font-extrabold text-slate-900'>Order Summary</h2>
@@ -171,6 +218,12 @@ const OrderSummary = ({ totalPrice, items }) => {
                     <span>Express Shipping:</span>
                     <span className="font-bold text-emerald-600">FREE</span>
                 </div>
+                {includeRushProtection && (
+                    <div className='flex justify-between text-emerald-700 font-semibold'>
+                        <span>Priority Rush & Insurance:</span>
+                        <span>+{currency}{RUSH_PROTECTION_FEE.toFixed(2)}</span>
+                    </div>
+                )}
                 {coupon && (
                     <div className='flex justify-between text-emerald-600 font-semibold'>
                         <span>Coupon ({coupon.code}):</span>
@@ -205,6 +258,30 @@ const OrderSummary = ({ totalPrice, items }) => {
                 )}
             </div>
 
+            {/* 1-Click Checkout Upsell Bump */}
+            <div className="py-3 my-2 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-emerald-500/10 border border-emerald-500/30 rounded-2xl p-3.5">
+                <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input 
+                        type="checkbox"
+                        checked={includeRushProtection}
+                        onChange={(e) => setIncludeRushProtection(e.target.checked)}
+                        className="mt-0.5 size-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer accent-emerald-600"
+                    />
+                    <div className="flex-1 text-xs">
+                        <div className="flex items-center justify-between font-bold text-slate-900">
+                            <span className="flex items-center gap-1 text-emerald-800">
+                                <Zap size={13} className="fill-emerald-600 text-emerald-600" />
+                                Priority Rush & Transit Insurance
+                            </span>
+                            <span className="text-emerald-700 font-extrabold">+${RUSH_PROTECTION_FEE.toFixed(2)}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                            Guaranteed priority dispatch within 24h & 100% door-to-door transit protection.
+                        </p>
+                    </div>
+                </label>
+            </div>
+
             {/* Delivery Address Selector */}
             <div className="py-3 border-b border-slate-100">
                 <div className="flex items-center justify-between text-xs mb-1.5">
@@ -232,7 +309,7 @@ const OrderSummary = ({ totalPrice, items }) => {
             {/* Total */}
             <div className='flex justify-between items-center py-4'>
                 <span className="text-sm font-semibold text-slate-700">Total:</span>
-                <span className='text-2xl font-black text-slate-900'>{currency}{(totalPrice - calculateDiscount()).toFixed(2)}</span>
+                <span className='text-2xl font-black text-slate-900'>{currency}{finalSubtotal.toFixed(2)}</span>
             </div>
 
             {/* ⚡ Primary White-Labeled Instant Checkout Button */}
@@ -242,7 +319,7 @@ const OrderSummary = ({ totalPrice, items }) => {
                 className='w-full bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white font-extrabold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50'
             >
                 <Zap size={18} className="fill-white" />
-                <span>{isCheckingOut ? "Loading Checkout..." : "⚡ Buy Now"}</span>
+                <span>{isCheckingOut ? "Loading Checkout..." : `⚡ Buy Now • ${currency}${finalSubtotal.toFixed(2)}`}</span>
             </button>
 
             {/* Trust Guarantee Badges */}

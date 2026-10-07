@@ -1,6 +1,6 @@
 'use client'
 import { usePathname } from "next/navigation"
-import { HomeIcon, LayoutListIcon, SquarePenIcon, SquarePlusIcon, TicketPercentIcon, SettingsIcon, Sparkles, Film, ExternalLink, Smartphone, Package, Users, Tag } from "lucide-react"
+import { HomeIcon, LayoutListIcon, SquarePenIcon, SquarePlusIcon, TicketPercentIcon, SettingsIcon, Sparkles, Film, ExternalLink, Smartphone, Package, Users, Tag, BarChart3 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { getActiveStoreSync } from "@/lib/activeStore"
@@ -14,7 +14,7 @@ const StoreSidebar = ({ storeInfo }) => {
         { name: '← Master Dashboard', href: '/dashboard', icon: HomeIcon, highlight: true },
         { name: 'Import Store (AI)', href: '/store/import', icon: Sparkles, highlight: true },
         { name: '+ Create Blank Shop', href: '/create-store', icon: SquarePlusIcon },
-        { name: 'Store Overview', href: '/store', icon: HomeIcon },
+        { name: 'Analytics & Overview', href: '/store', icon: BarChart3 },
         { name: 'Creator Bio Link', href: `/creator/${storeSlug}`, icon: Smartphone, highlight: true, external: true, badge: 'Bio' },
         { name: 'Manage Products', href: '/store/manage-product', icon: SquarePenIcon },
         { name: 'Add Product', href: '/store/add-product', icon: SquarePlusIcon },

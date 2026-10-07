@@ -60,6 +60,15 @@ const ProductDetails = ({ product, storeInfo }) => {
     const effectiveUnitPrice = unitPrice + sizeDelta;
     const compareAt = parseFloat(product.compareAtPrice || product.mrp || Math.round(unitPrice * 1.35 * 100) / 100) + sizeDelta;
 
+    const colorCode = selectedColor?.name?.substring(0, 3).toUpperCase() || 'DEF';
+    const sizeCode = selectedSize?.name?.substring(0, 3).toUpperCase() || 'STD';
+    const baseSku = product.sku || `SKU-${product.id?.substring(0, 6)?.toUpperCase() || 'PROD'}`;
+    const activeSku = `${baseSku}-${colorCode}-${sizeCode}`;
+
+    const rawStock = Number(product.stockQuantity !== undefined ? product.stockQuantity : 42);
+    const isOutOfStock = product.inStock === false || rawStock <= 0;
+    const isLowStock = !isOutOfStock && rawStock <= 12;
+
     const activeVariantLabel = `${selectedColor?.name || 'Default'}${selectedSize ? ` • ${selectedSize.name}` : ''}`;
 
     // Quantity Tier Breaks Calculations
@@ -263,29 +272,61 @@ const ProductDetails = ({ product, storeInfo }) => {
                         </div>
                     </div>
 
-                    {/* Product Title & Category */}
+                    {/* Product Title, SKU & Category */}
                     <div>
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
-                            {product.category || 'Featured Collection'}
-                        </span>
-                        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight mt-2 leading-snug">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
+                                {product.category || 'Featured Collection'}
+                            </span>
+                            <span className="font-mono text-[11px] text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg font-semibold">
+                                SKU: {activeSku}
+                            </span>
+                        </div>
+                        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight leading-snug">
                             {product.name}
                         </h1>
                     </div>
 
-                    {/* Price Header */}
-                    <div className="flex items-baseline gap-3">
-                        <span className="text-3xl sm:text-4xl font-black text-slate-950">
-                            ${currentTier.pricePerUnit.toFixed(2)}
-                        </span>
-                        {compareAt > unitPrice && (
-                            <span className="text-lg text-slate-400 line-through font-semibold">
-                                ${(compareAt * selectedQuantity).toFixed(2)}
+                    {/* Price Header & Real-Time Stock Status */}
+                    <div className="space-y-3">
+                        <div className="flex items-baseline gap-3">
+                            <span className="text-3xl sm:text-4xl font-black text-slate-950">
+                                ${currentTier.pricePerUnit.toFixed(2)}
                             </span>
+                            {compareAt > unitPrice && (
+                                <span className="text-lg text-slate-400 line-through font-semibold">
+                                    ${(compareAt * selectedQuantity).toFixed(2)}
+                                </span>
+                            )}
+                            {isOutOfStock ? (
+                                <span className="text-xs font-bold text-rose-700 bg-rose-100 px-2.5 py-0.5 rounded-full">
+                                    Out of Stock
+                                </span>
+                            ) : (
+                                <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                                    ✓ In Stock ({rawStock} units)
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Real-time Urgency Stock Level Bar */}
+                        {isLowStock && (
+                            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-1.5">
+                                <div className="flex items-center justify-between text-xs font-bold text-amber-800">
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+                                        🔥 High Demand: Only {rawStock} left in stock!
+                                    </span>
+                                    <span className="text-[11px] font-mono text-amber-700">Almost Sold Out</span>
+                                </div>
+                                <div className="w-full bg-amber-200/60 h-2 rounded-full overflow-hidden">
+                                    <div 
+                                        className="bg-amber-500 h-full rounded-full transition-all duration-500" 
+                                        style={{ width: `${Math.min(100, Math.max(15, (rawStock / 15) * 100))}%` }} 
+                                    />
+                                </div>
+                            </div>
                         )}
-                        <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                            In Stock • Ready to Ship
-                        </span>
                     </div>
 
                     {/* Interactive Color & Size Variant Switcher */}
@@ -400,20 +441,35 @@ const ProductDetails = ({ product, storeInfo }) => {
                         {/* Primary "⚡ Buy Now" Button */}
                         <button
                             onClick={handleInstantBuyNow}
-                            disabled={isCheckingOut}
-                            className="w-full py-4 px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-black text-base shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-2 transition hover:scale-[1.01]"
+                            disabled={isCheckingOut || isOutOfStock}
+                            className={`w-full py-4 px-8 rounded-2xl font-black text-base flex items-center justify-center gap-2 transition ${
+                                isOutOfStock
+                                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white shadow-xl shadow-emerald-600/30 hover:scale-[1.01]'
+                            }`}
                         >
-                            <Zap size={20} className="fill-white" />
-                            <span>{isCheckingOut ? "Preparing Checkout..." : `⚡ Buy Now • $${currentTier.totalPrice.toFixed(2)}`}</span>
+                            <Zap size={20} className={isOutOfStock ? "fill-slate-400 text-slate-400" : "fill-white"} />
+                            <span>
+                                {isOutOfStock 
+                                    ? "Sold Out" 
+                                    : isCheckingOut 
+                                        ? "Preparing Checkout..." 
+                                        : `⚡ Buy Now • $${currentTier.totalPrice.toFixed(2)}`}
+                            </span>
                         </button>
 
                         {/* Secondary Add to Cart */}
                         <button
                             onClick={handleAddToCart}
-                            className="w-full py-3 px-6 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-98 text-slate-800 font-bold text-sm flex items-center justify-center gap-2 transition"
+                            disabled={isOutOfStock}
+                            className={`w-full py-3 px-6 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition ${
+                                isOutOfStock
+                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                    : 'bg-slate-100 hover:bg-slate-200 active:scale-98 text-slate-800'
+                            }`}
                         >
                             <ShoppingBag size={16} />
-                            <span>Add to Bag</span>
+                            <span>{isOutOfStock ? "Out of Stock" : "Add to Bag"}</span>
                         </button>
                     </div>
 
