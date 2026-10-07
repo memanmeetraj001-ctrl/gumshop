@@ -29,7 +29,6 @@ import {
 } from 'lucide-react';
 import { getStoreByUsername, getProductsByStore, getAllStores, isProductDeleted, isJunkProductName } from '@/lib/firebaseDb';
 import GumroadIframeModal from '@/components/GumroadIframeModal';
-import InAppBrowserBanner from '@/components/InAppBrowserBanner';
 import ExitIntentModal from '@/components/ExitIntentModal';
 import AiShoppingAssistant from '@/components/AiShoppingAssistant';
 import Loading from '@/components/Loading';
@@ -497,9 +496,6 @@ export default function CreatorBioPage({ params }) {
 
     return (
         <div className={`min-h-screen text-slate-900 selection:bg-rose-500 selection:text-white flex flex-col font-sans antialiased ${activePreset.bg}`}>
-            {/* In-App Browser (TikTok / Instagram) Optimizer */}
-            <InAppBrowserBanner />
-            
             {/* SEO Rich Snippets JSON-LD */}
             <script
                 type="application/ld+json"
@@ -1031,19 +1027,6 @@ export default function CreatorBioPage({ params }) {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-
-                            {/* ─── 1-Tap WhatsApp Direct Closing Channel ─── */}
-                            <div className="mt-4">
-                                <a
-                                    href={`https://wa.me/?text=${encodeURIComponent(`Hi! I'm on your creator shop @${rawUsername} and have a quick question before ordering:`)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="w-full py-2.5 px-4 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-center gap-2 transition active:scale-98"
-                                >
-                                    <MessageCircle size={15} className="text-emerald-600" />
-                                    <span>Have questions? Chat directly on WhatsApp →</span>
-                                </a>
                             </div>
 
                         </div>
