@@ -37,6 +37,7 @@ import {
     getStoreAndCatalog,
     getStoreAndCatalogSync 
 } from '@/lib/storePresets';
+import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 import toast from 'react-hot-toast';
 
 const PRESET_STYLES = {
@@ -647,13 +648,10 @@ export default function CreatorBioPage({ params }) {
                                 <div className="relative mb-3 group">
                                     <div className="size-20 sm:size-22 rounded-full overflow-hidden p-0.5 bg-gradient-to-tr from-slate-200 to-slate-100 ring-2 ring-slate-200/80 shadow-md">
                                         <img 
-                                            src={creator.avatar} 
-                                            alt={creator.name} 
+                                            src={getSafeImageUrl(creator.avatar, 'avatar')} 
+                                            alt={creator.name || 'Store'} 
                                             className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-300"
-                                            onError={(e) => {
-                                                e.target.onerror = null;
-                                                e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(creator.name || 'Store')}`;
-                                            }}
+                                            onError={(e) => handleImageError(e, 'avatar', creator.name || 'Store')}
                                         />
                                     </div>
                                     <button 
@@ -870,13 +868,10 @@ export default function CreatorBioPage({ params }) {
                                                 {/* Square Rounded Thumbnail */}
                                                 <div className="size-16 sm:size-18 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-100 relative">
                                                     <img 
-                                                        src={item.image || (item.images && item.images[0]) || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200'} 
-                                                        alt={item.name} 
+                                                        src={getSafeImageUrl(item.image || (item.images && item.images[0]))} 
+                                                        alt={item.name || 'Product'} 
                                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                        onError={(e) => {
-                                                            e.target.onerror = null;
-                                                            e.target.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200';
-                                                        }}
+                                                        onError={(e) => handleImageError(e, 'product')}
                                                     />
                                                 </div>
 
@@ -1059,8 +1054,9 @@ export default function CreatorBioPage({ params }) {
                         <div className="flex items-center gap-2.5 min-w-0">
                             <div className="size-9 rounded-xl overflow-hidden bg-slate-800 shrink-0 border border-slate-700">
                                 <img 
-                                    src={displayedProducts[0].image || (displayedProducts[0].images && displayedProducts[0].images[0]) || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200'} 
-                                    alt={displayedProducts[0].name} 
+                                    src={getSafeImageUrl(displayedProducts[0].image || (displayedProducts[0].images && displayedProducts[0].images[0]))} 
+                                    alt={displayedProducts[0].name || 'Product'} 
+                                    onError={(e) => handleImageError(e, 'product')}
                                     className="w-full h-full object-cover" 
                                 />
                             </div>

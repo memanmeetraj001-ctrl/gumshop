@@ -14,8 +14,8 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const body = await req.json();
-    if (!body.store_id || !body.title) {
+    const body = await req.json().catch(() => ({}));
+    if (!body || !body.store_id || !body.title) {
       return NextResponse.json({ success: false, error: 'store_id and title are required' }, { status: 400 });
     }
     const product = await dbCreateProduct(body);
@@ -27,8 +27,8 @@ export async function POST(req) {
 
 export async function PATCH(req) {
   try {
-    const body = await req.json();
-    if (!body.id) {
+    const body = await req.json().catch(() => ({}));
+    if (!body || !body.id) {
       return NextResponse.json({ success: false, error: 'Product ID required' }, { status: 400 });
     }
     const updated = await dbUpdateProduct(body.id, body.updates || {});

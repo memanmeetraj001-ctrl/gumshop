@@ -12,8 +12,8 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    const body = await req.json();
-    if (!body.name || !body.slug) {
+    const body = await req.json().catch(() => ({}));
+    if (!body || !body.name || !body.slug) {
       return NextResponse.json({ success: false, error: 'Store name and slug are required' }, { status: 400 });
     }
     const store = await dbCreateStore(body);

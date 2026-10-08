@@ -3,7 +3,8 @@ import { inspectStoreUrl } from '@/lib/cloner';
 
 export async function POST(req) {
   try {
-    const { url } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const url = body?.url;
     if (!url) {
       return NextResponse.json({ success: false, error: 'Store URL is required' }, { status: 400 });
     }

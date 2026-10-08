@@ -16,7 +16,7 @@ export async function POST(req) {
         const contentType = req.headers.get('content-type') || '';
 
         if (contentType.includes('application/json')) {
-            payload = await req.json();
+            payload = await req.json().catch(() => ({}));
         } else if (contentType.includes('application/x-www-form-urlencoded')) {
             const formData = await req.formData();
             formData.forEach((value, key) => {

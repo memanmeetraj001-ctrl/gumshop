@@ -3,7 +3,9 @@ import { dbCreateProduct } from '@/lib/supabase';
 
 export async function POST(req) {
   try {
-    const { store_id, products } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const store_id = body?.store_id;
+    const products = body?.products;
     if (!store_id || !products || !Array.isArray(products)) {
       return NextResponse.json({ success: false, error: 'store_id and products array required' }, { status: 400 });
     }
