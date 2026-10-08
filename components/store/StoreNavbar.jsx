@@ -78,6 +78,9 @@ const StoreNavbar = ({ storeInfo }) => {
             });
             if (typeof window !== 'undefined') {
                 localStorage.removeItem('gumshop_admin_token');
+                sessionStorage.removeItem('gumshop_admin_token');
+                document.cookie = 'gumshop_admin_session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                document.cookie = 'gumshop_admin_authenticated=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
             }
             if (logout) await logout();
         } catch (e) {}

@@ -19,7 +19,14 @@ export default function Product() {
     const dispatch = useDispatch();
 
     useEffect(() => {
-        fetch('/api/admin/auth')
+        const storedToken = typeof window !== 'undefined' 
+            ? (localStorage.getItem('gumshop_admin_token') || sessionStorage.getItem('gumshop_admin_token')) 
+            : null;
+        if (storedToken && storedToken.startsWith('gumshop_')) {
+            setIsOwner(true);
+        }
+        const headers = storedToken ? { 'Authorization': `Bearer ${storedToken}` } : {};
+        fetch('/api/admin/auth', { headers })
             .then(r => r.json())
             .then(d => { if (d.authenticated) setIsOwner(true); })
             .catch(() => {});

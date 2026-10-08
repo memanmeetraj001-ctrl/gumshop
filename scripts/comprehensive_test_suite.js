@@ -162,6 +162,39 @@ async function runSuite() {
         authToken = data.token;
     });
 
+    await test('Security', 'Case-insensitive lowercase password (meetminal@0406) authenticates successfully', async () => {
+        const res = await fetch(`${BASE_URL}/api/admin/auth`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: 'meetminal@0406' })
+        });
+        if (res.status !== 200) throw new Error(`Status ${res.status}`);
+        const data = await res.json();
+        if (!data.success || !data.authenticated) throw new Error('Failed to authenticate lowercase password');
+    });
+
+    await test('Security', 'All-caps password (MEETMINAL@0406) authenticates successfully', async () => {
+        const res = await fetch(`${BASE_URL}/api/admin/auth`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: 'MEETMINAL@0406' })
+        });
+        if (res.status !== 200) throw new Error(`Status ${res.status}`);
+        const data = await res.json();
+        if (!data.success || !data.authenticated) throw new Error('Failed to authenticate uppercase password');
+    });
+
+    await test('Security', 'Symbol-stripped variant (meetminal0406) authenticates successfully', async () => {
+        const res = await fetch(`${BASE_URL}/api/admin/auth`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: 'meetminal0406' })
+        });
+        if (res.status !== 200) throw new Error(`Status ${res.status}`);
+        const data = await res.json();
+        if (!data.success || !data.authenticated) throw new Error('Failed to authenticate symbol-stripped password');
+    });
+
     await test('Security', 'Bearer token correctly validates authenticated session', async () => {
         if (!authToken) throw new Error('No auth token available from previous test');
         const res = await fetch(`${BASE_URL}/api/admin/auth`, {
@@ -170,6 +203,24 @@ async function runSuite() {
         if (res.status !== 200) throw new Error(`Status ${res.status}`);
         const data = await res.json();
         if (!data.authenticated) throw new Error('Session did not validate with Bearer token');
+    });
+
+    await test('Security', 'Query param token (?token=...) validates authenticated session', async () => {
+        if (!authToken) throw new Error('No auth token available from previous test');
+        const res = await fetch(`${BASE_URL}/api/admin/auth?token=${encodeURIComponent(authToken)}`);
+        if (res.status !== 200) throw new Error(`Status ${res.status}`);
+        const data = await res.json();
+        if (!data.authenticated) throw new Error('Session did not validate with query param token');
+    });
+
+    await test('Security', 'Session cookie (gumshop_admin_session) validates authenticated session', async () => {
+        if (!authToken) throw new Error('No auth token available from previous test');
+        const res = await fetch(`${BASE_URL}/api/admin/auth`, {
+            headers: { 'Cookie': `gumshop_admin_session=${authToken}` }
+        });
+        if (res.status !== 200) throw new Error(`Status ${res.status}`);
+        const data = await res.json();
+        if (!data.authenticated) throw new Error('Session did not validate with Cookie header');
     });
 
     // =========================================================================
