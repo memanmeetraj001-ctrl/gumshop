@@ -26,7 +26,7 @@ export default function CartSync() {
                 }
 
                 if (typeof window !== 'undefined') {
-                    const localCart = localStorage.getItem('gumshop_guest_cart');
+                    const localCart = localStorage.getItem('gumshop_cart') || localStorage.getItem('gumshop_guest_cart');
                     if (localCart) {
                         const parsed = JSON.parse(localCart);
                         if (parsed && parsed.cartItems && Object.keys(parsed.cartItems).length > 0) {
@@ -55,7 +55,13 @@ export default function CartSync() {
 
         try {
             if (typeof window !== 'undefined') {
-                localStorage.setItem('gumshop_guest_cart', JSON.stringify(cart));
+                const serialized = JSON.stringify({
+                    total: cart.total,
+                    cartItems: cart.cartItems,
+                    cartProducts: cart.cartProducts
+                });
+                localStorage.setItem('gumshop_cart', serialized);
+                localStorage.setItem('gumshop_guest_cart', serialized);
             }
         } catch {}
 

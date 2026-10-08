@@ -14,7 +14,7 @@ export default function StoreProvider({ children }) {
     if (typeof window !== 'undefined' && storeRef.current) {
       // 1. Rehydrate cart from localStorage
       try {
-        const saved = localStorage.getItem('gumshop_cart')
+        const saved = localStorage.getItem('gumshop_cart') || localStorage.getItem('gumshop_guest_cart')
         if (saved) {
           const parsed = JSON.parse(saved)
           if (parsed && parsed.cartItems) {
@@ -30,11 +30,13 @@ export default function StoreProvider({ children }) {
         if (currentCart !== prevCart) {
           prevCart = currentCart
           try {
-            localStorage.setItem('gumshop_cart', JSON.stringify({
+            const serialized = JSON.stringify({
               total: currentCart.total,
               cartItems: currentCart.cartItems,
               cartProducts: currentCart.cartProducts
-            }))
+            });
+            localStorage.setItem('gumshop_cart', serialized)
+            localStorage.setItem('gumshop_guest_cart', serialized)
           } catch (e) {}
         }
       })

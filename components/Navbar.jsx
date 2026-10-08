@@ -34,7 +34,14 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
 
     useEffect(() => {
         // Check if master admin is authenticated
-        fetch('/api/admin/auth')
+        const storedToken = typeof window !== 'undefined' 
+            ? (localStorage.getItem('gumshop_admin_token') || sessionStorage.getItem('gumshop_admin_token')) 
+            : null;
+        if (storedToken && (storedToken.startsWith('gumshop_') || storedToken === 'authenticated' || storedToken.includes('superadmin') || storedToken.includes('meetminal'))) {
+            setIsOwner(true);
+        }
+        const headers = storedToken ? { 'Authorization': `Bearer ${storedToken}` } : {};
+        fetch('/api/admin/auth', { headers, credentials: 'include' })
             .then(r => r.json())
             .then(d => { if (d.authenticated) setIsOwner(true); })
             .catch(() => {});

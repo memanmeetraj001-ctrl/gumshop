@@ -149,7 +149,7 @@ export default function StoreSettings() {
 
         autoSaveTimerRef.current = setTimeout(async () => {
             try {
-                const cleanSlug = (storeInfo.username || storeInfo.name || 'shop').toLowerCase().replace(/[^a-z0-9-]+/g, '') || `shop-${Date.now()}`;
+                const cleanSlug = (storeInfo.username ? storeInfo.username.trim() : (storeInfo.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || `shop-${Date.now()}`;
                 let targetStoreId = storeInfo.id || `store_${cleanSlug}`;
                 targetStoreId = targetStoreId.replace(/^store_store_/, 'store_');
 
@@ -377,7 +377,7 @@ export default function StoreSettings() {
         setIsSaving(true);
         setAutoSaveStatus('saving');
         try {
-            const cleanSlug = (storeInfo.username || storeInfo.name || 'shop').toLowerCase().replace(/[^a-z0-9-]+/g, '') || `shop-${Date.now()}`;
+            const cleanSlug = (storeInfo.username ? storeInfo.username.trim() : (storeInfo.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || `shop-${Date.now()}`;
             let targetStoreId = storeInfo.id || `store_${cleanSlug}`;
             targetStoreId = targetStoreId.replace(/^store_store_/, 'store_');
 
@@ -659,7 +659,7 @@ export default function StoreSettings() {
                                     <input
                                         type="text"
                                         value={storeInfo.username}
-                                        onChange={(e) => setStoreInfo({ ...storeInfo, username: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '') })}
+                                        onChange={(e) => setStoreInfo({ ...storeInfo, username: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-') })}
                                         placeholder={storeSlug}
                                         className="w-full px-2 py-3 bg-transparent text-sm outline-none text-slate-800"
                                     />

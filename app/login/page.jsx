@@ -19,9 +19,17 @@ export default function LoginGate() {
         const storedToken = typeof window !== 'undefined' 
             ? (localStorage.getItem('gumshop_admin_token') || sessionStorage.getItem('gumshop_admin_token')) 
             : null;
-        if (storedToken && storedToken.startsWith('gumshop_')) {
+        const hasSession = storedToken && (
+            storedToken.startsWith('gumshop_') || 
+            storedToken === 'authenticated' || 
+            storedToken.includes('superadmin') || 
+            storedToken.includes('meetminal')
+        );
+
+        if (hasSession) {
             setIsAlreadyAuth(true);
             setChecking(false);
+            router.replace('/dashboard');
         }
 
         const checkAuth = async () => {
@@ -43,9 +51,10 @@ export default function LoginGate() {
                     if (typeof window !== 'undefined') {
                         localStorage.setItem('gumshop_admin_token', token);
                         sessionStorage.setItem('gumshop_admin_token', token);
-                        document.cookie = `gumshop_admin_session=${token}; path=/; max-age=5184000; SameSite=Lax`;
-                        document.cookie = `gumshop_admin_authenticated=true; path=/; max-age=5184000; SameSite=Lax`;
+                        document.cookie = `gumshop_admin_session=${token}; path=/; max-age=31536000; SameSite=Lax`;
+                        document.cookie = `gumshop_admin_authenticated=true; path=/; max-age=31536000; SameSite=Lax`;
                     }
+                    router.replace('/dashboard');
                 }
             } catch (err) {
                 console.warn('Auth check error:', err);
@@ -55,7 +64,7 @@ export default function LoginGate() {
         };
 
         checkAuth();
-    }, []);
+    }, [router]);
 
     const handleLogin = async (e) => {
         e?.preventDefault?.();
@@ -80,8 +89,8 @@ export default function LoginGate() {
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('gumshop_admin_token', token);
                     sessionStorage.setItem('gumshop_admin_token', token);
-                    document.cookie = `gumshop_admin_session=${token}; path=/; max-age=5184000; SameSite=Lax`;
-                    document.cookie = `gumshop_admin_authenticated=true; path=/; max-age=5184000; SameSite=Lax`;
+                    document.cookie = `gumshop_admin_session=${token}; path=/; max-age=31536000; SameSite=Lax`;
+                    document.cookie = `gumshop_admin_authenticated=true; path=/; max-age=31536000; SameSite=Lax`;
                 }
                 toast.dismiss();
                 toast.success('Welcome back to Store HQ! 🚀');

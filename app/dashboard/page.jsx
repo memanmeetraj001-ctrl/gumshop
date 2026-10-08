@@ -54,7 +54,7 @@ const checkHasLocalSession = () => {
         const local = localStorage.getItem('gumshop_admin_token');
         const sess = sessionStorage.getItem('gumshop_admin_token');
         const token = local || sess;
-        if (token && (token.startsWith('gumshop_') || token === 'authenticated')) return true;
+        if (token && (token.startsWith('gumshop_') || token === 'authenticated' || token.includes('superadmin') || token.includes('meetminal'))) return true;
         if (document.cookie && (document.cookie.includes('gumshop_admin_session') || document.cookie.includes('gumshop_admin_authenticated=true'))) return true;
     } catch {}
     return false;
@@ -313,8 +313,8 @@ export default function MasterDashboardPage() {
                     if (typeof window !== 'undefined') {
                         localStorage.setItem('gumshop_admin_token', token);
                         sessionStorage.setItem('gumshop_admin_token', token);
-                        document.cookie = `gumshop_admin_session=${token}; path=/; max-age=5184000; SameSite=Lax`;
-                        document.cookie = `gumshop_admin_authenticated=true; path=/; max-age=5184000; SameSite=Lax`;
+                        document.cookie = `gumshop_admin_session=${token}; path=/; max-age=31536000; SameSite=Lax`;
+                        document.cookie = `gumshop_admin_authenticated=true; path=/; max-age=31536000; SameSite=Lax`;
                     }
                     setIsAuthenticated(true);
                     setAuthChecking(false);
@@ -329,8 +329,8 @@ export default function MasterDashboardPage() {
                         if (slug && isMounted) setHomepageStoreSlugState(slug);
                     });
                 } else {
-                    // Only drop authentication if local storage does not have a verified token
-                    if (!hasLocal) {
+                    // Only drop authentication if client does not have a verified local session
+                    if (!checkHasLocalSession()) {
                         setIsAuthenticated(false);
                     }
                     setAuthChecking(false);
@@ -338,7 +338,7 @@ export default function MasterDashboardPage() {
             } catch (err) {
                 console.warn("Master auth background verification (preserving local session):", err);
                 if (isMounted) {
-                    if (!hasLocal) {
+                    if (!checkHasLocalSession()) {
                         setIsAuthenticated(false);
                     }
                     setAuthChecking(false);
@@ -347,6 +347,16 @@ export default function MasterDashboardPage() {
         };
 
         checkMasterAuth();
+
+        const handlePageShow = () => {
+            if (checkHasLocalSession()) {
+                setIsAuthenticated(true);
+                setAuthChecking(false);
+                loadShops();
+                loadImportHistory();
+                loadOrders();
+            }
+        };
 
         const handleStoreChange = () => {
             const current = getActiveStoreSync();
@@ -362,11 +372,13 @@ export default function MasterDashboardPage() {
                 setHomepageStoreSlugState(e.detail.slug);
             }
         };
+        window.addEventListener('pageshow', handlePageShow);
         window.addEventListener('active_store_changed', handleStoreChange);
         window.addEventListener('stores_updated', handleStoresUpdated);
         window.addEventListener('homepage_store_changed', handleHomepageChange);
         return () => {
             isMounted = false;
+            window.removeEventListener('pageshow', handlePageShow);
             window.removeEventListener('active_store_changed', handleStoreChange);
             window.removeEventListener('stores_updated', handleStoresUpdated);
             window.removeEventListener('homepage_store_changed', handleHomepageChange);

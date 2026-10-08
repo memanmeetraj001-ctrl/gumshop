@@ -288,9 +288,10 @@ export default function CreatorBioPage({ params }) {
                         setCreator(formatCreatorProfile(demoData.store, 'demo'));
                         setProducts(demoData.products || []);
                     } else {
-                        setStoreInfo(null);
-                        setCreator(null);
-                        setProducts([]);
+                        // Only clear if store was never loaded, preventing transient flash
+                        setStoreInfo(prev => prev || null);
+                        setCreator(prev => prev || null);
+                        setProducts(prev => (prev && prev.length > 0) ? prev : []);
                     }
                 }
             } catch (err) {

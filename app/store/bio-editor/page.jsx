@@ -112,7 +112,7 @@ export default function StanStoreBioEditor() {
                 }
 
                 setCurrentStore(store);
-                const storeSlug = (store.username || store.name || 'shop').toLowerCase().replace(/[^a-z0-9-]+/g, '');
+                const storeSlug = (store.username || (store.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'shop';
                 
                 // Existing bio profile or fallback from main store
                 const existingBio = store.bioProfile || {};
@@ -174,7 +174,7 @@ export default function StanStoreBioEditor() {
 
         autoSaveTimerRef.current = setTimeout(async () => {
             try {
-                const cleanSlug = (profile.handle || currentStore.username || currentStore.name || 'shop').toLowerCase().replace(/[^a-z0-9-]+/g, '') || 'shop';
+                const cleanSlug = (profile.handle || currentStore.username || (currentStore.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'shop';
                 const targetStoreId = currentStore.id || `store_${cleanSlug}`;
 
                 const updatedStore = {
@@ -288,7 +288,7 @@ export default function StanStoreBioEditor() {
         setSaving(true);
         setAutoSaveStatus('saving');
         try {
-            const cleanSlug = (profile.handle || currentStore.username || currentStore.name || 'shop').toLowerCase().replace(/[^a-z0-9-]+/g, '') || 'shop';
+            const cleanSlug = (profile.handle || currentStore.username || (currentStore.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'shop';
             const targetStoreId = currentStore.id || `store_${cleanSlug}`;
 
             const updatedStore = {
