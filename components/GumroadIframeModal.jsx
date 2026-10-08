@@ -19,6 +19,7 @@ import {
     Sparkles
 } from 'lucide-react';
 import { getActiveStoreSync } from '@/lib/activeStore';
+import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 import toast from 'react-hot-toast';
 
 export default function GumroadIframeModal({
@@ -302,8 +303,9 @@ export default function GumroadIframeModal({
                         <div className="flex items-center gap-3 min-w-0">
                             {orderItems[0]?.image ? (
                                 <img 
-                                    src={orderItems[0].image} 
-                                    alt={orderItems[0].name} 
+                                    src={getSafeImageUrl(orderItems[0].image)} 
+                                    alt={orderItems[0].name || "Order Item"} 
+                                    onError={(e) => handleImageError(e, 'product')}
                                     className="size-11 rounded-xl object-cover border-2 border-black shrink-0 bg-white shadow-xs" 
                                 />
                             ) : (
@@ -580,14 +582,20 @@ export default function GumroadIframeModal({
                     )}
 
                     {/* Trust Guarantees */}
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-[11px] text-slate-600">
-                        <div className="flex items-center gap-1.5">
-                            <ShieldCheck size={14} className="text-emerald-600" />
-                            <span>100% Encrypted Checkout via Gumroad</span>
+                    <div className="p-3.5 bg-emerald-50/60 rounded-2xl border border-emerald-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[11px] text-emerald-950">
+                        <div className="flex items-center gap-2">
+                            <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
+                            <span className="font-bold">🔒 100% Encrypted Checkout • Verified Merchant Protection via Gumroad</span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-slate-500 font-semibold">
-                            <Lock size={12} className="text-black" />
-                            <span>PCI-DSS Compliant</span>
+                        <div className="flex items-center gap-3 text-slate-600 font-semibold text-[10px] sm:self-center">
+                            <span className="flex items-center gap-1">
+                                <Lock size={11} className="text-emerald-700" />
+                                <span>256-bit SSL</span>
+                            </span>
+                            <span>•</span>
+                            <span>PCI-DSS Tier-1</span>
+                            <span>•</span>
+                            <span className="text-emerald-700 font-bold">Instant Receipt</span>
                         </div>
                     </div>
 

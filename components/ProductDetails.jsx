@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import GumroadIframeModal from "./GumroadIframeModal";
+import { getSafeImageUrl, handleImageError } from "@/lib/imageUtils";
 
 const ProductDetails = ({ product, storeInfo }) => {
     const productId = product.id;
@@ -191,8 +192,9 @@ const ProductDetails = ({ product, storeInfo }) => {
                 <div className="lg:col-span-7 space-y-4">
                     <div className="aspect-square bg-slate-100 rounded-3xl overflow-hidden border border-slate-200/80 shadow-sm relative group">
                         <img 
-                            src={mainImage} 
+                            src={getSafeImageUrl(mainImage)} 
                             alt={product.name} 
+                            onError={(e) => handleImageError(e, 'product')}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                         />
                         {compareAt > unitPrice && (
@@ -213,7 +215,12 @@ const ProductDetails = ({ product, storeInfo }) => {
                                         mainImage === img ? 'border-emerald-600 ring-2 ring-emerald-500/20' : 'border-slate-200 hover:border-slate-300'
                                     }`}
                                 >
-                                    <img src={img} alt="" className="w-full h-full object-cover" />
+                                    <img 
+                                        src={getSafeImageUrl(img)} 
+                                        alt="" 
+                                        onError={(e) => handleImageError(e, 'product')}
+                                        className="w-full h-full object-cover" 
+                                    />
                                 </button>
                             ))}
                         </div>

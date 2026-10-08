@@ -7,6 +7,7 @@ import { useWishlist } from '@/lib/wishlist';
 import toast from 'react-hot-toast';
 import GumroadIframeModal from './GumroadIframeModal';
 import { getActiveStoreSync } from '@/lib/activeStore';
+import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 
 export default function ProductQuickView({ product, isOpen, onClose, onOpenCart }) {
     const dispatch = useDispatch();
@@ -99,8 +100,9 @@ export default function ProductQuickView({ product, isOpen, onClose, onOpenCart 
                     <div className="space-y-3">
                         <div className="relative aspect-square rounded-2xl bg-slate-50 border border-slate-200/80 overflow-hidden flex items-center justify-center">
                             <img 
-                                src={images[activeImageIndex] || images[0]} 
+                                src={getSafeImageUrl(images[activeImageIndex] || images[0])} 
                                 alt={product.name}
+                                onError={(e) => handleImageError(e, 'product')}
                                 className="w-full h-full object-contain p-4"
                             />
                             {discountPercent > 0 && (
@@ -120,7 +122,12 @@ export default function ProductQuickView({ product, isOpen, onClose, onOpenCart 
                                             activeImageIndex === idx ? 'border-emerald-600 scale-105' : 'border-slate-200 hover:border-slate-300'
                                         }`}
                                     >
-                                        <img src={img} alt="" className="w-full h-full object-cover" />
+                                        <img 
+                                            src={getSafeImageUrl(img)} 
+                                            alt="" 
+                                            onError={(e) => handleImageError(e, 'product')}
+                                            className="w-full h-full object-cover" 
+                                        />
                                     </button>
                                 ))}
                             </div>

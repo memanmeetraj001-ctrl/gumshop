@@ -235,6 +235,98 @@ async function runSuite() {
         if (!data.config) throw new Error('Missing config object');
     });
 
+    await test('Commerce API', 'Active Product detail route responds HTTP 200 with metadata', async () => {
+        const pRes = await fetch(`${BASE_URL}/api/products`);
+        const pData = await pRes.json();
+        const prods = pData.products || pData;
+        const testProd = prods && prods[0] ? prods[0] : { id: 'prod_1' };
+        const res = await fetch(`${BASE_URL}/product/${testProd.id}`);
+        if (res.status !== 200) throw new Error(`Product route returned HTTP ${res.status}`);
+        const html = await res.text();
+        if (!html.includes('<!DOCTYPE html>')) throw new Error('Expected HTML document');
+    });
+
+    await test('Commerce API', 'Gumroad Vault Status (/api/gumroad/status) responds HTTP 200 with structured status', async () => {
+        const res = await fetch(`${BASE_URL}/api/gumroad/status`);
+        if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+        const data = await res.json();
+        if (typeof data.connected !== 'boolean') throw new Error('Expected boolean `connected` field');
+    });
+
+    await test('Commerce API', 'Store Importer History (/api/importer/history) responds HTTP 200 with valid ledger', async () => {
+        const res = await fetch(`${BASE_URL}/api/importer/history`);
+        if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+        const data = await res.json();
+        if (data.success !== true || !Array.isArray(data.history)) {
+            throw new Error('Expected success: true and history array');
+        }
+    });
+
+    await test('Commerce API', 'Dynamic Checkout enforces $1.00 minimum floor against zero or negative values', async () => {
+        const res = await fetch(`${BASE_URL}/api/gumroad/dynamic-checkout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                items: [{ id: 'test_item', name: 'Free Item', price: 0, quantity: 1 }],
+                discountAmount: 100
+            })
+        });
+        if (res.status !== 200) throw new Error(`Expected 200 with floor price, got ${res.status}`);
+        const data = await res.json();
+        const finalAmt = data.total ?? data.pricing?.finalTotal;
+        if (typeof finalAmt !== 'number' || finalAmt < 1.00) throw new Error(`Total fell below minimum floor: ${finalAmt}`);
+    });
+
+    await test('Commerce API', 'Dynamic Checkout strictly normalizes floating point decimals to 2 places', async () => {
+        const res = await fetch(`${BASE_URL}/api/gumroad/dynamic-checkout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                items: [
+                    { id: 'item_1', name: 'Item A', price: 10.333333, quantity: 1 },
+                    { id: 'item_2', name: 'Item B', price: 5.666666, quantity: 1 }
+                ],
+                shippingFee: 2.111111
+            })
+        });
+        if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+        const data = await res.json();
+        const finalAmt = data.total ?? data.pricing?.finalTotal;
+        if (typeof finalAmt !== 'number') throw new Error(`Missing final total amount: ${JSON.stringify(data)}`);
+        const str = finalAmt.toString();
+        const decimals = str.includes('.') ? str.split('.')[1].length : 0;
+        if (decimals > 2) throw new Error(`Decimal precision unrounded: ${finalAmt}`);
+    });
+
+    await test('Security', 'Store Importer blocks localhost and loopback SSRF attempts with HTTP 400', async () => {
+        const res = await fetch(`${BASE_URL}/api/importer/analyze`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: 'http://localhost:3000/internal-secrets' })
+        });
+        if (res.status !== 400) throw new Error(`Expected 400 for localhost target, got ${res.status}`);
+        const data = await res.json().catch(() => ({}));
+        if (data.success !== false) throw new Error('Expected success: false for SSRF probe');
+    });
+
+    await test('Security', 'Store Importer blocks AWS metadata endpoint (169.254.169.254) SSRF with HTTP 400', async () => {
+        const res = await fetch(`${BASE_URL}/api/importer/analyze`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: 'http://169.254.169.254/latest/meta-data' })
+        });
+        if (res.status !== 400) throw new Error(`Expected 400 for cloud metadata target, got ${res.status}`);
+        const data = await res.json().catch(() => ({}));
+        if (data.success !== false) throw new Error('Expected success: false for SSRF probe');
+    });
+
+    await test('Public Pages', 'Non-existent store (/creator/this-store-does-not-exist-9999) does not throw unhandled 500', async () => {
+        const res = await fetch(`${BASE_URL}/creator/this-store-does-not-exist-9999`);
+        if (res.status === 500) throw new Error('Received unhandled 500 Internal Server Error');
+        const html = await res.text();
+        if (!html.includes('<!DOCTYPE html>')) throw new Error('Expected HTML document');
+    });
+
     // =========================================================================
     // FINAL RESULTS & REPORT
     // =========================================================================

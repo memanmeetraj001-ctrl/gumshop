@@ -8,6 +8,7 @@ import { useWishlist } from '@/lib/wishlist';
 import ProductQuickView from './ProductQuickView';
 import GumroadIframeModal from './GumroadIframeModal';
 import { getActiveStoreSync } from '@/lib/activeStore';
+import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 import toast from 'react-hot-toast';
 
 export default function ProductCard({ product, onOpenCart }) {
@@ -20,7 +21,7 @@ export default function ProductCard({ product, onOpenCart }) {
 
     const currency = '$';
     const isWishlisted = has(product.id);
-    const mainImage = product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500';
+    const mainImage = getSafeImageUrl(product.images?.[0] || product.image);
 
     const price = parseFloat(product.price || 29.99);
     const compareAt = parseFloat(product.compareAtPrice || Math.round(price * 1.35 * 100) / 100);
@@ -96,6 +97,7 @@ export default function ProductCard({ product, onOpenCart }) {
                             src={mainImage}
                             alt={product.name || 'Product'}
                             className="max-h-full max-w-full object-contain group-hover:scale-108 transition-transform duration-500"
+                            onError={(e) => handleImageError(e, 'product')}
                         />
                     </Link>
 

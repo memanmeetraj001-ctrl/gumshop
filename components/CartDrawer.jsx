@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { getActiveStoreSync } from '@/lib/activeStore';
 import { createOrder, getCoupon } from '@/lib/firebaseDb';
 import GumroadIframeModal from './GumroadIframeModal';
+import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 
 export default function CartDrawer({ isOpen, onClose }) {
     const dispatch = useDispatch();
@@ -216,8 +217,9 @@ export default function CartDrawer({ isOpen, onClose }) {
                             items.map(item => (
                                 <div key={item.id} className="flex gap-4 p-3 rounded-2xl bg-slate-50 border border-slate-100 group">
                                     <img 
-                                        src={item.image} 
-                                        alt="" 
+                                        src={getSafeImageUrl(item.image)} 
+                                        alt={item.name || "Product"} 
+                                        onError={(e) => handleImageError(e, 'product')}
                                         className="size-18 rounded-xl object-cover bg-white border border-slate-200 shrink-0"
                                     />
                                     <div className="flex-1 flex flex-col justify-between">

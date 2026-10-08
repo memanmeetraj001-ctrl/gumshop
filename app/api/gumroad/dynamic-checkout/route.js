@@ -217,6 +217,7 @@ export async function POST(req) {
                     mode: 'gumroad',
                     directCheckout: false,
                     orderSessionId,
+                    total: finalTotal,
                     checkoutUrl: urlObj.href,
                     pricing: {
                         subtotal: Math.round(subtotal * 100) / 100,
@@ -233,6 +234,7 @@ export async function POST(req) {
                 return NextResponse.json({
                     success: true,
                     orderSessionId,
+                    total: finalTotal,
                     checkoutUrl: safeUrl,
                     pricing: {
                         subtotal: Math.round(subtotal * 100) / 100,
@@ -253,6 +255,7 @@ export async function POST(req) {
             mode: 'unconfigured',
             directCheckout: false,
             orderSessionId,
+            total: finalTotal,
             message: 'A Gumroad checkout link is required to collect live customer payments.',
             pricing: {
                 subtotal: Math.round(subtotal * 100) / 100,

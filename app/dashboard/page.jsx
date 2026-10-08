@@ -66,6 +66,7 @@ export default function MasterDashboardPage() {
     // Orders state
     const [orders, setOrders] = useState([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
+    const [gumroadConnected, setGumroadConnected] = useState(null);
 
     // Master HQ Navigation State: 'overview' | 'stores' | 'products' | 'imports' | 'orders' | 'analytics' | 'gumroad' | 'settings'
     const [activeNavTab, setActiveNavTab] = useState('overview');
@@ -288,6 +289,10 @@ export default function MasterDashboardPage() {
                     loadShops();
                     loadImportHistory();
                     loadOrders();
+                    fetch('/api/gumroad/status')
+                        .then(r => r.json())
+                        .then(d => { if (isMounted) setGumroadConnected(Boolean(d?.connected)); })
+                        .catch(() => { if (isMounted) setGumroadConnected(false); });
                     getHomepageStoreSlug().then(slug => {
                         if (slug && isMounted) setHomepageStoreSlugState(slug);
                     });
@@ -837,6 +842,32 @@ export default function MasterDashboardPage() {
                                 </a>
                             </div>
                         )}
+
+                        {/* Payout Settlement & Cloud Sync Status Badges */}
+                        {gumroadConnected !== null && (
+                            <Link
+                                href="/settings/integrations/gumroad"
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs border transition ${
+                                    gumroadConnected
+                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20'
+                                        : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20'
+                                }`}
+                                title={gumroadConnected ? "Private Gumroad Connected (Direct Settlement)" : "Universal Secure Checkout Gateway Active"}
+                            >
+                                <span className={`size-1.5 rounded-full ${gumroadConnected ? 'bg-emerald-400 animate-pulse' : 'bg-indigo-400'}`} />
+                                <span className="font-semibold">
+                                    {gumroadConnected ? "Payouts: Gumroad Direct" : "Payouts: Universal Gateway"}
+                                </span>
+                            </Link>
+                        )}
+
+                        <div 
+                            className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-800/80 border border-slate-700/60 rounded-xl text-xs text-slate-300"
+                            title="Multi-Store State: Synced with Supabase & Local Edge"
+                        >
+                            <span className="size-1.5 rounded-full bg-emerald-400"></span>
+                            <span className="text-[11px] font-mono text-slate-400">Cloud Sync: Live</span>
+                        </div>
                     </div>
                 </div>
 

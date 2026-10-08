@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ShoppingCart, Truck, Search, Sparkles, Smartphone } from 'lucide-react';
 import { useSelector } from 'react-redux';
+import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 
 export default function StorefrontNavbar({ store }) {
     const reduxCartCount = useSelector(state => state.cart?.total || 0);
@@ -37,13 +38,10 @@ export default function StorefrontNavbar({ store }) {
                             <Link href={`/shop/${storeSlug}`} className="flex items-center gap-3 group">
                                 {logoSrc ? (
                                     <img 
-                                        src={logoSrc} 
+                                        src={getSafeImageUrl(logoSrc, 'avatar')} 
                                         alt={store?.name || "Store"} 
                                         className="size-9 sm:size-10 rounded-xl object-cover border border-slate-200 shadow-xs group-hover:scale-105 transition-transform" 
-                                        onError={(e) => {
-                                            e.target.onerror = null;
-                                            e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(store?.name || 'Store')}`;
-                                        }}
+                                        onError={(e) => handleImageError(e, 'avatar', store?.name || 'Store')}
                                     />
                                 ) : (
                                     <div className="size-9 sm:size-10 rounded-xl bg-gradient-to-tr from-slate-900 to-slate-700 text-white font-extrabold flex items-center justify-center text-sm shadow-xs">
