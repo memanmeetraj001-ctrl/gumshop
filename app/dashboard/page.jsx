@@ -65,8 +65,8 @@ export default function MasterDashboardPage() {
     const [shops, setShops] = useState([]);
     const [activeStore, setActiveStore] = useState(null);
     const [homepageStoreSlug, setHomepageStoreSlugState] = useState('');
-    const [isAuthenticated, setIsAuthenticated] = useState(() => checkHasLocalSession());
-    const [authChecking, setAuthChecking] = useState(() => !checkHasLocalSession());
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [authChecking, setAuthChecking] = useState(true);
     const [inPagePassword, setInPagePassword] = useState('');
     const [inPageShow, setInPageShow] = useState(false);
     const [inPageSubmitting, setInPageSubmitting] = useState(false);
@@ -275,14 +275,19 @@ export default function MasterDashboardPage() {
         let isMounted = true;
         const hasLocal = checkHasLocalSession();
 
-        // If client already holds valid session token, immediately hydrate stores & metrics
+        // If client holds valid session token, immediately hydrate stores & metrics
         if (hasLocal) {
+            setIsAuthenticated(true);
+            setAuthChecking(false);
             loadShops();
             loadImportHistory();
             loadOrders();
             getHomepageStoreSlug().then(slug => {
                 if (slug && isMounted) setHomepageStoreSlugState(slug);
             });
+        } else {
+            setIsAuthenticated(false);
+            setAuthChecking(false);
         }
 
         const checkMasterAuth = async () => {
