@@ -49,7 +49,7 @@ export default function StoreCustomersPage() {
                 try {
                     fetchedOrders = await Promise.race([
                         getOrdersByStore(storeId),
-                        new Promise(res => setTimeout(() => res([]), 2500))
+                        new Promise(res => setTimeout(() => res([]), 8000))
                     ]);
                 } catch {}
 

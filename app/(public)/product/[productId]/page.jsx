@@ -64,6 +64,28 @@ export default function Product() {
                     }
                 }
 
+                // 4. Fallback: check server API /api/products
+                if (!foundProduct) {
+                    try {
+                        const apiRes = await fetch('/api/products');
+                        if (apiRes.ok) {
+                            const apiData = await apiRes.json();
+                            if (apiData.success && Array.isArray(apiData.products)) {
+                                foundProduct = apiData.products.find(p => p.id === productId || p.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '-') === productId);
+                            }
+                        }
+                    } catch {}
+                }
+
+                // 5. Fallback: check store presets
+                if (!foundProduct) {
+                    try {
+                        const { HIGHGEARTOYS_PRODUCTS, DEFAULT_STORE_STARTER_PRODUCTS, DEFAULT_DEMO_CREATOR } = await import('@/lib/storePresets');
+                        const allPresets = [...(HIGHGEARTOYS_PRODUCTS || []), ...(DEFAULT_STORE_STARTER_PRODUCTS || []), ...(DEFAULT_DEMO_CREATOR?.products || [])];
+                        foundProduct = allPresets.find(p => p.id === productId || p.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '-') === productId);
+                    } catch {}
+                }
+
                 if (foundProduct) {
                     setProduct(foundProduct);
                 } else {

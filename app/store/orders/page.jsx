@@ -101,7 +101,7 @@ export default function StoreOrders() {
                 try {
                     fetchedOrders = await Promise.race([
                         getOrdersByStore(storeId),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2500))
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
                     ]);
                 } catch (e) {
                     console.warn("Orders fetch fallback:", e);

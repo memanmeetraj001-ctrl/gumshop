@@ -71,10 +71,25 @@ export default function SuperStorefront() {
                     } else if (store?.products && Array.isArray(store.products) && store.products.length > 0) {
                         setProducts(store.products);
                     } else {
-                        setProducts([]);
+                        // Fall back to preset products if store catalog is empty
+                        const { getStoreAndCatalog } = await import('@/lib/storePresets');
+                        const preset = await getStoreAndCatalog(store.username || store.id || 'buy-rc-drift-cars-online');
+                        if (preset?.products?.length > 0) {
+                            setProducts(preset.products);
+                        } else {
+                            setProducts([]);
+                        }
                     }
                 } else {
-                    setProducts([]);
+                    // Fall back to default flagship store on clean/incognito sessions
+                    const { getStoreAndCatalog } = await import('@/lib/storePresets');
+                    const defaultCatalog = await getStoreAndCatalog('buy-rc-drift-cars-online');
+                    if (defaultCatalog?.store) {
+                        setActiveStore(defaultCatalog.store);
+                        setProducts(defaultCatalog.products || []);
+                    } else {
+                        setProducts([]);
+                    }
                 }
             } catch (err) {
                 console.warn('Error loading storefront catalog:', err);

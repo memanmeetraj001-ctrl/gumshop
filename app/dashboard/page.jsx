@@ -142,7 +142,7 @@ export default function MasterDashboardPage() {
                 const { getAllOrders } = await import('@/lib/firebaseDb');
                 const dbOrders = await Promise.race([
                     getAllOrders(),
-                    new Promise(res => setTimeout(() => res([]), 1500))
+                    new Promise(res => setTimeout(() => res([]), 8000))
                 ]);
                 if (Array.isArray(dbOrders)) {
                     dbOrders.forEach(o => {
@@ -217,7 +217,7 @@ export default function MasterDashboardPage() {
             const { getAllStores } = await import('@/lib/firebaseDb');
             const remoteStores = await Promise.race([
                 getAllStores(),
-                new Promise(res => setTimeout(() => res([]), 1500))
+                new Promise(res => setTimeout(() => res([]), 8000))
             ]);
             if (Array.isArray(remoteStores)) {
                 for (const rStore of remoteStores) {

@@ -63,7 +63,7 @@ export default function StoreManageProducts() {
         try {
             let store = await Promise.race([
                 getActiveStore(user),
-                new Promise(resolve => setTimeout(() => resolve(getActiveStoreSync()), 1200))
+                new Promise(resolve => setTimeout(() => resolve(getActiveStoreSync()), 8000))
             ]);
             if (!store) store = getActiveStoreSync();
             setActiveStore(store);
@@ -77,7 +77,7 @@ export default function StoreManageProducts() {
                 try {
                     data = await Promise.race([
                         getProductsByStore(storeId),
-                        new Promise(resolve => setTimeout(() => resolve([]), 1500))
+                        new Promise(resolve => setTimeout(() => resolve([]), 8000))
                     ]);
                 } catch (e) {
                     console.warn("Products query fallback:", e);
@@ -309,7 +309,7 @@ export default function StoreManageProducts() {
     useEffect(() => {
         const timer = setTimeout(() => {
             setLoading(false);
-        }, 1200);
+        }, 8000);
 
         if (!authLoading) {
             fetchProducts();

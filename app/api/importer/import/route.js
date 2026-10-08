@@ -65,6 +65,15 @@ export async function POST(req) {
             username: cleanSlug,
             description: destinationStore.description || `Official store for ${(destinationStore.name || cleanSlug).trim()}.`,
             logo: destinationStore.logo || selectedProducts[0]?.image || '',
+            avatar: destinationStore.logo || selectedProducts[0]?.image || '',
+            bioProfile: {
+                displayName: (destinationStore.name || cleanSlug).trim(),
+                handle: cleanSlug,
+                avatar: destinationStore.logo || selectedProducts[0]?.image || '',
+                tagline: destinationStore.description || `Official store for ${(destinationStore.name || cleanSlug).trim()}.`,
+                themeColor: destinationStore.themeColor || '#10B981',
+                verified: true
+            },
             favicon: destinationStore.favicon || '',
             banner: cleanHeroBanner,
             banners: cleanBanners,
