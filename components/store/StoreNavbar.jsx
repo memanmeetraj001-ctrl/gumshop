@@ -45,9 +45,8 @@ const StoreNavbar = ({ storeInfo }) => {
         } catch {}
 
         setAllStores(Array.from(map.values()));
-        getHomepageStoreSlug().then(slug => {
-            if (slug) setHomepageStoreSlugState(slug);
-        });
+        const hpSlug = getHomepageStoreSlug();
+        if (hpSlug) setHomepageStoreSlugState(hpSlug);
     };
 
     useEffect(() => {

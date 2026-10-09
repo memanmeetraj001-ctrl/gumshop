@@ -282,9 +282,8 @@ export default function MasterDashboardPage() {
             loadShops();
             loadImportHistory();
             loadOrders();
-            getHomepageStoreSlug().then(slug => {
-                if (slug && isMounted) setHomepageStoreSlugState(slug);
-            });
+            const hpSlug = getHomepageStoreSlug();
+            if (hpSlug && isMounted) setHomepageStoreSlugState(hpSlug);
         } else {
             setIsAuthenticated(false);
             setAuthChecking(false);
@@ -330,9 +329,8 @@ export default function MasterDashboardPage() {
                         .then(r => r.json())
                         .then(d => { if (isMounted) setGumroadConnected(Boolean(d?.connected)); })
                         .catch(() => { if (isMounted) setGumroadConnected(false); });
-                    getHomepageStoreSlug().then(slug => {
-                        if (slug && isMounted) setHomepageStoreSlugState(slug);
-                    });
+                    const hpSlug = getHomepageStoreSlug();
+                    if (hpSlug && isMounted) setHomepageStoreSlugState(hpSlug);
                 } else {
                     // Only drop authentication if client does not have a verified local session
                     if (!checkHasLocalSession()) {
@@ -409,17 +407,16 @@ export default function MasterDashboardPage() {
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('gumshop_admin_token', token);
                     sessionStorage.setItem('gumshop_admin_token', token);
-                    document.cookie = `gumshop_admin_session=${token}; path=/; max-age=5184000; SameSite=Lax`;
-                    document.cookie = `gumshop_admin_authenticated=true; path=/; max-age=5184000; SameSite=Lax`;
+                    document.cookie = `gumshop_admin_session=${token}; path=/; max-age=31536000; SameSite=Lax`;
+                    document.cookie = `gumshop_admin_authenticated=true; path=/; max-age=31536000; SameSite=Lax`;
                 }
                 toast.success('Welcome back to Store HQ! 🚀');
                 setIsAuthenticated(true);
                 loadShops();
                 loadImportHistory();
                 loadOrders();
-                getHomepageStoreSlug().then(slug => {
-                    if (slug) setHomepageStoreSlugState(slug);
-                });
+                const hpSlug = getHomepageStoreSlug();
+                if (hpSlug) setHomepageStoreSlugState(hpSlug);
             } else {
                 toast.dismiss();
                 toast.error(data.error || 'Invalid master password');
@@ -1983,7 +1980,7 @@ export default function MasterDashboardPage() {
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-sm text-white">Duplicate Store</h3>
-                                    <p className="text-[11px] text-slate-400">Clone "{duplicatingShop.name}" into an independent shop</p>
+                                    <p className="text-[11px] text-slate-400">Clone "{duplicatingShop?.name || 'Store'}" into an independent shop</p>
                                 </div>
                             </div>
                             <button onClick={() => setDuplicatingShop(null)} className="text-slate-500 hover:text-white">
@@ -2026,7 +2023,7 @@ export default function MasterDashboardPage() {
                                         onChange={(e) => setDupCopyProducts(e.target.checked)}
                                         className="size-4 rounded text-emerald-500 focus:ring-0"
                                     />
-                                    <span>Copy all catalog products ({duplicatingShop.productsCount || 0} items)</span>
+                                    <span>Copy all catalog products ({duplicatingShop?.productsCount || 0} items)</span>
                                 </label>
 
                                 <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
