@@ -1073,12 +1073,10 @@ export default function MasterDashboardPage() {
                     {[
                         { id: 'overview', label: activeStore ? `${activeStore.name} Dashboard` : 'Store Dashboard', icon: LayoutDashboard },
                         { id: 'stores', label: `All Stores (${shops.length})`, icon: Store },
-                        { id: 'products', label: `Products (${activeStoreProducts.length})`, icon: ShoppingBag },
-                        { id: 'imports', label: `Imports (${importHistory.length})`, icon: Sparkles },
-                        { id: 'orders', label: `Orders (${activeStoreOrders.length})`, icon: Package },
-                        { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-                        { id: 'gumroad', label: 'Gumroad', icon: Zap },
-                        { id: 'settings', label: 'Settings', icon: Settings }
+                        { id: 'products', label: `Master Catalog (${filteredMasterProducts.length})`, icon: ShoppingBag },
+                        { id: 'imports', label: `Imports Log (${importHistory.length})`, icon: Sparkles },
+                        { id: 'orders', label: `All Orders (${orders.length})`, icon: Package },
+                        { id: 'analytics', label: 'Fleet Analytics', icon: BarChart3 }
                     ].map(tab => {
                         const Icon = tab.icon;
                         const isActive = activeNavTab === tab.id;
@@ -2067,95 +2065,6 @@ export default function MasterDashboardPage() {
                     </div>
                 )}
 
-                {/* ─── TAB 7: GUMROAD INTEGRATION (Section 13) ─── */}
-                {activeNavTab === 'gumroad' && (
-                    <div className="space-y-6">
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div>
-                                <h2 className="text-lg font-black text-white">Gumroad Commerce Center</h2>
-                                <p className="text-xs text-slate-400 mt-0.5">
-                                    Manage server-vaulted API keys, overlay checkout parameters, and product sync.
-                                </p>
-                            </div>
-
-                            <Link
-                                href="/settings/integrations/gumroad"
-                                className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-xs shadow-md transition flex items-center gap-1.5"
-                            >
-                                <Zap size={13} />
-                                <span>Configure Gumroad</span>
-                            </Link>
-                        </div>
-
-                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4">
-                            <div className="flex items-center gap-3">
-                                <div className="size-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center font-black text-xl">
-                                    G
-                                </div>
-                                <div>
-                                    <h3 className="font-extrabold text-white text-base">Supported Gumroad Integration Active</h3>
-                                    <p className="text-xs text-slate-400 mt-0.5">
-                                        Uses Gumroad’s official JavaScript overlay modal (`gumroad.js`) and direct checkout permalinks with post-purchase verification.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="pt-4 border-t border-slate-800 flex flex-wrap gap-3">
-                                <Link
-                                    href="/settings/integrations/gumroad"
-                                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition"
-                                >
-                                    Open Gumroad Product Mapping Table
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* ─── TAB 8: SETTINGS (Section 3) ─── */}
-                {activeNavTab === 'settings' && (
-                    <div className="space-y-6">
-                        <div>
-                            <h2 className="text-lg font-black text-white">Master HQ Engine Settings</h2>
-                            <p className="text-xs text-slate-400 mt-0.5">
-                                Global platform configuration and control options.
-                            </p>
-                        </div>
-
-                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
-                            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-                                <div>
-                                    <h3 className="text-sm font-bold text-white">Authentication & Session</h3>
-                                    <p className="text-xs text-slate-500 mt-0.5">Master administrator session active</p>
-                                </div>
-                                <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                    Admin Verified
-                                </span>
-                            </div>
-
-                            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-                                <div>
-                                    <h3 className="text-sm font-bold text-white">Security & SSRF Guard</h3>
-                                    <p className="text-xs text-slate-500 mt-0.5">DNS rebinding protection, non-standard IP blocking active</p>
-                                </div>
-                                <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                    Hardened
-                                </span>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="text-sm font-bold text-white">Token Storage</h3>
-                                    <p className="text-xs text-slate-500 mt-0.5">Secrets stored strictly server-side</p>
-                                </div>
-                                <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                    Server-Vaulted
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
             </main>
 
             {/* ─── MODAL: CREATE BLANK STORE ─── */}
@@ -2441,16 +2350,16 @@ function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onS
             {/* Store Actions Panel */}
             <div className="mt-4 pt-4 border-t border-slate-800 space-y-2">
                 <div className="flex items-center gap-2">
-                    <button
+                    <Link
+                        href={`/store?store=${shop.username || shop.id}`}
                         onClick={() => {
                             onSetActiveStore?.(shop);
-                            if (onOpenDashboard) onOpenDashboard(shop);
                         }}
                         className="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm"
                     >
                         <LayoutDashboard size={13} />
                         <span>Store Dashboard</span>
-                    </button>
+                    </Link>
                     <a
                         href={`/shop/${shop.username}`}
                         target="_blank"

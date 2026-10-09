@@ -13,7 +13,26 @@ const StoreLayout = ({ children }) => {
 
     const initStoreAccess = async () => {
         try {
-            const store = await getActiveStore(user);
+            let targetSlug = '';
+            if (typeof window !== 'undefined') {
+                const sp = new URLSearchParams(window.location.search);
+                targetSlug = sp.get('store') || '';
+            }
+
+            let store = null;
+            if (targetSlug) {
+                const { getStoreAndCatalog } = await import('@/lib/storePresets');
+                const resolved = await getStoreAndCatalog(targetSlug);
+                if (resolved?.store) {
+                    store = resolved.store;
+                    const { setActiveStoreSlug } = await import('@/lib/activeStore');
+                    setActiveStoreSlug(store);
+                }
+            }
+
+            if (!store) {
+                store = await getActiveStore(user);
+            }
             if (store) setStoreInfo(store);
         } catch (err) {
             console.warn('Store layout access notice:', err);

@@ -88,7 +88,25 @@ export default function StoreSettings() {
     useEffect(() => {
         const fetchStore = async () => {
             try {
-                let store = await getActiveStore(user);
+                let targetSlug = '';
+                if (typeof window !== 'undefined') {
+                    const sp = new URLSearchParams(window.location.search);
+                    targetSlug = sp.get('store') || '';
+                }
+
+                let store = null;
+                if (targetSlug) {
+                    const { getStoreAndCatalog } = await import('@/lib/storePresets');
+                    const resolved = await getStoreAndCatalog(targetSlug);
+                    if (resolved?.store) {
+                        store = resolved.store;
+                        setActiveStoreSlug(store);
+                    }
+                }
+
+                if (!store) {
+                    store = await getActiveStore(user);
+                }
                 if (!store) {
                     const { getActiveStoreSync } = await import('@/lib/activeStore');
                     store = getActiveStoreSync();

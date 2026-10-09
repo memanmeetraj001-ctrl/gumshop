@@ -202,26 +202,6 @@ export default function CreatorBioPage({ params }) {
     
     // High-Conversion Sales States
     const [showStickyBar, setShowStickyBar] = useState(false);
-    const [liveViewerCount, setLiveViewerCount] = useState(18); // SSR deterministic default
-    const [countdown, setCountdown] = useState({ hours: 2, minutes: 48, seconds: 32 });
-
-    // Client-side initialization to avoid hydration mismatch
-    useEffect(() => {
-        setLiveViewerCount(Math.floor(Math.random() * 8) + 14); // 14 to 21 live viewers
-    }, []);
-
-    // Live Ticking Countdown Timer
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setCountdown(prev => {
-                if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-                if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 };
-                if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
-                return { hours: 3, minutes: 0, seconds: 0 };
-            });
-        }, 1000);
-        return () => clearInterval(timer);
-    }, []);
 
     // Scroll listener for sticky floating buy bar
     useEffect(() => {
@@ -826,31 +806,6 @@ export default function CreatorBioPage({ params }) {
 
                             </div>
 
-                            {/* ─── Urgency Drop Countdown Ribbon ─── */}
-                            <div className="mt-4 p-3 rounded-2xl bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-rose-500/10 border border-rose-200/80 flex items-center justify-between gap-2 text-rose-950 shadow-2xs">
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                    <span className="size-2 rounded-full bg-rose-500 animate-ping shrink-0" />
-                                    <span className="text-[11px] font-black uppercase tracking-wider text-rose-800 truncate">
-                                        ⚡ Limited Drop Ending
-                                    </span>
-                                </div>
-                                <div className="font-mono text-xs font-black bg-white px-2.5 py-1 rounded-xl border border-rose-200 shadow-2xs text-rose-700 flex items-center gap-1 shrink-0">
-                                    <Clock size={12} className="text-rose-500" />
-                                    <span>{String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}</span>
-                                </div>
-                            </div>
-
-                            {/* ─── Live Shopper Scarcity Badge ─── */}
-                            <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-500 font-semibold px-1">
-                                <span className="flex items-center gap-1.5 text-amber-700">
-                                    <Flame size={13} className="text-amber-500 fill-amber-500" />
-                                    <span><strong>{liveViewerCount} shoppers</strong> viewing this drop</span>
-                                </span>
-                                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
-                                    ✓ High Demand
-                                </span>
-                            </div>
-
                             {/* ─── Stacked Store Product Cards ─── */}
                             {displayedProducts.length > 0 ? (
                                 <div className="mt-4 space-y-3">
@@ -968,72 +923,71 @@ export default function CreatorBioPage({ params }) {
                                 </span>
                             </div>
 
-                            {/* ─── Auto-Scrolling Verified Buyer Testimonials Carousel ─── */}
-                            <div 
-                                className="mt-6 pt-5 border-t border-slate-200/70"
-                                onMouseEnter={() => setIsHoveredReview(true)}
-                                onMouseLeave={() => setIsHoveredReview(false)}
-                            >
-                                <div className="flex items-center justify-between mb-3">
-                                    <span className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1">
-                                        <Star size={13} className="text-amber-400 fill-amber-400" />
-                                        <span>Verified Customer Proof</span>
-                                    </span>
-                                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                                        ⭐ 4.9 / 5.0 (248 Physical Orders)
-                                    </span>
-                                </div>
-
-                                <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2.5 transition-all duration-300 relative">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-0.5 text-amber-400">
-                                            {[...Array(VERIFIED_PHYSICAL_REVIEWS[activeReviewIndex]?.rating || 5)].map((_, i) => (
-                                                <Star key={i} size={11} className="fill-amber-400" />
-                                            ))}
-                                        </div>
-                                        <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
-                                            {VERIFIED_PHYSICAL_REVIEWS[activeReviewIndex]?.badge}
+                            {/* ─── Authentic Store Reviews (Rendered strictly if store has configured customer testimonials) ─── */}
+                            {Array.isArray(storeInfo?.reviews) && storeInfo.reviews.length > 0 && (
+                                <div 
+                                    className="mt-6 pt-5 border-t border-slate-200/70"
+                                    onMouseEnter={() => setIsHoveredReview(true)}
+                                    onMouseLeave={() => setIsHoveredReview(false)}
+                                >
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1">
+                                            <Star size={13} className="text-amber-400 fill-amber-400" />
+                                            <span>Customer Feedback</span>
+                                        </span>
+                                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                                            Verified Reviews ({storeInfo.reviews.length})
                                         </span>
                                     </div>
 
-                                    <p className="text-xs text-slate-700 font-medium italic leading-relaxed min-h-[46px]">
-                                        "{VERIFIED_PHYSICAL_REVIEWS[activeReviewIndex]?.text}"
-                                    </p>
-
-                                    <div className="flex items-center justify-between pt-1">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`size-6 rounded-full ${VERIFIED_PHYSICAL_REVIEWS[activeReviewIndex]?.bg || 'bg-slate-100'} text-[11px] font-black flex items-center justify-center shrink-0`}>
-                                                {VERIFIED_PHYSICAL_REVIEWS[activeReviewIndex]?.initial}
+                                    <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2.5 transition-all duration-300 relative">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-0.5 text-amber-400">
+                                                {[...Array(storeInfo.reviews[activeReviewIndex]?.rating || 5)].map((_, i) => (
+                                                    <Star key={i} size={11} className="fill-amber-400" />
+                                                ))}
                                             </div>
-                                            <div>
-                                                <span className="text-xs font-bold text-slate-800 block leading-tight">
-                                                    {VERIFIED_PHYSICAL_REVIEWS[activeReviewIndex]?.name}
-                                                </span>
-                                                <span className="text-[10px] text-slate-400">
-                                                    {VERIFIED_PHYSICAL_REVIEWS[activeReviewIndex]?.handle}
-                                                </span>
-                                            </div>
+                                            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
+                                                {storeInfo.reviews[activeReviewIndex]?.badge || 'Verified Purchase'}
+                                            </span>
                                         </div>
 
-                                        {/* Carousel Navigation Dots */}
-                                        <div className="flex items-center gap-1.5">
-                                            {VERIFIED_PHYSICAL_REVIEWS.map((_, dotIdx) => (
-                                                <button
-                                                    key={dotIdx}
-                                                    type="button"
-                                                    onClick={() => setActiveReviewIndex(dotIdx)}
-                                                    aria-label={`Go to review ${dotIdx + 1}`}
-                                                    className={`transition-all rounded-full ${
-                                                        activeReviewIndex === dotIdx 
-                                                            ? 'w-4 h-1.5 bg-slate-900' 
-                                                            : 'size-1.5 bg-slate-300 hover:bg-slate-400'
-                                                    }`}
-                                                />
-                                            ))}
+                                        <p className="text-xs text-slate-700 font-medium italic leading-relaxed min-h-[46px]">
+                                            "{storeInfo.reviews[activeReviewIndex]?.text}"
+                                        </p>
+
+                                        <div className="flex items-center justify-between pt-1">
+                                            <div className="flex items-center gap-2">
+                                                <div className="size-6 rounded-full bg-slate-100 text-[11px] font-black flex items-center justify-center shrink-0">
+                                                    {(storeInfo.reviews[activeReviewIndex]?.name || 'C').charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <span className="text-xs font-bold text-slate-800 block leading-tight">
+                                                        {storeInfo.reviews[activeReviewIndex]?.name}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Carousel Navigation Dots */}
+                                            <div className="flex items-center gap-1.5">
+                                                {storeInfo.reviews.map((_, dotIdx) => (
+                                                    <button
+                                                        key={dotIdx}
+                                                        type="button"
+                                                        onClick={() => setActiveReviewIndex(dotIdx)}
+                                                        aria-label={`Go to review ${dotIdx + 1}`}
+                                                        className={`transition-all rounded-full ${
+                                                            activeReviewIndex === dotIdx 
+                                                                ? 'w-4 h-1.5 bg-slate-900' 
+                                                                : 'size-1.5 bg-slate-300 hover:bg-slate-400'
+                                                        }`}
+                                                    />
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
                         </div>
 

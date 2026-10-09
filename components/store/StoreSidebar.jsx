@@ -12,19 +12,19 @@ const StoreSidebar = ({ storeInfo }) => {
 
     const sidebarLinks = [
         { name: '← Master Dashboard', href: '/dashboard', icon: HomeIcon, highlight: true },
-        { name: 'Import Store (AI)', href: '/store/import', icon: Sparkles, highlight: true },
+        { name: 'Import Store (AI)', href: `/store/import?store=${storeSlug}`, icon: Sparkles, highlight: true },
         { name: '+ Create Blank Shop', href: '/create-store', icon: SquarePlusIcon },
-        { name: 'Analytics & Overview', href: '/store', icon: BarChart3 },
-        { name: '📱 Edit Stan / Mobile Bio', href: '/store/bio-editor', icon: Smartphone, highlight: true, badge: 'New' },
+        { name: 'Analytics & Overview', href: `/store?store=${storeSlug}`, icon: BarChart3 },
+        { name: '📱 Edit Stan / Mobile Bio', href: `/store/bio-editor?store=${storeSlug}`, icon: Smartphone, highlight: true, badge: 'New' },
         { name: 'Creator Bio Link', href: `/creator/${storeSlug}`, icon: ExternalLink, highlight: false, external: true, badge: 'Live' },
-        { name: 'Manage Products', href: '/store/manage-product', icon: SquarePenIcon },
-        { name: 'Add Product', href: '/store/add-product', icon: SquarePlusIcon },
-        { name: 'Orders & Shipping', href: '/store/orders', icon: Package },
-        { name: 'Customers CRM', href: '/store/customers', icon: Users },
-        { name: 'Coupons & Discounts', href: '/store/coupons', icon: TicketPercentIcon },
-        { name: 'Marketing & Upsells', href: '/store/marketing', icon: Tag },
-        { name: 'Gumroad Payments', href: '/settings/integrations/gumroad', icon: SettingsIcon },
-        { name: 'Store Settings', href: '/store/settings', icon: SettingsIcon },
+        { name: 'Manage Products', href: `/store/manage-product?store=${storeSlug}`, icon: SquarePenIcon },
+        { name: 'Add Product', href: `/store/add-product?store=${storeSlug}`, icon: SquarePlusIcon },
+        { name: 'Orders & Shipping', href: `/store/orders?store=${storeSlug}`, icon: Package },
+        { name: 'Customers CRM', href: `/store/customers?store=${storeSlug}`, icon: Users },
+        { name: 'Coupons & Discounts', href: `/store/coupons?store=${storeSlug}`, icon: TicketPercentIcon },
+        { name: 'Marketing & Upsells', href: `/store/marketing?store=${storeSlug}`, icon: Tag },
+        { name: 'Gumroad Payments', href: `/store/settings?tab=gumroad&store=${storeSlug}`, icon: SettingsIcon },
+        { name: 'Store Settings', href: `/store/settings?store=${storeSlug}`, icon: SettingsIcon },
     ];
 
     return (

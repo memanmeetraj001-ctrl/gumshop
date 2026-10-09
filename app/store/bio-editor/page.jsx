@@ -105,7 +105,26 @@ export default function StanStoreBioEditor() {
     useEffect(() => {
         const initEditor = async () => {
             try {
-                let store = await getActiveStore(user) || getActiveStoreSync();
+                let targetSlug = '';
+                if (typeof window !== 'undefined') {
+                    const sp = new URLSearchParams(window.location.search);
+                    targetSlug = sp.get('store') || '';
+                }
+
+                let store = null;
+                if (targetSlug) {
+                    const { getStoreAndCatalog } = await import('@/lib/storePresets');
+                    const resolved = await getStoreAndCatalog(targetSlug);
+                    if (resolved?.store) {
+                        store = resolved.store;
+                        setActiveStoreSlug(store);
+                    }
+                }
+
+                if (!store) {
+                    store = await getActiveStore(user) || getActiveStoreSync();
+                }
+
                 if (!store) {
                     setLoading(false);
                     return;
