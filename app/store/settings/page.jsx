@@ -37,6 +37,18 @@ export default function StoreSettings() {
     const { user, loading: authLoading } = useAuth();
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('general');
+
+    // Parse ?tab= on mount so /settings/integrations/gumroad lands directly on the requested tab
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const sp = new URLSearchParams(window.location.search);
+            const tabParam = sp.get('tab');
+            if (tabParam) {
+                setActiveTab(tabParam);
+            }
+        }
+    }, []);
+
     const [isSaving, setIsSaving] = useState(false);
     const [autoSaveStatus, setAutoSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
     const isInitialMount = useRef(true);
@@ -92,6 +104,10 @@ export default function StoreSettings() {
                 if (typeof window !== 'undefined') {
                     const sp = new URLSearchParams(window.location.search);
                     targetSlug = sp.get('store') || '';
+                    const tabParam = sp.get('tab');
+                    if (tabParam) {
+                        setActiveTab(tabParam);
+                    }
                 }
 
                 let store = null;
@@ -117,8 +133,12 @@ export default function StoreSettings() {
                     return;
                 }
 
-                const { getGumroadToken } = await import('@/lib/activeStore');
-                const persistentToken = getGumroadToken() || store?.gumroadToken || '';
+                const storeSlug = store.username || store.id || targetSlug || '';
+                const cleanStoreSlug = (storeSlug || '').toLowerCase().replace(/^store_/, '').trim();
+                const storeScopedToken = (typeof window !== 'undefined' && cleanStoreSlug)
+                    ? (localStorage.getItem(`gumroad_token_${cleanStoreSlug}`) || localStorage.getItem(`gumroad_token_store_${cleanStoreSlug}`) || '')
+                    : '';
+                const persistentToken = store?.gumroadToken || storeScopedToken || '';
 
                 const persistentProductUrl = store?.gumroadProductUrl || 
                     (typeof window !== 'undefined' ? (localStorage.getItem(`gumroad_url_${store.username}`) || '') : '');
@@ -399,8 +419,7 @@ export default function StoreSettings() {
             let targetStoreId = storeInfo.id || `store_${cleanSlug}`;
             targetStoreId = targetStoreId.replace(/^store_store_/, 'store_');
 
-            const { setGumroadToken, getGumroadToken } = await import('@/lib/activeStore');
-            const persistentToken = (storeInfo.gumroadToken || '').trim() || getGumroadToken() || '';
+            const persistentToken = (storeInfo.gumroadToken || '').trim();
 
             // Preserve existing products from active cache so saving settings never wipes them!
             let currentProducts = storeInfo.products || [];
@@ -467,9 +486,6 @@ export default function StoreSettings() {
             }
 
             // 3. Multi-tier token and store synchronization
-            if (persistentToken) {
-                setGumroadToken(persistentToken);
-            }
             setActiveStoreSlug(cleanSlug);
 
             // Await both server calls so data is persisted before completing
@@ -503,6 +519,10 @@ export default function StoreSettings() {
                 }
                 if (persistentToken) {
                     localStorage.setItem(`gumroad_token_${cleanSlug}`, persistentToken);
+                    localStorage.setItem(`gumroad_token_${targetStoreId}`, persistentToken);
+                } else {
+                    localStorage.removeItem(`gumroad_token_${cleanSlug}`);
+                    localStorage.removeItem(`gumroad_token_${targetStoreId}`);
                 }
                 if (payloadToSave.socials) {
                     localStorage.setItem(`gumshop_socials_${cleanSlug}`, JSON.stringify(payloadToSave.socials));
@@ -867,8 +887,17 @@ export default function StoreSettings() {
                                         const val = e.target.value;
                                         setStoreInfo(prev => ({ ...prev, gumroadToken: val }));
                                         if (typeof window !== 'undefined') {
-                                            localStorage.setItem('gumshop_gumroad_token', val.trim());
-                                            localStorage.setItem('gumroad_access_token', val.trim());
+                                            const sSlug = storeInfo.username || storeInfo.id || '';
+                                            const cleanS = sSlug.toLowerCase().replace(/^store_/, '').trim();
+                                            if (cleanS) {
+                                                if (val.trim()) {
+                                                    localStorage.setItem(`gumroad_token_${cleanS}`, val.trim());
+                                                    localStorage.setItem(`gumroad_token_store_${cleanS}`, val.trim());
+                                                } else {
+                                                    localStorage.removeItem(`gumroad_token_${cleanS}`);
+                                                    localStorage.removeItem(`gumroad_token_store_${cleanS}`);
+                                                }
+                                            }
                                         }
                                     }}
                                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-pink-500 focus:bg-white transition font-mono"

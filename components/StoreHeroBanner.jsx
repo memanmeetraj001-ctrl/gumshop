@@ -1,9 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
     Sparkles, 
-    Clock, 
     Instagram, 
     Youtube, 
     Twitter, 
@@ -14,36 +12,18 @@ import {
 } from 'lucide-react';
 
 export default function StoreHeroBanner({ store, totalProducts = 0 }) {
-    const [countdown, setCountdown] = useState({ hours: 2, minutes: 44, seconds: 19 });
-
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setCountdown(prev => {
-                if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-                if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-                if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
-                return prev;
-            });
-        }, 1000);
-        return () => clearInterval(timer);
-    }, []);
-
     const themeColor = store?.themeColor || '#10B981';
     const storeName = store?.name || "Official Store";
     const storeBio = store?.description || "Curated viral essentials with fast, tracked worldwide delivery.";
 
     return (
         <div className="w-full">
-            {/* Urgent Sticky Flash Sale Announcement Bar */}
+            {/* Flash Sale Announcement Bar */}
             {store?.flashSale?.enabled !== false && (
                 <div className="bg-slate-950 text-white py-2.5 px-4 text-center text-xs font-semibold flex items-center justify-center gap-2 flex-wrap border-b border-slate-800">
                     <span className="flex items-center gap-1.5 text-emerald-400">
                         <Sparkles size={14} />
                         <span>{store?.flashSale?.text || "⚡ FLASH SALE: 25% OFF STOREWIDE — Today Only!"}</span>
-                    </span>
-                    <span className="bg-slate-900 border border-slate-800 px-2.5 py-0.5 rounded-full text-slate-300 font-mono text-[11px] flex items-center gap-1">
-                        <Clock size={12} className="text-emerald-400" />
-                        <span>{String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}</span>
                     </span>
                 </div>
             )}

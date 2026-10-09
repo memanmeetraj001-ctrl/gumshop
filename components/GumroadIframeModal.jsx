@@ -28,6 +28,7 @@ export default function GumroadIframeModal({
     product,
     items = [],
     total,
+    shippingFee = 0,
     gumroadUrl,
     orderSessionId
 }) {
@@ -97,10 +98,17 @@ export default function GumroadIframeModal({
         gumroadUrl: product.gumroadUrl || ''
     }] : []);
 
+    const alreadyHasRush = orderItems.some(i => 
+        i.id === 'addon_priority_rush_insurance' || 
+        i.productId === 'addon_priority_rush_insurance' ||
+        (i.name && (i.name.toLowerCase().includes('priority rush') || i.name.toLowerCase().includes('rush processing')))
+    );
+
+    const itemsSubtotal = orderItems.reduce((acc, item) => acc + (parseFloat(item.price || 0) * (item.quantity || 1)), 0);
     const baseOrderTotal = total !== undefined 
         ? parseFloat(total) 
-        : orderItems.reduce((acc, item) => acc + (parseFloat(item.price || 0) * (item.quantity || 1)), 0);
-    const orderTotal = baseOrderTotal + (hasOrderBump ? 4.99 : 0);
+        : Math.round((itemsSubtotal + parseFloat(shippingFee || 0)) * 100) / 100;
+    const orderTotal = Math.round((baseOrderTotal + (!alreadyHasRush && hasOrderBump ? 4.99 : 0)) * 100) / 100;
 
     const activeStore = getActiveStoreSync();
     const storeName = activeStore?.name || product?.storeName || 'GumShop Store';
@@ -138,6 +146,9 @@ export default function GumroadIframeModal({
             urlObj.searchParams.set('wanted', 'true');
             if (orderTotal > 0) {
                 urlObj.searchParams.set('price', orderTotal.toFixed(2));
+            }
+            if (shippingFee > 0) {
+                urlObj.searchParams.set('shipping_fee', parseFloat(shippingFee).toFixed(2));
             }
             if (formData.email) {
                 urlObj.searchParams.set('email', formData.email.trim());

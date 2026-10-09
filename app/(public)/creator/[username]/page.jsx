@@ -97,59 +97,6 @@ const PRESET_STYLES = {
     }
 };
 
-const VERIFIED_PHYSICAL_REVIEWS = [
-    {
-        id: 'rev_1',
-        name: 'Marcus T.',
-        handle: '@marcus_style',
-        rating: 5,
-        badge: '🚚 2-Day Express Courier',
-        text: 'Arrived in just 2 days! Packaging was pristine, sealed in bubble wrap, and the build quality feels heavy and premium. 10/10 unboxing experience.',
-        initial: 'M',
-        bg: 'bg-emerald-100 text-emerald-800'
-    },
-    {
-        id: 'rev_2',
-        name: 'Chloe R.',
-        handle: '@chloe_vlogs',
-        rating: 5,
-        badge: '📦 Sealed & Tracked Parcel',
-        text: 'Saw this on TikTok and ordered immediately. Real deal—comes securely boxed with real-time tracking updates sent directly to my phone.',
-        initial: 'C',
-        bg: 'bg-rose-100 text-rose-800'
-    },
-    {
-        id: 'rev_3',
-        name: 'Daniel K.',
-        handle: '@dan_tech',
-        rating: 5,
-        badge: '⚡ 24h Priority Dispatch',
-        text: 'Super impressed with the materials. Box came with all accessories intact and shipping courier delivered right to my doorstep ahead of schedule.',
-        initial: 'D',
-        bg: 'bg-indigo-100 text-indigo-800'
-    },
-    {
-        id: 'rev_4',
-        name: 'Sarah M.',
-        handle: '@sarah_design',
-        rating: 5,
-        badge: '🛡️ Verified Delivery',
-        text: 'Instant email confirmation verified my shipping address in 2 minutes. Package arrived in mint condition. Will definitely buy again!',
-        initial: 'S',
-        bg: 'bg-amber-100 text-amber-800'
-    },
-    {
-        id: 'rev_5',
-        name: 'Jason L.',
-        handle: '@jason_creatives',
-        rating: 5,
-        badge: '⭐ Premium Build Quality',
-        text: 'Exceeded my expectations. Unboxing felt high-end, completely authentic item, and flawless tracked shipping from fulfillment hub to my door.',
-        initial: 'J',
-        bg: 'bg-purple-100 text-purple-800'
-    }
-];
-
 function formatCreatorProfile(store, rawUsername) {
     if (!store) return null;
     const cleanUser = (rawUsername || store.username || '').toLowerCase().trim();
@@ -240,12 +187,13 @@ export default function CreatorBioPage({ params }) {
     const [isHoveredReview, setIsHoveredReview] = useState(false);
 
     useEffect(() => {
-        if (isHoveredReview) return;
+        const reviewCount = storeInfo?.reviews?.length || 0;
+        if (isHoveredReview || reviewCount <= 1) return;
         const reviewTimer = setInterval(() => {
-            setActiveReviewIndex(prev => (prev + 1) % VERIFIED_PHYSICAL_REVIEWS.length);
+            setActiveReviewIndex(prev => (prev + 1) % reviewCount);
         }, 3500);
         return () => clearInterval(reviewTimer);
-    }, [isHoveredReview]);
+    }, [isHoveredReview, storeInfo?.reviews]);
 
     useEffect(() => {
         let isMounted = true;
@@ -482,8 +430,8 @@ export default function CreatorBioPage({ params }) {
     }
 
     const activePreset = PRESET_STYLES[creator?.backgroundPreset] || PRESET_STYLES.warm_studio;
-    const displayedProducts = (creator?.productDisplayMode === 'curated' && creator?.featuredProductIds?.length > 0)
-        ? products.filter(p => creator.featuredProductIds.includes(p.id))
+    const displayedProducts = creator?.productDisplayMode === 'curated'
+        ? products.filter(p => Array.isArray(creator.featuredProductIds) && creator.featuredProductIds.includes(p.id))
         : products;
 
     return (
@@ -558,7 +506,7 @@ export default function CreatorBioPage({ params }) {
                         ⚡ Link-in-Bio Mode • Live Store Sync
                     </span>
                     <Link
-                        href="/store/bio-editor"
+                        href={`/store/bio-editor?store=${encodeURIComponent(rawUsername)}`}
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
                     >
                         <Smartphone size={12} className="text-rose-500" />

@@ -139,7 +139,7 @@ const OrderSummary = ({ totalPrice, items }) => {
             const freeShippingThreshold = typeof storeShippingConfig.freeShippingThreshold === 'number' ? storeShippingConfig.freeShippingThreshold : 50.00;
             const isFreeShipping = coupon?.type === 'shipping' || (totalPrice >= freeShippingThreshold);
             const calculatedShippingFee = isFreeShipping ? 0 : standardShippingFee;
-            const finalShippingFee = calculatedShippingFee + (includeRushProtection ? RUSH_PROTECTION_FEE : 0);
+            const finalShippingFee = calculatedShippingFee;
 
             const storeSlug = activeStore?.username || (typeof window !== 'undefined' ? (window.location.pathname.match(/\/shop\/([^\/]+)/)?.[1] || '') : '');
             const storeScopedUrl = (typeof window !== 'undefined' && storeSlug) ? (localStorage.getItem(`gumroad_url_${storeSlug}`) || localStorage.getItem(`gumroad_product_url_${storeSlug}`)) : '';
@@ -368,7 +368,7 @@ const OrderSummary = ({ totalPrice, items }) => {
                     quantity: item.quantity,
                     image: item.images?.[0] || item.image
                 }))}
-                total={totalPrice - calculateDiscount()}
+                total={finalSubtotal}
                 gumroadUrl={checkoutModal.gumroadUrl}
                 orderSessionId={checkoutModal.orderSessionId}
             />

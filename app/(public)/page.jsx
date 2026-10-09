@@ -326,7 +326,7 @@ export default function SuperStorefront() {
                 </section>
             )}
 
-            {/* 3. Featured Deals Strip (No Fake Urgency Countdown) */}
+            {/* 3. Featured Deals Strip */}
             {discountedDeals.length > 0 && (
                 <section id="special-deals" className="py-12 bg-emerald-50/50 border-b border-emerald-100/60">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

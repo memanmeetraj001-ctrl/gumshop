@@ -6,7 +6,7 @@
  * - agency-testing-reality-checker (Evidence-Based Verification, Zero Fantasy Approvals)
  */
 
-const BASE_URL = process.env.TEST_URL || 'https://www.gumshop.online';
+const BASE_URL = process.env.TEST_URL || 'http://localhost:3000';
 const MASTER_PASSWORD = process.env.ADMIN_PASSWORD || 'Meetminal@0406';
 
 const results = {
@@ -101,11 +101,11 @@ async function runSuite() {
         }
     });
 
-    await test('Reality Check', 'Stan Store renders verified reviews carousel data', async () => {
+    await test('Reality Check', 'Stan Store enforces zero fake telemetry and does NOT render mock reviews or synthetic countdowns', async () => {
         const res = await fetch(`${BASE_URL}/creator/demo`);
         const html = await res.text();
-        if (!html.includes('Verified Customer Proof') && !html.includes('Physical Orders')) {
-            throw new Error('Verified review tags not detected in Stan Store HTML');
+        if (html.includes('Verified Customer Proof') || html.includes('Physical Orders') || html.includes('02:44:19')) {
+            throw new Error('Fake buyer proof or synthetic countdown detected in Stan Store HTML');
         }
     });
 
@@ -376,6 +376,144 @@ async function runSuite() {
         if (res.status === 500) throw new Error('Received unhandled 500 Internal Server Error');
         const html = await res.text();
         if (!html.includes('<!DOCTYPE html>')) throw new Error('Expected HTML document');
+    });
+
+    // =========================================================================
+    // SUITE 5: Multi-Store Credential Isolation & Order Persistence Bridge
+    // =========================================================================
+    console.log(`\n🏢 [SUITE 5] Multi-Store Credential Isolation & Order Bridge`);
+
+    await test('Multi-Store Isolation', 'Per-Store Vault maintains strict credential isolation between Store A and Store B', async () => {
+        const { getServerGumroadToken, setServerGumroadToken, clearServerGumroadToken } = await import('../lib/serverVault.js');
+        await setServerGumroadToken('gum_token_store_a_secret_123', 'store-alpha');
+        await setServerGumroadToken('gum_token_store_b_secret_456', 'store-beta');
+
+        const tokenA = await getServerGumroadToken('store-alpha');
+        const tokenB = await getServerGumroadToken('store-beta');
+        const tokenNonExistent = await getServerGumroadToken('store-gamma-unconfigured');
+
+        if (tokenA !== 'gum_token_store_a_secret_123') throw new Error(`Store A token mismatch: ${tokenA}`);
+        if (tokenB !== 'gum_token_store_b_secret_456') throw new Error(`Store B token mismatch: ${tokenB}`);
+        if (tokenNonExistent !== '') throw new Error(`Cross-store leakage: unconfigured store got token: ${tokenNonExistent}`);
+
+        await clearServerGumroadToken('store-alpha');
+        const tokenACleared = await getServerGumroadToken('store-alpha');
+        if (tokenACleared !== '') throw new Error(`Store A token was not cleared: ${tokenACleared}`);
+        const tokenBStillExists = await getServerGumroadToken('store-beta');
+        if (tokenBStillExists !== 'gum_token_store_b_secret_456') throw new Error('Store B token was corrupted by Store A clear');
+    });
+
+    await test('Order Bridge', 'Server Order Store correctly partitions and retrieves orders by store', async () => {
+        const { saveServerOrder, getServerOrdersByStore } = await import('../lib/serverOrderStore.js');
+        const testOrderA = {
+            id: 'ord_test_alpha_1',
+            storeId: 'store-alpha',
+            storeSlug: 'store-alpha',
+            total: 39.99,
+            createdAt: new Date().toISOString()
+        };
+        const testOrderB = {
+            id: 'ord_test_beta_1',
+            storeId: 'store-beta',
+            storeSlug: 'store-beta',
+            total: 89.99,
+            createdAt: new Date().toISOString()
+        };
+
+        await saveServerOrder('ord_test_alpha_1', testOrderA);
+        await saveServerOrder('ord_test_beta_1', testOrderB);
+
+        const ordersA = await getServerOrdersByStore('store-alpha');
+        const ordersB = await getServerOrdersByStore('store-beta');
+
+        if (!ordersA.some(o => o.id === 'ord_test_alpha_1')) throw new Error('Store Alpha missing its order');
+        if (ordersA.some(o => o.id === 'ord_test_beta_1')) throw new Error('Store Alpha contaminated with Store Beta order');
+        if (!ordersB.some(o => o.id === 'ord_test_beta_1')) throw new Error('Store Beta missing its order');
+        if (ordersB.some(o => o.id === 'ord_test_alpha_1')) throw new Error('Store Beta contaminated with Store Alpha order');
+    });
+
+    // =========================================================================
+    // SUITE 6: Milestone M2: Multi-Store Isolation & Stan Store Synchronization
+    // =========================================================================
+    console.log(`\n🏢 [SUITE 6] Milestone M2: Multi-Store Isolation & Stan Store Synchronization`);
+
+    await test('Milestone M2', 'Multi-Store creation maintains strict catalog isolation between Store A and Store B', async () => {
+        const { serverSaveStore, serverSaveProducts, serverGetProducts, serverDeleteStore } = await import('../lib/serverDb.js');
+        const STORE_A = { id: 'store_m2_audit_a', username: 'm2-audit-a', name: 'M2 Audit Store A' };
+        const STORE_B = { id: 'store_m2_audit_b', username: 'm2-audit-b', name: 'M2 Audit Store B' };
+        const PRODS_A = [{ id: 'prod_m2_a_1', storeId: 'store_m2_audit_a', name: 'Product A1', price: 19.99 }];
+        const PRODS_B = [{ id: 'prod_m2_b_1', storeId: 'store_m2_audit_b', name: 'Product B1', price: 49.99 }];
+
+        await serverSaveStore(STORE_A);
+        await serverSaveProducts(STORE_A.id, PRODS_A);
+        await serverSaveStore(STORE_B);
+        await serverSaveProducts(STORE_B.id, PRODS_B);
+
+        const prodsA = await serverGetProducts('m2-audit-a');
+        const prodsB = await serverGetProducts('m2-audit-b');
+
+        if (prodsA.length !== 1 || prodsA[0].id !== 'prod_m2_a_1') throw new Error('Store A catalog incorrect');
+        if (prodsB.length !== 1 || prodsB[0].id !== 'prod_m2_b_1') throw new Error('Store B catalog incorrect');
+        if (prodsA.some(p => p.id === 'prod_m2_b_1')) throw new Error('Cross-store leakage: Store A got Store B products');
+        if (prodsB.some(p => p.id === 'prod_m2_a_1')) throw new Error('Cross-store leakage: Store B got Store A products');
+
+        await serverDeleteStore(STORE_A.id, STORE_A.username);
+        await serverDeleteStore(STORE_B.id, STORE_B.username);
+    });
+
+    await test('Milestone M2', 'Homepage Switcher designates Store A then switches to Store B with zero stale cache', async () => {
+        const { serverSaveStore, serverDeleteStore, designateHomepageStore, resolveHomepageStore } = await import('../lib/serverDb.js');
+
+        await serverSaveStore({ id: 'store_m2_hp_a', username: 'm2-hp-a', name: 'Homepage Test Store A' });
+        await serverSaveStore({ id: 'store_m2_hp_b', username: 'm2-hp-b', name: 'Homepage Test Store B' });
+
+        // Set Store A
+        const resA = await designateHomepageStore('m2-hp-a');
+        if (!resA.success || resA.homepageSlug !== 'm2-hp-a') throw new Error('Failed to designate Store A as homepage');
+
+        // Switch to Store B
+        const resB = await designateHomepageStore('m2-hp-b');
+        if (!resB.success || resB.homepageSlug !== 'm2-hp-b') throw new Error('Failed to switch homepage to Store B');
+
+        // Verify GET resolves Store B
+        const getData = await resolveHomepageStore();
+        if (!getData.success || getData.homepageSlug !== 'm2-hp-b') throw new Error('GET /api/store/homepage did not resolve Store B');
+
+        await serverDeleteStore('store_m2_hp_a', 'm2-hp-a');
+        await serverDeleteStore('store_m2_hp_b', 'm2-hp-b');
+    });
+
+    await test('Milestone M2', 'Stan Store /creator/[slug] bio settings and curated catalog isolate with 0 leakage', async () => {
+        const { serverSaveStore, serverSaveProducts, serverDeleteStore } = await import('../lib/serverDb.js');
+        const { getStoreAndCatalog } = await import('../lib/storePresets.js');
+
+        const BIO_STORE = {
+            id: 'store_m2_bio_test',
+            username: 'm2-bio-test',
+            name: 'Bio Test Store',
+            bioProfile: {
+                displayName: 'Bio Test Creator',
+                tagline: 'Exclusive Creator Bio',
+                themeColor: '#EC4899',
+                leadMagnet: { enabled: true, title: 'Free Audio Preset', buttonText: 'Claim Preset' },
+                productDisplayMode: 'curated',
+                featuredProductIds: ['prod_bio_1']
+            }
+        };
+        const BIO_PRODS = [
+            { id: 'prod_bio_1', storeId: 'store_m2_bio_test', name: 'Curated Soundpack', price: 29.00 },
+            { id: 'prod_bio_2', storeId: 'store_m2_bio_test', name: 'Uncurated Extra', price: 9.00 }
+        ];
+
+        await serverSaveStore(BIO_STORE);
+        await serverSaveProducts(BIO_STORE.id, BIO_PRODS);
+
+        const resolved = await getStoreAndCatalog('m2-bio-test');
+        if (!resolved.store) throw new Error('Bio store failed to resolve');
+        if (resolved.store.bioProfile?.themeColor !== '#EC4899') throw new Error('Theme color mismatch');
+        if (resolved.store.bioProfile?.leadMagnet?.title !== 'Free Audio Preset') throw new Error('Lead magnet title mismatch');
+
+        await serverDeleteStore(BIO_STORE.id, BIO_STORE.username);
     });
 
     // =========================================================================

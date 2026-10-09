@@ -18,8 +18,10 @@ export async function POST(req) {
         const { 
             storeId = 'store_default', 
             storeName = 'GumShop Store',
+            storeSlug = '',
             items = [], 
             shippingFee = 0, 
+            rushFee = 0,
             discountAmount = 0,
             couponCode = '',
             customer = {},
@@ -76,14 +78,33 @@ export async function POST(req) {
             };
         }));
 
-        // Calculate dynamic subtotal & final price
+        // Calculate dynamic subtotal & final price with rush fee double-counting defense
         const subtotal = validatedItems.reduce((sum, item) => sum + (item.price * parseInt(item.quantity || 1)), 0);
-        const finalTotal = Math.max(1.00, Math.round((subtotal + parseFloat(shippingFee || 0) - parseFloat(discountAmount || 0)) * 100) / 100);
+
+        const hasRushItem = validatedItems.some(item => 
+            item.productId === 'addon_priority_rush_insurance' ||
+            item.id === 'addon_priority_rush_insurance' ||
+            (item.name && (item.name.toLowerCase().includes('priority rush') || item.name.toLowerCase().includes('rush processing')))
+        );
+
+        const parsedRushFee = parseFloat(rushFee || 0);
+        // If rush fee was passed in body AND not already represented as a line item, add it.
+        // If rush fee was already in items, do not double-add it!
+        const effectiveRushFee = hasRushItem ? 0 : parsedRushFee;
+        const totalRushFee = hasRushItem 
+            ? (validatedItems.find(i => i.productId === 'addon_priority_rush_insurance' || i.id === 'addon_priority_rush_insurance')?.price || parsedRushFee || 3.99)
+            : parsedRushFee;
+
+        const finalTotal = Math.max(1.00, Math.round((subtotal + parseFloat(shippingFee || 0) + effectiveRushFee - parseFloat(discountAmount || 0)) * 100) / 100);
 
         // Prepare line items summary
-        const itemsSummary = validatedItems
+        let itemsSummary = validatedItems
             .map(i => `${i.quantity}x ${i.name}${i.variant ? ` (${i.variant})` : ''}`)
             .join(', ');
+
+        if (effectiveRushFee > 0 && !hasRushItem) {
+            itemsSummary = itemsSummary ? `${itemsSummary}, 1x ⚡ Priority Rush Processing` : '⚡ Priority Rush Processing';
+        }
 
         const orderSessionId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
@@ -106,7 +127,7 @@ export async function POST(req) {
         }
 
         // Try auto-discovering from server-vaulted Gumroad token
-        const serverToken = await getServerGumroadToken();
+        const serverToken = (await getServerGumroadToken(storeId)) || (!storeId || storeId === 'store_default' ? await getServerGumroadToken() : '');
         if (!resolvedProductUrl && serverToken) {
             try {
                 const prodRes = await fetch(`https://api.gumroad.com/v2/products?access_token=${encodeURIComponent(serverToken)}`, {
@@ -154,10 +175,12 @@ export async function POST(req) {
                 id: orderSessionId,
                 orderId: orderSessionId,
                 storeId,
+                storeSlug: (storeSlug || body.store || String(storeId).replace(/^store_/, '')).toLowerCase().trim(),
                 storeName,
                 total: finalTotal,
                 subtotal: Math.round(subtotal * 100) / 100,
                 shippingFee: Math.round(parseFloat(shippingFee || 0) * 100) / 100,
+                rushFee: Math.round(totalRushFee * 100) / 100,
                 discountAmount: Math.round(parseFloat(discountAmount || 0) * 100) / 100,
                 currency: 'USD',
                 paymentStatus: PaymentStatus.CHECKOUT_STARTED,
@@ -223,6 +246,7 @@ export async function POST(req) {
                     pricing: {
                         subtotal: Math.round(subtotal * 100) / 100,
                         shippingFee: Math.round(parseFloat(shippingFee || 0) * 100) / 100,
+                        rushFee: Math.round(totalRushFee * 100) / 100,
                         discountAmount: Math.round(parseFloat(discountAmount || 0) * 100) / 100,
                         finalTotal: finalTotal,
                         currency: 'USD'
@@ -241,6 +265,7 @@ export async function POST(req) {
                     pricing: {
                         subtotal: Math.round(subtotal * 100) / 100,
                         shippingFee: Math.round(parseFloat(shippingFee || 0) * 100) / 100,
+                        rushFee: Math.round(totalRushFee * 100) / 100,
                         discountAmount: Math.round(parseFloat(discountAmount || 0) * 100) / 100,
                         finalTotal: finalTotal,
                         currency: 'USD'
@@ -262,6 +287,7 @@ export async function POST(req) {
             pricing: {
                 subtotal: Math.round(subtotal * 100) / 100,
                 shippingFee: Math.round(parseFloat(shippingFee || 0) * 100) / 100,
+                rushFee: Math.round(totalRushFee * 100) / 100,
                 discountAmount: Math.round(parseFloat(discountAmount || 0) * 100) / 100,
                 finalTotal: finalTotal,
                 currency: 'USD'

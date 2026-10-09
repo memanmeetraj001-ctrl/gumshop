@@ -558,7 +558,7 @@ const ProductDetails = ({ product, storeInfo }) => {
                     quantity: currentTier.qty,
                     image: (product.images && product.images[0]) || product.image
                 }]}
-                total={currentTier.totalPrice}
+                total={currentTier.totalPrice + (currentTier.qty >= 3 ? 0 : (storeInfo?.shipping?.standardFee || 4.99))}
                 gumroadUrl={checkoutModal.gumroadUrl}
                 orderSessionId={checkoutModal.orderSessionId}
             />

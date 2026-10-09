@@ -41,12 +41,20 @@ export default function ProductQuickView({ product, isOpen, onClose, onOpenCart 
             const storeSlug = activeStore?.username || activeStore?.id || product.storeId;
             const storeScopedUrl = storeSlug && typeof window !== 'undefined' ? (localStorage.getItem(`gumroad_url_${storeSlug}`) || localStorage.getItem(`gumroad_url_${activeStore?.id}`)) : '';
             const persistentUrl = typeof window !== 'undefined' ? (storeScopedUrl || localStorage.getItem('gumshop_gumroad_url') || localStorage.getItem('gumroad_product_url') || '') : '';
+            
+            const storeShipping = activeStore?.shipping || {};
+            const standardShippingFee = typeof storeShipping.standardFee === 'number' ? storeShipping.standardFee : 4.99;
+            const freeThreshold = typeof storeShipping.freeShippingThreshold === 'number' ? storeShipping.freeShippingThreshold : 50.00;
+            const subtotal = price * quantity;
+            const shippingFee = subtotal >= freeThreshold ? 0 : standardShippingFee;
+            const calculatedTotal = Math.round((subtotal + shippingFee) * 100) / 100;
+
             const res = await fetch('/api/gumroad/dynamic-checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     storeId: product.storeId || activeStore?.id || 'store_default',
-                    storeName: product.name,
+                    storeName: activeStore?.name || product.name,
                     gumroadProductUrl: product.gumroadUrl || activeStore?.gumroadProductUrl || activeStore?.gumroadUrl || persistentUrl || '',
                     items: [{
                         productId: product.id,
@@ -56,22 +64,33 @@ export default function ProductQuickView({ product, isOpen, onClose, onOpenCart 
                         gumroadUrl: product.gumroadUrl || ''
                     }],
                     discountAmount: 0,
-                    shippingFee: 0
+                    shippingFee: shippingFee
                 })
             });
             const data = await res.json().catch(() => ({}));
             setCheckoutModal({
                 isOpen: true,
                 gumroadUrl: data.checkoutUrl || product.gumroadUrl || activeStore?.gumroadProductUrl || persistentUrl || '',
-                orderSessionId: data.orderSessionId || `ord_${Date.now()}`
+                orderSessionId: data.orderSessionId || `ord_${Date.now()}`,
+                total: calculatedTotal,
+                shippingFee: shippingFee
             });
         } catch {
             const activeStore = getActiveStoreSync();
             const persistentUrl = typeof window !== 'undefined' ? (localStorage.getItem('gumshop_gumroad_url') || '') : '';
+            const storeShipping = activeStore?.shipping || {};
+            const standardShippingFee = typeof storeShipping.standardFee === 'number' ? storeShipping.standardFee : 4.99;
+            const freeThreshold = typeof storeShipping.freeShippingThreshold === 'number' ? storeShipping.freeShippingThreshold : 50.00;
+            const subtotal = price * quantity;
+            const shippingFee = subtotal >= freeThreshold ? 0 : standardShippingFee;
+            const calculatedTotal = Math.round((subtotal + shippingFee) * 100) / 100;
+
             setCheckoutModal({
                 isOpen: true,
                 gumroadUrl: product.gumroadUrl || activeStore?.gumroadProductUrl || persistentUrl || '',
-                orderSessionId: `ord_${Date.now()}`
+                orderSessionId: `ord_${Date.now()}`,
+                total: calculatedTotal,
+                shippingFee: shippingFee
             });
         } finally {
             setIsCheckingOut(false);
@@ -246,7 +265,8 @@ export default function ProductQuickView({ product, isOpen, onClose, onOpenCart 
                 onClose={() => setCheckoutModal({ isOpen: false, gumroadUrl: '', orderSessionId: '' })}
                 product={product}
                 items={[{ id: product.id, name: product.name, price: price, quantity: quantity, image: images[0] }]}
-                total={price * quantity}
+                total={checkoutModal.total || (price * quantity)}
+                shippingFee={checkoutModal.shippingFee || 0}
                 gumroadUrl={checkoutModal.gumroadUrl}
                 orderSessionId={checkoutModal.orderSessionId}
             />

@@ -30,6 +30,9 @@ export async function GET(req) {
         if (store && store.id) {
             products = await serverGetProducts(store.id);
         }
+        if (products.length === 0 && Array.isArray(store?.products) && store.products.length > 0) {
+            products = store.products;
+        }
 
         return NextResponse.json({
             success: true,
@@ -54,10 +57,14 @@ export async function POST(req) {
         const cleanSlug = (store.username || store.slug || store.id || '').toLowerCase().trim().replace(/^store_/, '');
         const storeId = store.id || `store_${cleanSlug}`;
 
+        const storeProducts = Array.isArray(products) 
+            ? products 
+            : (Array.isArray(store.products) ? store.products : null);
+
         await serverSaveStore({ ...store, id: storeId, username: cleanSlug });
 
-        if (Array.isArray(products)) {
-            await serverSaveProducts(storeId, products);
+        if (storeProducts) {
+            await serverSaveProducts(storeId, storeProducts);
         }
 
         return NextResponse.json({

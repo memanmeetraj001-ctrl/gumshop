@@ -11,7 +11,8 @@ export async function GET(req) {
         const clientToken = authHeader.replace(/^Bearer\s+/i, '').trim();
 
         // Server-side vaulted token has priority
-        const serverToken = (await getServerGumroadToken()) || clientToken;
+        const storeKey = req.nextUrl?.searchParams?.get('storeId') || req.nextUrl?.searchParams?.get('store') || new URL(req.url).searchParams.get('storeId') || new URL(req.url).searchParams.get('store') || '';
+        const serverToken = (await getServerGumroadToken(storeKey)) || (await getServerGumroadToken()) || clientToken;
 
         if (!serverToken) {
             return NextResponse.json({

@@ -380,8 +380,8 @@ export default function StanStoreBioEditor() {
     const liveSlug = profile.handle || currentStore?.username || 'store';
 
     // Filter preview products based on curation mode
-    const previewProducts = profile.productDisplayMode === 'curated' && profile.featuredProductIds.length > 0
-        ? catalogProducts.filter(p => profile.featuredProductIds.includes(p.id))
+    const previewProducts = profile.productDisplayMode === 'curated'
+        ? catalogProducts.filter(p => Array.isArray(profile.featuredProductIds) && profile.featuredProductIds.includes(p.id))
         : catalogProducts;
 
     return (

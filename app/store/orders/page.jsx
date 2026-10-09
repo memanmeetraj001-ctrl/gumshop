@@ -90,14 +90,41 @@ export default function StoreOrders() {
 
         const loadOrders = async () => {
             try {
-                let store = await getActiveStore(user);
+                let targetSlug = '';
+                if (typeof window !== 'undefined') {
+                    const sp = new URLSearchParams(window.location.search);
+                    targetSlug = sp.get('store') || '';
+                }
+
+                let store = null;
+                if (targetSlug) {
+                    const { getStoreAndCatalog } = await import('@/lib/storePresets');
+                    const resolved = await getStoreAndCatalog(targetSlug);
+                    if (resolved?.store) {
+                        store = resolved.store;
+                        const { setActiveStoreSlug } = await import('@/lib/activeStore');
+                        setActiveStoreSlug(store);
+                    }
+                }
+
+                if (!store) {
+                    store = await getActiveStore(user);
+                }
+                if (!store) {
+                    const { getActiveStoreSync } = await import('@/lib/activeStore');
+                    store = getActiveStoreSync();
+                }
+
                 if (!isMounted) return;
                 setCurrentStore(store);
 
-                const storeId = store?.id || 'store_default';
+                const storeId = store?.id || (targetSlug ? `store_${targetSlug}` : 'store_default');
+                const storeSlug = store?.username || targetSlug || '';
+                const cleanSid = (storeId || storeSlug).toLowerCase().replace(/^store_/, '');
+
                 let fetchedOrders = [];
 
-                // 1. Fetch from database with 2.5s safe timeout to prevent any stuck spinner
+                // 1. Fetch from database with safe timeout
                 try {
                     fetchedOrders = await Promise.race([
                         getOrdersByStore(storeId),
@@ -107,11 +134,27 @@ export default function StoreOrders() {
                     console.warn("Orders fetch fallback:", e);
                 }
 
-                // 2. Fetch from localStorage: check store-scoped orders first, then filter general orders
+                // 2. Fetch server-persisted completed orders from API bridge
+                let serverOrders = [];
+                try {
+                    const queryParam = storeSlug || cleanSid || storeId;
+                    const res = await fetch(`/api/store/orders?store=${encodeURIComponent(queryParam)}&storeId=${encodeURIComponent(storeId)}`, {
+                        cache: 'no-store'
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.success && Array.isArray(data.orders)) {
+                            serverOrders = data.orders;
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Server orders API bridge notice:", e);
+                }
+
+                // 3. Fetch from localStorage: check store-scoped orders first, then filter general orders
                 let localOrders = [];
                 if (typeof window !== 'undefined') {
                     try {
-                        const cleanSid = storeId.toLowerCase().replace(/^store_/, '');
                         const storeScopedRaw = localStorage.getItem(`gumshop_recent_orders_${storeId}`) || 
                                                localStorage.getItem(`gumshop_recent_orders_store_${cleanSid}`) ||
                                                localStorage.getItem(`gumshop_recent_orders_${cleanSid}`);
@@ -129,20 +172,26 @@ export default function StoreOrders() {
                     } catch (e) {}
                 }
 
-                // 3. Merge & deduplicate
+                // 4. Merge & deduplicate
                 const orderMap = new Map();
-                (localOrders || []).forEach(o => {
-                    const id = o.id || o.orderSessionId;
+                (serverOrders || []).forEach(o => {
+                    const id = o.id || o.orderId || o.orderSessionId;
                     if (id) orderMap.set(id, { id, ...o });
                 });
+                (localOrders || []).forEach(o => {
+                    const id = o.id || o.orderId || o.orderSessionId;
+                    if (id && !orderMap.has(id)) {
+                        orderMap.set(id, { id, ...o });
+                    }
+                });
                 (fetchedOrders || []).forEach(o => {
-                    const id = o.id || o.orderSessionId;
+                    const id = o.id || o.orderId || o.orderSessionId;
                     if (id && !orderMap.has(id)) {
                         orderMap.set(id, { id, ...o });
                     }
                 });
 
-                const list = Array.from(orderMap.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+                const list = Array.from(orderMap.values()).sort((a, b) => new Date(b.createdAt || b.checkoutInitiatedAt || 0) - new Date(a.createdAt || a.checkoutInitiatedAt || 0));
                 if (isMounted) setOrders(list);
             } catch (err) {
                 console.error("Orders fetch error:", err);

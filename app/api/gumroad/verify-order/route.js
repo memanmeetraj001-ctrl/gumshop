@@ -46,7 +46,8 @@ export async function GET(req) {
         }
 
         // 2. Perform Server-Side Reconciliation with Gumroad API
-        const token = await getServerGumroadToken();
+        const targetStore = existingOrder?.storeId || storeId;
+        const token = (await getServerGumroadToken(targetStore)) || (!targetStore || targetStore === 'store_default' ? await getServerGumroadToken() : '');
         if (token) {
             try {
                 const salesRes = await fetch(`https://api.gumroad.com/v2/sales?access_token=${encodeURIComponent(token)}`, {
@@ -77,6 +78,7 @@ export async function GET(req) {
                             orderId: orderId,
                             orderNumber: `GS-${(matchedSale.order_number || orderId).toString().slice(-6).toUpperCase()}`,
                             storeId: existingOrder?.storeId || storeId || 'store_default',
+                            storeSlug: existingOrder?.storeSlug || (storeId ? String(storeId).replace(/^store_/, '') : ''),
                             storeName: existingOrder?.storeName || 'GumShop Store',
                             total: pricePaid,
                             subtotal: pricePaid,
@@ -148,6 +150,125 @@ export async function GET(req) {
 
     } catch (err) {
         console.error('Verify order route error:', err);
+        return NextResponse.json({
+            verified: false,
+            paymentStatus: PaymentStatus.FAILED,
+            error: 'Server error verifying order status.'
+        }, { status: 500 });
+    }
+}
+
+/**
+ * POST /api/gumroad/verify-order
+ * Transitions an order session to PAID / CONFIRMED and persists to store order storage.
+ */
+export async function POST(req) {
+    try {
+        const body = await req.json().catch(() => ({}));
+        const rawOrderId = body.orderId || body.orderSessionId || body.order_id || body.sale_id || body.id || '';
+        const storeId = body.storeId || body.store || body.storeSlug || '';
+        const orderId = String(rawOrderId).trim();
+
+        if (!orderId) {
+            return NextResponse.json({
+                verified: false,
+                paymentStatus: PaymentStatus.NOT_FOUND,
+                error: 'Order ID is required for verification.'
+            }, { status: 400 });
+        }
+
+        // 1. Look up existing order session
+        let existingOrder = await getServerOrder(orderId, storeId);
+
+        if (existingOrder) {
+            const resolvedStoreId = existingOrder.storeId || storeId || 'store_default';
+            const resolvedStoreSlug = existingOrder.storeSlug || body.storeSlug || (typeof storeId === 'string' ? storeId.replace(/^store_/, '') : '');
+
+            const verifiedOrder = {
+                ...existingOrder,
+                id: orderId,
+                orderId: orderId,
+                storeId: resolvedStoreId,
+                storeSlug: resolvedStoreSlug,
+                orderNumber: existingOrder.orderNumber || `GS-${orderId.slice(-6).toUpperCase()}`,
+                paymentStatus: PaymentStatus.PAID,
+                orderStatus: OrderStatus.CONFIRMED,
+                fulfillmentStatus: existingOrder.fulfillmentStatus || FulfillmentStatus.UNFULFILLED,
+                shipmentStatus: existingOrder.shipmentStatus || ShipmentStatus.NOT_AVAILABLE,
+                isPaid: true,
+                paymentMethod: existingOrder.paymentMethod || 'Gumroad Verified Checkout',
+                verifiedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            await saveServerOrder(orderId, verifiedOrder);
+
+            if (verifiedOrder.couponCode) {
+                incrementCouponUsage(verifiedOrder.couponCode).catch(() => {});
+            }
+
+            return NextResponse.json({
+                verified: true,
+                success: true,
+                paymentStatus: PaymentStatus.PAID,
+                orderStatus: OrderStatus.CONFIRMED,
+                fulfillmentStatus: verifiedOrder.fulfillmentStatus,
+                shipmentStatus: verifiedOrder.shipmentStatus,
+                order: verifiedOrder
+            });
+        }
+
+        // 2. Direct verified placement if body contains full order details
+        if (body.items || body.orderItems || body.total !== undefined) {
+            const total = parseFloat(body.total || body.amount || 0);
+            const verifiedOrder = {
+                id: orderId,
+                orderId: orderId,
+                orderNumber: `GS-${orderId.slice(-6).toUpperCase()}`,
+                storeId: storeId || 'store_default',
+                storeSlug: body.storeSlug || (typeof storeId === 'string' ? storeId.replace(/^store_/, '') : ''),
+                storeName: body.storeName || 'GumShop Store',
+                total: total,
+                subtotal: parseFloat(body.subtotal || total),
+                shippingFee: parseFloat(body.shippingFee || 0),
+                rushFee: parseFloat(body.rushFee || 0),
+                discountAmount: parseFloat(body.discountAmount || 0),
+                currency: (body.currency || 'USD').toUpperCase(),
+                paymentStatus: PaymentStatus.PAID,
+                orderStatus: OrderStatus.CONFIRMED,
+                fulfillmentStatus: FulfillmentStatus.UNFULFILLED,
+                shipmentStatus: ShipmentStatus.NOT_AVAILABLE,
+                isPaid: true,
+                paymentMethod: body.paymentMethod || 'Gumroad Verified Checkout',
+                items: body.items || (Array.isArray(body.orderItems) ? body.orderItems.map(i => `${i.quantity || 1}x ${i.name}`).join(', ') : 'Store Order'),
+                orderItems: body.orderItems || [],
+                customer: body.customer || { email: body.email || '' },
+                verifiedAt: new Date().toISOString(),
+                createdAt: body.createdAt || new Date().toISOString()
+            };
+
+            await saveServerOrder(orderId, verifiedOrder);
+
+            return NextResponse.json({
+                verified: true,
+                success: true,
+                paymentStatus: PaymentStatus.PAID,
+                orderStatus: OrderStatus.CONFIRMED,
+                fulfillmentStatus: verifiedOrder.fulfillmentStatus,
+                shipmentStatus: verifiedOrder.shipmentStatus,
+                order: verifiedOrder
+            });
+        }
+
+        // 3. Order ID not found
+        return NextResponse.json({
+            verified: false,
+            paymentStatus: PaymentStatus.NOT_FOUND,
+            message: 'No checkout session could be found for this reference.'
+        }, { status: 404 });
+
+    } catch (err) {
+        console.error('Verify order POST route error:', err);
         return NextResponse.json({
             verified: false,
             paymentStatus: PaymentStatus.FAILED,
