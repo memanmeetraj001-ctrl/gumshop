@@ -519,7 +519,7 @@ export default function StoreImportPage() {
                 sourceUrl: targetUrl.trim()
             } : {
                 name: destStoreName.trim(),
-                slug: destStoreSlug.trim(),
+                slug: (destStoreSlug.trim() || destStoreName.toLowerCase().replace(/[^a-z0-9-]+/g, '-') || 'store').replace(/^-|-$/g, ''),
                 theme: destTheme,
                 themeColor: destThemeColor,
                 description: destDescription.trim(),
@@ -533,7 +533,10 @@ export default function StoreImportPage() {
                 destinationMode: destMode,
                 setAsHomepage,
                 slashPercent: activeSlashPercent,
-                selectedProducts: finalProducts,
+                selectedProducts: finalProducts.map(p => ({
+                    ...p,
+                    _preCalculated: activeSlashPercent > 0
+                })),
                 selectedBanners: bannerList,
                 selectedCategories: categoryList
             };

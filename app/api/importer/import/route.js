@@ -98,8 +98,8 @@ export async function POST(req) {
                 ? normalizeProductPrice(p.compareAtPrice, { isCents }) 
                 : (rawPrice > 0 ? Math.round(rawPrice * 1.35 * 100) / 100 : 0);
 
-            const numSlash = parseFloat(slashPercent) || 0;
-            const { price, compareAtPrice } = numSlash > 0
+            const numSlash = (p._preCalculated || p.isPricePreCalculated) ? 0 : (parseFloat(slashPercent) || 0);
+            const { price, compareAtPrice: finalCompareAt } = numSlash > 0
                 ? applyPriceSlash(rawPrice, numSlash, rawCompareAt)
                 : { price: rawPrice, compareAtPrice: rawCompareAt };
 
@@ -110,7 +110,7 @@ export async function POST(req) {
                 slug: (p.slug || p.name || 'product').toLowerCase().replace(/[^a-z0-9-]+/g, '-'),
                 description: p.description || storeRecord.description,
                 price,
-                compareAtPrice: compareAt,
+                compareAtPrice: finalCompareAt,
                 currency: p.currency || 'USD',
                 category: p.category || 'Featured',
                 image: p.image || '',
@@ -174,7 +174,7 @@ export async function POST(req) {
         console.error('API /api/importer/import error:', err);
         return NextResponse.json({ 
             success: false, 
-            error: 'Failed to create store from imported data.' 
+            error: err?.message || 'Failed to create store from imported data.' 
         }, { status: 500 });
     }
 }
