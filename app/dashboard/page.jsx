@@ -260,11 +260,35 @@ export default function MasterDashboardPage() {
         } catch (fbErr) {}
 
         setShops(found);
-        const currActive = getActiveStoreSync();
-        if (currActive && !isStoreDeleted(currActive.id) && !isStoreDeleted(currActive.username)) {
-            setActiveStore(currActive);
-        } else if (found.length > 0) {
-            setActiveStore(found[0]);
+        
+        let targetStore = null;
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            const requestedSlug = urlParams.get('store');
+            if (requestedSlug) {
+                targetStore = found.find(s => 
+                    (s.username && s.username.toLowerCase() === requestedSlug.toLowerCase()) ||
+                    (s.id && s.id.toLowerCase() === requestedSlug.toLowerCase()) ||
+                    (s.id && s.id.toLowerCase() === `store_${requestedSlug.toLowerCase()}`)
+                );
+            }
+        }
+        
+        if (!targetStore) {
+            const currActive = getActiveStoreSync();
+            if (currActive && !isStoreDeleted(currActive.id) && !isStoreDeleted(currActive.username)) {
+                targetStore = found.find(s => s.username === currActive.username || s.id === currActive.id) || currActive;
+            }
+        }
+        
+        if (!targetStore && found.length > 0) {
+            targetStore = found[0];
+        }
+
+        if (targetStore) {
+            setActiveStore(targetStore);
+            setSelectedCatalogStore(targetStore.username);
+            setSelectedOrdersStore(targetStore.username);
         } else {
             setActiveStore(null);
         }
@@ -499,7 +523,18 @@ export default function MasterDashboardPage() {
         if (!shop) return;
         setActiveStoreSlug(shop);
         setActiveStore(shop);
-        toast.success(`Active store set to "${shop.name}" 🎯`);
+        if (shop.username) {
+            setSelectedCatalogStore(shop.username);
+            setSelectedOrdersStore(shop.username);
+        }
+        if (typeof window !== 'undefined') {
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.set('store', shop.username || shop.id);
+                window.history.replaceState(null, '', url.toString());
+            } catch {}
+        }
+        toast.success(`Switched to "${shop.name}" dashboard 🎯`);
     };
 
     // Set Designated Homepage Store
@@ -751,10 +786,35 @@ export default function MasterDashboardPage() {
         }))
     );
 
+    // Active Store Isolated Data & Metrics (Zero Cross-Store Mixing)
+    const activeStoreSlugClean = (activeStore?.username || activeStore?.id || '').toLowerCase().replace(/^store_/, '');
+    const activeStoreProducts = activeStore ? (activeStore.products || []).filter(p => p && p.id && !isProductDeleted(p.id)) : [];
+    
+    const activeStoreOrders = orders.filter(o => {
+        if (!activeStoreSlugClean) return false;
+        const oStoreId = (o.storeId || '').toLowerCase().replace(/^store_/, '');
+        const oStoreSlug = (o.storeSlug || o.storeName || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+        return oStoreId === activeStoreSlugClean || oStoreSlug === activeStoreSlugClean;
+    });
+
+    const activeStoreRevenue = activeStoreOrders.reduce((sum, o) => {
+        const val = parseFloat(o.total || o.amount || o.price || 0);
+        return sum + (isNaN(val) ? 0 : val);
+    }, 0);
+
+    const activeStoreCompletedOrders = activeStoreOrders.filter(o => 
+        (o.status || '').toLowerCase() === 'completed' || o.verified
+    ).length;
+
+    const activeStoreAOV = activeStoreOrders.length > 0 
+        ? (activeStoreRevenue / activeStoreOrders.length) 
+        : 0;
+
     // Filtered Master Catalog by selected store
     const filteredMasterProducts = allMasterProducts.filter(p => {
-        if (selectedCatalogStore === 'all') return true;
-        const target = selectedCatalogStore.toLowerCase().replace(/^store_/, '');
+        const activeFilter = selectedCatalogStore === 'active' ? (activeStore?.username || 'all') : selectedCatalogStore;
+        if (activeFilter === 'all') return true;
+        const target = activeFilter.toLowerCase().replace(/^store_/, '');
         const pSlug = (p.storeSlug || '').toLowerCase();
         const pStoreId = (p.storeId || '').toLowerCase().replace(/^store_/, '');
         return pSlug === target || pStoreId === target;
@@ -762,8 +822,9 @@ export default function MasterDashboardPage() {
 
     // Orders Filtered by selected store
     const filteredOrders = orders.filter(o => {
-        if (selectedOrdersStore === 'all') return true;
-        const target = selectedOrdersStore.toLowerCase().replace(/^store_/, '');
+        const activeFilter = selectedOrdersStore === 'active' ? (activeStore?.username || 'all') : selectedOrdersStore;
+        if (activeFilter === 'all') return true;
+        const target = activeFilter.toLowerCase().replace(/^store_/, '');
         const oStoreId = (o.storeId || '').toLowerCase().replace(/^store_/, '');
         const oStoreSlug = (o.storeSlug || o.storeName || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
         return oStoreId === target || oStoreSlug === target;
@@ -1010,11 +1071,11 @@ export default function MasterDashboardPage() {
             <nav className="border-b border-slate-800 bg-slate-900/40 px-6 overflow-x-auto no-scrollbar sticky top-[65px] z-20 backdrop-blur-md">
                 <div className="max-w-7xl mx-auto flex items-center gap-1 sm:gap-2">
                     {[
-                        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-                        { id: 'stores', label: `Stores (${shops.length})`, icon: Store },
-                        { id: 'products', label: `Products (${totalProducts})`, icon: ShoppingBag },
+                        { id: 'overview', label: activeStore ? `${activeStore.name} Dashboard` : 'Store Dashboard', icon: LayoutDashboard },
+                        { id: 'stores', label: `All Stores (${shops.length})`, icon: Store },
+                        { id: 'products', label: `Products (${activeStoreProducts.length})`, icon: ShoppingBag },
                         { id: 'imports', label: `Imports (${importHistory.length})`, icon: Sparkles },
-                        { id: 'orders', label: 'Orders', icon: Package },
+                        { id: 'orders', label: `Orders (${activeStoreOrders.length})`, icon: Package },
                         { id: 'analytics', label: 'Analytics', icon: BarChart3 },
                         { id: 'gumroad', label: 'Gumroad', icon: Zap },
                         { id: 'settings', label: 'Settings', icon: Settings }
@@ -1048,200 +1109,364 @@ export default function MasterDashboardPage() {
                 {/* ─── TAB 1: OVERVIEW ─── */}
                 {activeNavTab === 'overview' && (
                     <>
-                        {/* ─── METRIC CARDS ─── */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
-                                <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
-                                    <span>Total Stores</span>
-                                    <Store size={15} className="text-emerald-400" />
+                        {/* ─── DEDICATED STORE SWITCHER RIBBON ─── */}
+                        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap flex items-center gap-1.5 shrink-0">
+                                    <Store size={14} className="text-emerald-400" />
+                                    <span>Store:</span>
+                                </span>
+                                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                                    {shops.map(shop => {
+                                        const isSelected = activeStore?.username === shop.username || activeStore?.id === shop.id;
+                                        const isHome = shop.username === homepageStoreSlug || shop.id === homepageStoreSlug;
+                                        return (
+                                            <button
+                                                key={shop.username || shop.id}
+                                                onClick={() => handleSetActiveStore(shop)}
+                                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                                                    isSelected
+                                                        ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 font-extrabold'
+                                                        : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700'
+                                                }`}
+                                            >
+                                                <span>{shop.name}</span>
+                                                {isHome && <span title="Official Homepage">⭐</span>}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
-                                <div className="text-2xl font-black text-white mt-2">{totalStores}</div>
-                                <div className="text-[11px] text-slate-500 mt-1">{activeStoresCount} active storefronts</div>
                             </div>
 
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
-                                <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
-                                    <span>Catalog Items</span>
-                                    <ShoppingBag size={15} className="text-teal-400" />
-                                </div>
-                                <div className="text-2xl font-black text-white mt-2">{totalProducts}</div>
-                                <div className="text-[11px] text-slate-500 mt-1">Across all independent stores</div>
-                            </div>
-
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
-                                <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
-                                    <span>Checkout Status</span>
-                                    <Zap size={15} className="text-amber-400" />
-                                </div>
-                                <div className="text-2xl font-black text-emerald-400 mt-2">Ready</div>
-                                <div className="text-[11px] text-slate-500 mt-1">Supported Gumroad Overlay</div>
-                            </div>
-
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
-                                <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
-                                    <span>Bio Links</span>
-                                    <Smartphone size={15} className="text-rose-400" />
-                                </div>
-                                <div className="text-2xl font-black text-white mt-2">{totalStores}</div>
-                                <div className="text-[11px] text-slate-500 mt-1">Mobile Creator storefronts</div>
-                            </div>
-                        </div>
-
-                        {/* ─── UNIVERSAL CATALOG & DATA BACKUP STRIP ─── */}
-                        <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                                <div className="size-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                                    <Database size={18} />
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-bold text-white">Universal Dynamic Catalog Engine</span>
-                                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold">Active Everywhere</span>
-                                    </div>
-                                    <p className="text-[11px] text-slate-400 mt-0.5">
-                                        All stores render cleanly across regular, incognito, and mobile browsers. Export or restore your entire multi-store database anytime with 1 click.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2 w-full md:w-auto">
+                            <div className="flex items-center gap-2 shrink-0">
                                 <button
-                                    onClick={handleExportBackup}
-                                    className="flex-1 md:flex-none px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 flex items-center justify-center gap-1.5 transition"
+                                    onClick={() => setActiveNavTab('stores')}
+                                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold border border-slate-700 transition flex items-center gap-1"
                                 >
-                                    <Download size={13} className="text-emerald-400" />
-                                    <span>Export All (.json)</span>
+                                    <span>All Stores ({shops.length})</span>
+                                    <ArrowRight size={12} />
                                 </button>
-                                <label
-                                    className="flex-1 md:flex-none px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
-                                >
-                                    <Upload size={13} className="text-teal-400" />
-                                    <span>Restore Backup</span>
-                                    <input
-                                        type="file"
-                                        accept=".json"
-                                        onChange={handleImportBackup}
-                                        className="hidden"
-                                    />
-                                </label>
-                            </div>
-                        </div>
-
-                        {/* ─── QUICK ACTION BAR ─── */}
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-900/80 border border-slate-800 rounded-3xl p-4 sm:p-5">
-                            <div>
-                                <h2 className="text-base font-extrabold text-white">Master HQ Stores</h2>
-                                <p className="text-xs text-slate-400 mt-0.5">
-                                    Create new stores from scratch, import external stores with 1 workflow, or duplicate existing shops.
-                                </p>
-                            </div>
-
-                            <div className="flex items-center gap-2.5 w-full sm:w-auto">
                                 <Link
                                     href="/store/import"
-                                    className="flex-1 sm:flex-none px-4 py-2.5 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 transition active:scale-95 flex items-center justify-center gap-1.5"
+                                    className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 transition flex items-center gap-1"
                                 >
-                                    <Sparkles size={14} />
-                                    <span>+ Import Store</span>
+                                    <Sparkles size={12} />
+                                    <span>+ Import</span>
                                 </Link>
-
                                 <button
                                     onClick={() => setIsCreateModalOpen(true)}
-                                    className="flex-1 sm:flex-none px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition active:scale-95 flex items-center justify-center gap-1.5"
+                                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition flex items-center gap-1"
                                 >
-                                    <Plus size={14} />
-                                    <span>+ Create Store</span>
+                                    <Plus size={12} />
+                                    <span>+ New</span>
                                 </button>
                             </div>
                         </div>
 
-                        {/* Quick Store Switcher & Homepage Controller */}
-                        {shops.length > 0 && (
-                            <div className="p-4 bg-slate-900 border border-slate-800 rounded-3xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-md">
-                                <div className="flex items-center gap-3">
-                                    <div className="size-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                                        <Store size={15} />
-                                    </div>
-                                    <div>
-                                        <div className="text-xs font-bold text-white flex items-center gap-2">
-                                            <span>Working Context:</span>
-                                            <span className="text-emerald-400 font-extrabold">{activeStore?.name || 'None'}</span>
+                        {activeStore ? (
+                            <>
+                                {/* ─── DEDICATED STORE BANNER & QUICK ACTIONS ─── */}
+                                <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+                                        <div className="flex items-start sm:items-center gap-4">
+                                            <div className="size-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-black text-2xl shadow-lg shadow-emerald-500/20 shrink-0">
+                                                {activeStore.logo ? (
+                                                    <img src={activeStore.logo} alt={activeStore.name} className="w-full h-full object-cover rounded-2xl" />
+                                                ) : (
+                                                    (activeStore.name || 'S').charAt(0).toUpperCase()
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">{activeStore.name}</h2>
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                                                        {activeStore.theme?.replace('_', ' ') || 'tech hardware'}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                                        <Check size={10} /> Active
+                                                    </span>
+                                                    {activeStore.username === homepageStoreSlug ? (
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-sm">
+                                                            ⭐ Official Root Homepage (/)
+                                                        </span>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleSetHomepage(activeStore)}
+                                                            className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-slate-700 hover:border-amber-500/30 transition flex items-center gap-1 cursor-pointer"
+                                                            title="Designate this store as the default root homepage (/)"
+                                                        >
+                                                            ⭐ Set as Homepage (/)
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-slate-400">
+                                                    <span className="font-mono text-emerald-400 font-semibold">/shop/{activeStore.username}</span>
+                                                    <span>•</span>
+                                                    <span className="font-mono text-rose-400 font-semibold">/creator/{activeStore.username}</span>
+                                                    {activeStore.description && (
+                                                        <>
+                                                            <span>•</span>
+                                                            <span className="max-w-md truncate text-slate-400">{activeStore.description}</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="text-[11px] text-slate-400">
-                                            Switch which store you are managing or designate the root website homepage (/)
+
+                                        {/* Direct Quick Action Buttons */}
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <a
+                                                href={`/shop/${activeStore.username}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 transition flex items-center gap-1.5"
+                                            >
+                                                <Globe size={13} />
+                                                <span>Live Storefront</span>
+                                                <ExternalLink size={11} />
+                                            </a>
+                                            <a
+                                                href={`/creator/${activeStore.username}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-300 hover:text-white font-bold text-xs border border-rose-500/30 transition flex items-center gap-1.5"
+                                            >
+                                                <Smartphone size={13} className="text-rose-400" />
+                                                <span>Stan Store</span>
+                                                <ExternalLink size={11} />
+                                            </a>
+                                            <Link
+                                                href="/store/bio-editor"
+                                                onClick={() => setActiveStoreSlug(activeStore)}
+                                                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs border border-slate-700 transition flex items-center gap-1.5"
+                                            >
+                                                <Smartphone size={13} />
+                                                <span>Bio Editor</span>
+                                            </Link>
+                                            <Link
+                                                href="/store/add-product"
+                                                onClick={() => setActiveStoreSlug(activeStore)}
+                                                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs border border-slate-700 transition flex items-center gap-1.5"
+                                            >
+                                                <Plus size={13} />
+                                                <span>Add Product</span>
+                                            </Link>
+                                            <Link
+                                                href="/store/settings"
+                                                onClick={() => setActiveStoreSlug(activeStore)}
+                                                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition border border-slate-700"
+                                                title="Store Settings"
+                                            >
+                                                <Settings size={14} />
+                                            </Link>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                                    <div className="flex items-center gap-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
-                                        <span className="text-slate-400 font-semibold">Active:</span>
-                                        <select
-                                            value={activeStore?.username || ''}
-                                            onChange={(e) => {
-                                                const target = shops.find(s => s.username === e.target.value);
-                                                if (target) handleSetActiveStore(target);
-                                            }}
-                                            className="bg-transparent text-white font-bold focus:outline-none cursor-pointer"
-                                        >
-                                            {shops.map(s => (
-                                                <option key={s.username} value={s.username} className="bg-slate-900 text-white">
-                                                    {s.name} ({s.username}){s.username === homepageStoreSlug ? ' ⭐ [Homepage]' : ''}
-                                                </option>
-                                            ))}
-                                        </select>
+                                {/* ─── DEDICATED STORE PERFORMANCE METRICS (NO MIXING) ─── */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
+                                        <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+                                            <span>Store Revenue</span>
+                                            <DollarSign size={15} className="text-emerald-400" />
+                                        </div>
+                                        <div className="text-2xl font-black text-white mt-2">${activeStoreRevenue.toFixed(2)}</div>
+                                        <div className="text-[11px] text-slate-500 mt-1">From {activeStoreOrders.length} customer orders</div>
                                     </div>
 
-                                    <div className="flex items-center gap-2 bg-amber-950/30 px-3 py-1.5 rounded-xl border border-amber-500/30 text-xs">
-                                        <span className="text-amber-300 font-bold">⭐ Homepage (/):</span>
-                                        <select
-                                            value={homepageStoreSlug || ''}
-                                            onChange={(e) => {
-                                                const target = shops.find(s => s.username === e.target.value);
-                                                if (target) handleSetHomepage(target);
-                                            }}
-                                            className="bg-transparent text-amber-200 font-bold focus:outline-none cursor-pointer"
-                                        >
-                                            <option value="" className="bg-slate-900 text-slate-300">Default (First Active Store)</option>
-                                            {shops.map(s => (
-                                                <option key={s.username} value={s.username} className="bg-slate-900 text-amber-200">
-                                                    {s.name} ({s.username})
-                                                </option>
-                                            ))}
-                                        </select>
+                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
+                                        <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+                                            <span>Customer Orders</span>
+                                            <Package size={15} className="text-teal-400" />
+                                        </div>
+                                        <div className="text-2xl font-black text-white mt-2">{activeStoreOrders.length}</div>
+                                        <div className="text-[11px] text-slate-500 mt-1">{activeStoreCompletedOrders} fulfilled orders</div>
                                     </div>
+
+                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
+                                        <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+                                            <span>Live Products</span>
+                                            <ShoppingBag size={15} className="text-amber-400" />
+                                        </div>
+                                        <div className="text-2xl font-black text-emerald-400 mt-2">{activeStoreProducts.length}</div>
+                                        <div className="text-[11px] text-slate-500 mt-1">In this store's catalog</div>
+                                    </div>
+
+                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
+                                        <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
+                                            <span>Avg Order Value</span>
+                                            <TrendingUp size={15} className="text-rose-400" />
+                                        </div>
+                                        <div className="text-2xl font-black text-white mt-2">${activeStoreAOV.toFixed(2)}</div>
+                                        <div className="text-[11px] text-slate-500 mt-1">Store checkout average</div>
+                                    </div>
+                                </div>
+
+                                {/* ─── TWO-COLUMN WORKBENCH: PRODUCTS & RECENT ORDERS ─── */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    {/* Left Column: Products for this Store */}
+                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                                                <div>
+                                                    <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                                                        <ShoppingBag size={15} className="text-emerald-400" />
+                                                        <span>Products for {activeStore.name} ({activeStoreProducts.length})</span>
+                                                    </h3>
+                                                    <p className="text-[11px] text-slate-500 mt-0.5">Live catalog items displayed on this storefront</p>
+                                                </div>
+                                                <Link
+                                                    href="/store/add-product"
+                                                    onClick={() => setActiveStoreSlug(activeStore)}
+                                                    className="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 hover:text-white transition flex items-center gap-1"
+                                                >
+                                                    <Plus size={11} />
+                                                    <span>Add</span>
+                                                </Link>
+                                            </div>
+
+                                            {activeStoreProducts.length > 0 ? (
+                                                <div className="divide-y divide-slate-800/60 mt-3">
+                                                    {activeStoreProducts.slice(0, 4).map((p, idx) => (
+                                                        <div key={p.id || idx} className="py-3 flex items-center justify-between gap-3">
+                                                            <div className="flex items-center gap-3 min-w-0">
+                                                                <div className="size-10 rounded-xl bg-slate-800 overflow-hidden shrink-0 border border-slate-700">
+                                                                    <img
+                                                                        src={p.image || p.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100'}
+                                                                        alt={p.name}
+                                                                        className="w-full h-full object-cover"
+                                                                    />
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <div className="font-bold text-xs text-white truncate">{p.name}</div>
+                                                                    <div className="text-[10px] text-slate-500 font-mono">{p.category || 'Featured'}</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right shrink-0">
+                                                                <div className="font-mono font-bold text-xs text-emerald-400">
+                                                                    ${(parseFloat(typeof p.price === 'object' ? p.price?.amount : p.price) || 0).toFixed(2)}
+                                                                </div>
+                                                                <Link
+                                                                    href="/store/manage-product"
+                                                                    onClick={() => setActiveStoreSlug(activeStore)}
+                                                                    className="text-[10px] text-slate-400 hover:text-white underline mt-0.5 inline-block"
+                                                                >
+                                                                    Edit
+                                                                </Link>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center py-8 text-xs text-slate-500">
+                                                    No products added to this store yet.
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <button
+                                            onClick={() => {
+                                                setSelectedCatalogStore(activeStore.username);
+                                                setActiveNavTab('products');
+                                            }}
+                                            className="w-full mt-4 py-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-800 text-xs font-bold text-slate-300 hover:text-white transition flex items-center justify-center gap-1.5 border border-slate-700/60"
+                                        >
+                                            <span>Manage All {activeStoreProducts.length} Products in Catalog</span>
+                                            <ArrowRight size={12} />
+                                        </button>
+                                    </div>
+
+                                    {/* Right Column: Recent Orders for this Store */}
+                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                                                <div>
+                                                    <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                                                        <Package size={15} className="text-teal-400" />
+                                                        <span>Orders for {activeStore.name} ({activeStoreOrders.length})</span>
+                                                    </h3>
+                                                    <p className="text-[11px] text-slate-500 mt-0.5">Customer transactions belonging strictly to this store</p>
+                                                </div>
+                                                <button
+                                                    onClick={loadOrders}
+                                                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+                                                    title="Refresh orders"
+                                                >
+                                                    <RefreshCw size={12} className={loadingOrders ? 'animate-spin' : ''} />
+                                                </button>
+                                            </div>
+
+                                            {activeStoreOrders.length > 0 ? (
+                                                <div className="divide-y divide-slate-800/60 mt-3">
+                                                    {activeStoreOrders.slice(0, 4).map((o, idx) => (
+                                                        <div key={o.id || o.orderSessionId || idx} className="py-3 flex items-center justify-between gap-3">
+                                                            <div className="min-w-0">
+                                                                <div className="font-mono text-xs font-bold text-white truncate">
+                                                                    #{o.id || o.orderSessionId}
+                                                                </div>
+                                                                <div className="text-[10px] text-slate-400 truncate">
+                                                                    {o.customerName || o.customerEmail || 'Guest Buyer'} • {new Date(o.createdAt || Date.now()).toLocaleDateString()}
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right shrink-0">
+                                                                <div className="font-mono font-bold text-xs text-white">
+                                                                    ${(parseFloat(o.total || o.amount || 0)).toFixed(2)}
+                                                                </div>
+                                                                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-400">
+                                                                    <CheckCircle2 size={9} /> {o.status || 'Verified'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center py-8 text-xs text-slate-500">
+                                                    No orders placed for this store yet. Checkout tests will appear here.
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <button
+                                            onClick={() => {
+                                                setSelectedOrdersStore(activeStore.username);
+                                                setActiveNavTab('orders');
+                                            }}
+                                            className="w-full mt-4 py-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-800 text-xs font-bold text-slate-300 hover:text-white transition flex items-center justify-center gap-1.5 border border-slate-700/60"
+                                        >
+                                            <span>View All {activeStoreOrders.length} Store Orders</span>
+                                            <ArrowRight size={12} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            /* Empty State when no stores exist */
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center max-w-xl mx-auto space-y-4">
+                                <div className="size-16 rounded-3xl bg-slate-800 text-emerald-400 flex items-center justify-center mx-auto shadow-md">
+                                    <Store size={28} />
+                                </div>
+                                <h3 className="text-lg font-black text-white">No Stores Created Yet</h3>
+                                <p className="text-xs text-slate-400 leading-relaxed">
+                                    Launch your first digital storefront or clone any external Shopify store with 1 click.
+                                </p>
+                                <div className="flex items-center justify-center gap-3 pt-2">
+                                    <Link
+                                        href="/store/import"
+                                        className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 transition flex items-center gap-1.5"
+                                    >
+                                        <Sparkles size={14} />
+                                        <span>Import Store</span>
+                                    </Link>
+                                    <button
+                                        onClick={() => setIsCreateModalOpen(true)}
+                                        className="px-5 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition flex items-center gap-1.5"
+                                    >
+                                        <Plus size={14} />
+                                        <span>Create Store</span>
+                                    </button>
                                 </div>
                             </div>
                         )}
-
-                        {/* Render Active Stores Preview */}
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-bold text-white">Active Stores ({filteredShops.length})</h3>
-                                <button
-                                    onClick={() => setActiveNavTab('stores')}
-                                    className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
-                                >
-                                    <span>View All Stores</span>
-                                    <ArrowRight size={12} />
-                                </button>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredShops.slice(0, 6).map((shop) => (
-                                    <StoreCard 
-                                        key={shop.username} 
-                                        shop={shop} 
-                                        activeStore={activeStore}
-                                        homepageStoreSlug={homepageStoreSlug}
-                                        onSetActiveStore={handleSetActiveStore}
-                                        onSetHomepage={handleSetHomepage}
-                                        onDelete={handleDeleteShop}
-                                        onArchive={handleToggleArchive}
-                                        onDuplicate={handleOpenDuplicateModal}
-                                    />
-                                ))}
-                            </div>
-                        </div>
                     </>
                 )}
 
@@ -1382,6 +1607,10 @@ export default function MasterDashboardPage() {
                                     onDelete={handleDeleteShop}
                                     onArchive={handleToggleArchive}
                                     onDuplicate={handleOpenDuplicateModal}
+                                    onOpenDashboard={(s) => {
+                                        handleSetActiveStore(s);
+                                        setActiveNavTab('overview');
+                                    }}
                                 />
                             ))}
 
@@ -1405,24 +1634,32 @@ export default function MasterDashboardPage() {
                     <div className="space-y-6">
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div>
-                                <h2 className="text-lg font-black text-white">Master Catalog ({filteredMasterProducts.length} items)</h2>
+                                <h2 className="text-lg font-black text-white">
+                                    {selectedCatalogStore === 'all'
+                                        ? `All Stores Catalog (${filteredMasterProducts.length} items)`
+                                        : `Catalog for "${shops.find(s => s.username === selectedCatalogStore)?.name || selectedCatalogStore}" (${filteredMasterProducts.length} items)`}
+                                </h2>
                                 <p className="text-xs text-slate-400 mt-0.5">
                                     {selectedCatalogStore === 'all' 
                                         ? 'Consolidated product directory across all independent stores.' 
-                                        : `Filtered product catalog strictly for store "${selectedCatalogStore}".`}
+                                        : `Product catalog strictly scoped to store "${shops.find(s => s.username === selectedCatalogStore)?.name || selectedCatalogStore}".`}
                                 </p>
                             </div>
 
                             <div className="flex items-center gap-2.5">
                                 <select
-                                    value={selectedCatalogStore}
-                                    onChange={(e) => setSelectedCatalogStore(e.target.value)}
-                                    className="px-3 py-2 bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl text-xs text-white focus:outline-none transition"
+                                    value={selectedCatalogStore === 'active' ? (activeStore?.username || 'all') : selectedCatalogStore}
+                                    onChange={(e) => {
+                                        setSelectedCatalogStore(e.target.value);
+                                        const found = shops.find(s => s.username === e.target.value);
+                                        if (found) handleSetActiveStore(found);
+                                    }}
+                                    className="px-3 py-2 bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl text-xs text-white focus:outline-none transition cursor-pointer"
                                 >
-                                    <option value="all">All Stores ({allMasterProducts.length} items)</option>
                                     {shops.map(s => (
-                                        <option key={s.username} value={s.username}>{s.name} ({s.productsCount || 0})</option>
+                                        <option key={s.username} value={s.username}>Store: {s.name} ({s.productsCount || 0} items)</option>
                                     ))}
+                                    <option value="all">All Stores Combined ({allMasterProducts.length} items)</option>
                                 </select>
 
                                 <Link
@@ -1618,24 +1855,32 @@ export default function MasterDashboardPage() {
                     <div className="space-y-6">
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div>
-                                <h2 className="text-lg font-black text-white">Customer Orders & Fulfillment ({filteredOrders.length})</h2>
+                                <h2 className="text-lg font-black text-white">
+                                    {selectedOrdersStore === 'all'
+                                        ? `All Stores Orders (${filteredOrders.length})`
+                                        : `Customer Orders for "${shops.find(s => s.username === selectedOrdersStore)?.name || selectedOrdersStore}" (${filteredOrders.length})`}
+                                </h2>
                                 <p className="text-xs text-slate-400 mt-0.5">
                                     {selectedOrdersStore === 'all'
                                         ? 'Consolidated customer orders across all independent stores.'
-                                        : `Customer orders strictly for store "${selectedOrdersStore}".`}
+                                        : `Customer orders strictly scoped to store "${shops.find(s => s.username === selectedOrdersStore)?.name || selectedOrdersStore}".`}
                                 </p>
                             </div>
 
                             <div className="flex items-center gap-2.5">
                                 <select
-                                    value={selectedOrdersStore}
-                                    onChange={(e) => setSelectedOrdersStore(e.target.value)}
-                                    className="px-3 py-2 bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl text-xs text-white focus:outline-none transition"
+                                    value={selectedOrdersStore === 'active' ? (activeStore?.username || 'all') : selectedOrdersStore}
+                                    onChange={(e) => {
+                                        setSelectedOrdersStore(e.target.value);
+                                        const found = shops.find(s => s.username === e.target.value);
+                                        if (found) handleSetActiveStore(found);
+                                    }}
+                                    className="px-3 py-2 bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl text-xs text-white focus:outline-none transition cursor-pointer"
                                 >
-                                    <option value="all">All Stores ({orders.length} orders)</option>
                                     {shops.map(s => (
-                                        <option key={s.username} value={s.username}>{s.name}</option>
+                                        <option key={s.username} value={s.username}>Store: {s.name}</option>
                                     ))}
+                                    <option value="all">All Stores Combined ({orders.length} orders)</option>
                                 </select>
 
                                 <button
@@ -2074,7 +2319,7 @@ export default function MasterDashboardPage() {
 }
 
 // ─── REUSABLE INDEPENDENT STORE CARD COMPONENT ───
-function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onSetHomepage, onDelete, onArchive, onDuplicate }) {
+function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onSetHomepage, onDelete, onArchive, onDuplicate, onOpenDashboard }) {
     const isActive = Boolean(activeStore && (activeStore.username === shop.username || activeStore.id === shop.id));
     const isHomepage = Boolean(homepageStoreSlug && (homepageStoreSlug === shop.username || homepageStoreSlug === shop.id));
 
@@ -2196,32 +2441,35 @@ function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onS
             {/* Store Actions Panel */}
             <div className="mt-4 pt-4 border-t border-slate-800 space-y-2">
                 <div className="flex items-center gap-2">
-                    <Link
-                        href="/store"
-                        onClick={() => setActiveStoreSlug(shop)}
-                        className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-1 transition"
+                    <button
+                        onClick={() => {
+                            onSetActiveStore?.(shop);
+                            if (onOpenDashboard) onOpenDashboard(shop);
+                        }}
+                        className="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm"
                     >
-                        <Layers size={13} />
-                        <span>Manage</span>
-                    </Link>
-                    <Link
-                        href="/store/manage-product"
-                        onClick={() => setActiveStoreSlug(shop)}
-                        className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center gap-1 transition"
-                        title="Catalog editor"
-                    >
-                        <ShoppingBag size={13} />
-                        <span>Catalog</span>
-                    </Link>
+                        <LayoutDashboard size={13} />
+                        <span>Store Dashboard</span>
+                    </button>
                     <a
                         href={`/shop/${shop.username}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="py-2 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center gap-1 transition"
+                        className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center gap-1 transition"
                         title="Open public storefront"
                     >
                         <Globe size={13} />
-                        <span>View</span>
+                        <span>Shop</span>
+                    </a>
+                    <a
+                        href={`/creator/${shop.username}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-300 hover:text-white font-bold text-xs flex items-center justify-center gap-1 transition"
+                        title="Open Stan Store link-in-bio"
+                    >
+                        <Smartphone size={13} />
+                        <span>Bio</span>
                     </a>
                 </div>
 

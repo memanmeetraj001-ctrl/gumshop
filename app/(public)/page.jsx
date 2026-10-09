@@ -48,12 +48,29 @@ export default function SuperStorefront() {
             try {
                 // 1. Resolve designated homepage store (Highest priority)
                 let store = getHomepageStoreSync();
+                let targetSlug = getHomepageStoreSlug();
+
                 if (!store) {
                     try {
                         const hpRes = await fetch('/api/store/homepage', { cache: 'no-store' });
                         if (hpRes.ok) {
                             const hpData = await hpRes.json();
                             if (hpData.homepageStore) store = hpData.homepageStore;
+                            if (hpData.homepageSlug) targetSlug = hpData.homepageSlug;
+                        }
+                    } catch {}
+                }
+
+                // If targetSlug exists but store object not hydrated yet, resolve via getStoreAndCatalog
+                if (!store && targetSlug) {
+                    try {
+                        const { getStoreAndCatalog } = await import('@/lib/storePresets');
+                        const loaded = await getStoreAndCatalog(targetSlug);
+                        if (loaded?.store) {
+                            store = loaded.store;
+                            if (loaded.products && loaded.products.length > 0) {
+                                setProducts(loaded.products);
+                            }
                         }
                     } catch {}
                 }
@@ -63,17 +80,26 @@ export default function SuperStorefront() {
                     store = getActiveStoreSync();
                 }
 
+                // 3. Fallback to first registered store
+                if (!store) {
+                    const { getAllLocalStores } = await import('@/lib/activeStore');
+                    const localStores = getAllLocalStores();
+                    if (localStores && localStores.length > 0) {
+                        store = localStores[0];
+                    }
+                }
+
                 if (store) {
                     setActiveStore(store);
-                    const storeProducts = await getProductsByStore(store.id);
+                    const storeProducts = await getProductsByStore(store.id || store.username);
                     if (storeProducts && storeProducts.length > 0) {
                         setProducts(storeProducts);
                     } else if (store?.products && Array.isArray(store.products) && store.products.length > 0) {
                         setProducts(store.products);
                     } else {
-                        // Fall back to preset products if store catalog is empty
+                        // Fall back to catalog loader
                         const { getStoreAndCatalog } = await import('@/lib/storePresets');
-                        const preset = await getStoreAndCatalog(store.username || store.id || 'buy-rc-drift-cars-online');
+                        const preset = await getStoreAndCatalog(store.username || store.id);
                         if (preset?.products?.length > 0) {
                             setProducts(preset.products);
                         } else {
@@ -81,7 +107,7 @@ export default function SuperStorefront() {
                         }
                     }
                 } else {
-                    // Fall back to default flagship store on clean/incognito sessions
+                    // Fall back to default starter store on clean session
                     const { getStoreAndCatalog } = await import('@/lib/storePresets');
                     const defaultCatalog = await getStoreAndCatalog('buy-rc-drift-cars-online');
                     if (defaultCatalog?.store) {
@@ -233,12 +259,20 @@ export default function SuperStorefront() {
                                 <span>Browse Catalog</span>
                                 <ArrowRight size={16} />
                             </button>
+                            {activeStore?.username && (
+                                <Link
+                                    href={`/creator/${activeStore.username}`}
+                                    className="px-6 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white font-bold text-sm flex items-center gap-2 transition"
+                                >
+                                    <span>📱 Stan Store / Bio Link</span>
+                                </Link>
+                            )}
                             <Link
                                 href="/dashboard"
-                                className="px-7 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white font-bold text-sm flex items-center gap-2 transition"
+                                className="px-6 py-4 rounded-2xl bg-slate-900/60 hover:bg-slate-800 border border-slate-800/80 text-slate-400 hover:text-white font-bold text-sm flex items-center gap-2 transition"
                             >
                                 <Store size={16} className="text-emerald-400" />
-                                <span>Master HQ</span>
+                                <span>Dashboard</span>
                             </Link>
                         </div>
 

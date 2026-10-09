@@ -21,6 +21,11 @@ export async function GET() {
             ) || null;
         }
 
+        // Direct fetch by slug if not in allStores list
+        if (!homepageStore && effectiveSlug) {
+            homepageStore = await serverGetStore(effectiveSlug);
+        }
+
         // If not found by slug, check if any store has is_homepage flag
         if (!homepageStore && allStores.length > 0) {
             homepageStore = allStores.find(s => s.is_homepage === true || s.isHomepage === true) || null;
