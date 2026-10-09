@@ -29,12 +29,15 @@ async function performReset() {
       revalidatePath('/(public)', 'layout');
     } catch {}
 
-    return NextResponse.json({ 
+    const res = NextResponse.json({ 
       success: true, 
       storesCount: 0,
       productsCount: 0,
       message: 'All stores, products, orders, and sessions successfully wiped to 0' 
     });
+    res.cookies.delete('gumshop_homepage_store');
+    res.cookies.delete('active_store_slug');
+    return res;
   } catch (err) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

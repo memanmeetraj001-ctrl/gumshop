@@ -78,7 +78,11 @@ function ShopCatalogContent() {
     }, [queryStore]);
 
     useEffect(() => {
-        if (reduxProducts && reduxProducts.length > 0 && products.length === 0) {
+        const hasCleared = typeof window !== 'undefined' && (
+            localStorage.getItem('gumshop_stores_cleared') === 'true' ||
+            localStorage.getItem('gumshop_empty_dashboard_ack') === 'true'
+        );
+        if (!hasCleared && reduxProducts && reduxProducts.length > 0 && products.length === 0) {
             setProducts(reduxProducts);
         }
     }, [reduxProducts, products.length]);

@@ -636,8 +636,10 @@ export default function MasterDashboardPage() {
                 document.cookie = 'active_store_slug=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
                 document.cookie = 'gumshop_merchant_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
                 document.cookie = 'gumshop_active_store=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                document.cookie = 'gumshop_homepage_store=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 
                 window.dispatchEvent(new Event('active_store_changed'));
+                window.dispatchEvent(new Event('homepage_store_changed'));
                 window.dispatchEvent(new Event('products_updated'));
             }
 

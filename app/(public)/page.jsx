@@ -97,25 +97,13 @@ export default function SuperStorefront() {
                     } else if (store?.products && Array.isArray(store.products) && store.products.length > 0) {
                         setProducts(store.products);
                     } else {
-                        // Fall back to catalog loader
-                        const { getStoreAndCatalog } = await import('@/lib/storePresets');
-                        const preset = await getStoreAndCatalog(store.username || store.id);
-                        if (preset?.products?.length > 0) {
-                            setProducts(preset.products);
-                        } else {
-                            setProducts([]);
-                        }
-                    }
-                } else {
-                    // Fall back to default starter store on clean session
-                    const { getStoreAndCatalog } = await import('@/lib/storePresets');
-                    const defaultCatalog = await getStoreAndCatalog('buy-rc-drift-cars-online');
-                    if (defaultCatalog?.store) {
-                        setActiveStore(defaultCatalog.store);
-                        setProducts(defaultCatalog.products || []);
-                    } else {
+                        // Store catalog is clean and empty (0 products)
                         setProducts([]);
                     }
+                } else {
+                    // No stores registered or database reset to zero - keep catalog clean at 0 products
+                    setActiveStore(null);
+                    setProducts([]);
                 }
             } catch (err) {
                 console.warn('Error loading storefront catalog:', err);
@@ -138,12 +126,6 @@ export default function SuperStorefront() {
             }
         };
     }, [dispatch]);
-
-    useEffect(() => {
-        if (!activeStore && reduxProducts && reduxProducts.length > 0 && products.length === 0) {
-            setProducts(reduxProducts);
-        }
-    }, [reduxProducts, products.length, activeStore]);
 
     // Extract dynamic unique categories
     const categories = useMemo(() => {
