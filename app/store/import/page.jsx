@@ -31,12 +31,13 @@ import {
     LayoutGrid,
     Table as TableIcon,
     Star,
-    Percent
+    Percent,
+    Scissors
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { setActiveStoreSlug, setHomepageStoreSlug, getAllLocalStores } from '@/lib/activeStore';
 import { isStoreDeleted } from '@/lib/firebaseDb';
-import { normalizeProductPrice } from '@/lib/importer/priceNormalizer.js';
+import { normalizeProductPrice, applyPriceSlash } from '@/lib/importer/priceNormalizer.js';
 import { parseCatalogFile } from '@/lib/importer/fileImporter.js';
 
 export default function StoreImportPage() {
@@ -68,6 +69,8 @@ export default function StoreImportPage() {
     // Bulk Pricing Controls
     const [currencySymbol, setCurrencySymbol] = useState('$');
     const [activeMarkup, setActiveMarkup] = useState(1.0);
+    const [activeSlashPercent, setActiveSlashPercent] = useState(0);
+    const [customSlashInput, setCustomSlashInput] = useState('');
 
     // Filter & Search Controls in Preview
     const [searchQuery, setSearchQuery] = useState('');
@@ -302,6 +305,33 @@ export default function StoreImportPage() {
         toast.success(`Applied ${Math.round((multiplier - 1) * 100)}% markup! 📈`);
     };
 
+    // Slash Prices by Any Percentage (e.g. 10%, 20%, 50%, or custom %)
+    const handleSlashPrices = (percent) => {
+        if (!importData?.products) return;
+        const pct = parseFloat(percent);
+        if (isNaN(pct) || pct < 0 || pct > 99) {
+            toast.error('Please enter a valid percentage between 1% and 99%');
+            return;
+        }
+        setActiveSlashPercent(pct);
+        const newOverrides = { ...editedProducts };
+        importData.products.forEach(p => {
+            const basePrice = p.price || 0;
+            const { price: slashed, compareAtPrice: compare } = applyPriceSlash(basePrice, pct, p.compareAtPrice);
+            newOverrides[p.id] = {
+                ...(newOverrides[p.id] || {}),
+                price: slashed,
+                compareAtPrice: compare
+            };
+        });
+        setEditedProducts(newOverrides);
+        if (pct === 0) {
+            toast.success('Prices restored to original imported values (0% slash)');
+        } else {
+            toast.success(`Slashed all prices by ${pct}%! Strike-through discounts activated. ✂️`);
+        }
+    };
+
     // Charm Pricing (Round to .99)
     const handleCharmPricing = () => {
         if (!importData?.products) return;
@@ -502,6 +532,7 @@ export default function StoreImportPage() {
                 destinationStore: destinationStorePayload,
                 destinationMode: destMode,
                 setAsHomepage,
+                slashPercent: activeSlashPercent,
                 selectedProducts: finalProducts,
                 selectedBanners: bannerList,
                 selectedCategories: categoryList
@@ -865,6 +896,62 @@ export default function StoreImportPage() {
 
                                 <span className="text-slate-700">|</span>
 
+                                {/* Slash Prices (% Discount) */}
+                                <div className="flex items-center gap-1.5 bg-slate-950/80 px-2 py-1 rounded-xl border border-rose-500/30">
+                                    <Scissors size={12} className="text-rose-400 shrink-0" />
+                                    <span className="text-rose-300 font-bold text-[11px]">Slash:</span>
+                                    {[
+                                        { label: '0%', val: 0 },
+                                        { label: '-15%', val: 15 },
+                                        { label: '-25%', val: 25 },
+                                        { label: '-30%', val: 30 },
+                                        { label: '-50%', val: 50 }
+                                    ].map(s => (
+                                        <button
+                                            key={s.label}
+                                            type="button"
+                                            onClick={() => handleSlashPrices(s.val)}
+                                            className={`px-1.5 py-0.5 rounded text-[11px] font-bold transition border ${
+                                                activeSlashPercent === s.val
+                                                    ? 'bg-rose-500 text-white border-rose-400 shadow-sm'
+                                                    : 'bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800 border-slate-700/80'
+                                            }`}
+                                        >
+                                            {s.label}
+                                        </button>
+                                    ))}
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="99"
+                                            placeholder="%"
+                                            value={customSlashInput}
+                                            onChange={(e) => setCustomSlashInput(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    if (customSlashInput) handleSlashPrices(parseFloat(customSlashInput));
+                                                }
+                                            }}
+                                            className="w-11 px-1 py-0.5 bg-slate-900 border border-slate-700 rounded text-[11px] text-white font-mono text-center focus:outline-none focus:border-rose-400"
+                                            title="Enter any discount % (e.g. 20, 35, 60)"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (customSlashInput) handleSlashPrices(parseFloat(customSlashInput));
+                                            }}
+                                            className="px-1.5 py-0.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-[10px] rounded transition"
+                                            title="Apply custom discount percentage"
+                                        >
+                                            Cut %
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <span className="text-slate-700">|</span>
+
                                 {/* Charm Pricing */}
                                 <button
                                     onClick={handleCharmPricing}
@@ -1031,6 +1118,7 @@ export default function StoreImportPage() {
                                             const isEditing = editingProductId === prod.id;
                                             const edited = editedProducts[prod.id] || {};
                                             const displayPrice = edited.price !== undefined ? edited.price : prod.price;
+                                            const displayCompare = edited.compareAtPrice !== undefined ? edited.compareAtPrice : prod.compareAtPrice;
                                             const displayName = edited.name !== undefined ? edited.name : prod.name;
                                             const displayCategory = edited.category !== undefined ? edited.category : prod.category;
                                             const prodImg = prod.image || prod.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500';
@@ -1101,9 +1189,16 @@ export default function StoreImportPage() {
                                                                 
                                                                 <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-800">
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="font-mono font-bold text-emerald-400 text-sm">
-                                                                            {currencySymbol}{displayPrice.toFixed(2)}
-                                                                        </span>
+                                                                        <div className="flex items-baseline gap-1.5">
+                                                                            <span className="font-mono font-bold text-emerald-400 text-sm">
+                                                                                {currencySymbol}{displayPrice.toFixed(2)}
+                                                                            </span>
+                                                                            {displayCompare > displayPrice && (
+                                                                                <span className="font-mono text-xs text-slate-500 line-through">
+                                                                                    {currencySymbol}{displayCompare.toFixed(2)}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
                                                                         {isSuspectedCents && (
                                                                             <button
                                                                                 type="button"
@@ -1158,6 +1253,7 @@ export default function StoreImportPage() {
                                                         const isSelected = selectedProductIds.has(prod.id);
                                                         const edited = editedProducts[prod.id] || {};
                                                         const displayPrice = edited.price !== undefined ? edited.price : prod.price;
+                                                        const displayCompare = edited.compareAtPrice !== undefined ? edited.compareAtPrice : prod.compareAtPrice;
                                                         const displayName = edited.name !== undefined ? edited.name : prod.name;
                                                         const displayCategory = edited.category !== undefined ? edited.category : prod.category;
                                                         const prodImg = prod.image || prod.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100';
@@ -1193,18 +1289,25 @@ export default function StoreImportPage() {
                                                                     {displayCategory}
                                                                 </td>
                                                                 <td className="py-3 px-4">
-                                                                    <div className="flex items-center gap-1 font-mono font-bold text-emerald-400">
-                                                                        <span>{currencySymbol}</span>
-                                                                        <input
-                                                                            type="number"
-                                                                            step="0.01"
-                                                                            value={displayPrice}
-                                                                            onChange={(e) => setEditedProducts(prev => ({
-                                                                                ...prev,
-                                                                                [prod.id]: { ...(prev[prod.id] || {}), price: parseFloat(e.target.value) || 0 }
-                                                                            }))}
-                                                                            className="w-20 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:border-emerald-500"
-                                                                        />
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <div className="flex items-center gap-1 font-mono font-bold text-emerald-400">
+                                                                            <span>{currencySymbol}</span>
+                                                                            <input
+                                                                                type="number"
+                                                                                step="0.01"
+                                                                                value={displayPrice}
+                                                                                onChange={(e) => setEditedProducts(prev => ({
+                                                                                    ...prev,
+                                                                                    [prod.id]: { ...(prev[prod.id] || {}), price: parseFloat(e.target.value) || 0 }
+                                                                                }))}
+                                                                                className="w-20 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:border-emerald-500"
+                                                                            />
+                                                                        </div>
+                                                                        {displayCompare > displayPrice && (
+                                                                            <span className="font-mono text-[10px] text-slate-500 line-through">
+                                                                                {currencySymbol}{displayCompare.toFixed(2)}
+                                                                            </span>
+                                                                        )}
                                                                     </div>
                                                                 </td>
                                                                 <td className="py-3 px-4 text-right">

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createStore, createProduct, recordImportHistory, getStore, getStoreByUsername } from '@/lib/firebaseDb';
 import { serverSaveStore, serverSaveProducts } from '@/lib/serverDb';
-import { normalizeProductPrice } from '@/lib/importer/priceNormalizer.js';
+import { normalizeProductPrice, applyPriceSlash } from '@/lib/importer/priceNormalizer.js';
 
 /**
  * POST /api/importer/import
@@ -10,6 +10,7 @@ import { normalizeProductPrice } from '@/lib/importer/priceNormalizer.js';
  * - Direct creation of a new independent store OR merging into existing store
  * - Hardened price normalization (preventing cents or locale formatting bugs)
  * - 1-Click root homepage designation
+ * - Price slashing by any percentage with preserved strike-through compare prices
  */
 export async function POST(req) {
     try {
@@ -19,6 +20,7 @@ export async function POST(req) {
             destinationMode = 'new', // 'new' | 'append'
             setAsHomepage = false,
             isCents = false,
+            slashPercent = 0,
             selectedProducts = [], 
             selectedBanners = [], 
             selectedCategories = [] 
@@ -91,10 +93,15 @@ export async function POST(req) {
         // 2. Prepare and sanitize products scoped strictly to this storeId
         const savedProducts = selectedProducts.map((p, idx) => {
             const prodId = `prod_${cleanSlug}_${idx}_${Math.random().toString(36).substring(2, 6)}`;
-            const price = normalizeProductPrice(p.price, { isCents });
-            const compareAt = p.compareAtPrice 
+            const rawPrice = normalizeProductPrice(p.price, { isCents });
+            const rawCompareAt = p.compareAtPrice 
                 ? normalizeProductPrice(p.compareAtPrice, { isCents }) 
-                : (price > 0 ? Math.round(price * 1.35 * 100) / 100 : 0);
+                : (rawPrice > 0 ? Math.round(rawPrice * 1.35 * 100) / 100 : 0);
+
+            const numSlash = parseFloat(slashPercent) || 0;
+            const { price, compareAtPrice } = numSlash > 0
+                ? applyPriceSlash(rawPrice, numSlash, rawCompareAt)
+                : { price: rawPrice, compareAtPrice: rawCompareAt };
 
             return {
                 id: prodId,

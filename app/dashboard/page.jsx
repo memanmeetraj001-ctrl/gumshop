@@ -40,7 +40,8 @@ import {
     Upload,
     Database,
     Eye,
-    EyeOff
+    EyeOff,
+    Scissors
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { isProductDeleted, isStoreDeleted, markStoreDeleted, deleteStore, DEFAULT_CATALOG_PRODUCTS } from '@/lib/firebaseDb';
@@ -101,6 +102,7 @@ export default function MasterDashboardPage() {
     const [dupName, setDupName] = useState('');
     const [dupSlug, setDupSlug] = useState('');
     const [dupCopyProducts, setDupCopyProducts] = useState(true);
+    const [dupSlashPercent, setDupSlashPercent] = useState(0);
     const [dupCopyBanners, setDupCopyBanners] = useState(true);
     const [dupCopyTheme, setDupCopyTheme] = useState(true);
     const [dupCopyBranding, setDupCopyBranding] = useState(true);
@@ -670,6 +672,7 @@ export default function MasterDashboardPage() {
         setDupName(`${shop.name} Copy`);
         setDupSlug(`${shop.username}-copy`);
         setDupCopyProducts(true);
+        setDupSlashPercent(0);
         setDupCopyBanners(true);
         setDupCopyTheme(true);
         setDupCopyBranding(true);
@@ -691,6 +694,7 @@ export default function MasterDashboardPage() {
                     newStoreName: dupName.trim(),
                     newStoreSlug: dupSlug.trim(),
                     copyProducts: dupCopyProducts,
+                    slashPercent: parseFloat(dupSlashPercent) || 0,
                     copyBanners: dupCopyBanners,
                     copyTheme: dupCopyTheme,
                     copyBranding: dupCopyBranding
@@ -2210,6 +2214,64 @@ export default function MasterDashboardPage() {
                                     <span>Copy store logo & bio tagline</span>
                                 </label>
                             </div>
+
+                            {dupCopyProducts && (
+                                <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800/80 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                                            <Scissors size={12} className="text-rose-400" />
+                                            <span>Slash Product Prices (% Discount):</span>
+                                        </label>
+                                        <span className="text-[10px] font-mono text-rose-400 font-bold">
+                                            {dupSlashPercent > 0 ? `${dupSlashPercent}% OFF` : 'Original Prices'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        {[0, 10, 20, 25, 30, 50].map((pct) => (
+                                            <button
+                                                key={pct}
+                                                type="button"
+                                                onClick={() => setDupSlashPercent(pct)}
+                                                className={`px-2 py-1 rounded-lg text-[11px] font-bold transition border ${
+                                                    dupSlashPercent === pct
+                                                        ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
+                                                        : 'bg-slate-900 text-slate-400 hover:text-white border-slate-800'
+                                                }`}
+                                            >
+                                                {pct === 0 ? '0% (Keep Full)' : `-${pct}%`}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="flex items-center gap-2 pt-1">
+                                        <div className="relative flex-1">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="99"
+                                                placeholder="Or enter custom % (e.g. 15)"
+                                                value={dupSlashPercent === 0 ? '' : dupSlashPercent}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value);
+                                                    setDupSlashPercent(isNaN(val) ? 0 : Math.min(Math.max(val, 0), 99));
+                                                }}
+                                                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400"
+                                            />
+                                        </div>
+                                        {dupSlashPercent > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setDupSlashPercent(0)}
+                                                className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-400 hover:text-white transition"
+                                            >
+                                                Reset
+                                            </button>
+                                        )}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 leading-tight">
+                                        Original price is preserved as strike-through discount so customers see the price drop.
+                                    </p>
+                                </div>
+                            )}
 
                             <button
                                 type="submit"
