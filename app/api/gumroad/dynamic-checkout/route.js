@@ -216,6 +216,7 @@ export async function POST(req) {
                     success: true,
                     mode: 'gumroad',
                     directCheckout: false,
+                    orderId: orderSessionId,
                     orderSessionId,
                     total: finalTotal,
                     checkoutUrl: urlObj.href,
@@ -233,6 +234,7 @@ export async function POST(req) {
                 const safeUrl = `https://gumroad.com/l/gumshop-checkout?wanted=true&price=${finalTotal.toFixed(2)}&order_id=${encodeURIComponent(orderSessionId)}`;
                 return NextResponse.json({
                     success: true,
+                    orderId: orderSessionId,
                     orderSessionId,
                     total: finalTotal,
                     checkoutUrl: safeUrl,
