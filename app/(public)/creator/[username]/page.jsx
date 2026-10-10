@@ -133,8 +133,8 @@ function formatCreatorProfile(store, rawUsername) {
 }
 
 export default function CreatorBioPage({ params }) {
-    // Next.js 15+ dynamic params unwrapping
-    const resolvedParams = use(params);
+    // Next.js 15+ dynamic params unwrapping with safe fallback
+    const resolvedParams = params ? (typeof params.then === 'function' ? use(params) : params) : null;
     const rawUsername = resolvedParams?.username || 'demo';
     const cleanUser = rawUsername.toLowerCase().trim();
 

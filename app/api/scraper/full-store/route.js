@@ -23,7 +23,7 @@ export async function POST(req) {
             deprecated: true,
             message: 'Please use /api/importer/analyze for secure catalog analysis.'
         }, { status: 410 });
-    } catch {
+    } catch (err) {
         return NextResponse.json({ error: 'Endpoint deprecated' }, { status: 410 });
     }
 }
