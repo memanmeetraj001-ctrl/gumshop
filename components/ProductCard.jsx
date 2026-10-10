@@ -23,8 +23,8 @@ export default function ProductCard({ product, onOpenCart }) {
     const isWishlisted = has(product.id);
     const mainImage = getSafeImageUrl(product.images?.[0] || product.image);
 
-    const price = parseFloat(product.price !== undefined && product.price !== null ? product.price : 0);
-    const compareAt = parseFloat(product.compareAtPrice || Math.round(price * 1.35 * 100) / 100);
+    const price = parseFloat(product.price !== undefined && product.price !== null && product.price !== '' ? product.price : 52.99);
+    const compareAt = parseFloat(product.compareAtPrice || (price === 52.99 ? 69.99 : Math.round(price * 1.35 * 100) / 100));
     const discountPercent = compareAt > price ? Math.round(((compareAt - price) / compareAt) * 100) : 0;
 
     const handleAddToCart = (e) => {

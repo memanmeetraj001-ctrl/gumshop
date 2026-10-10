@@ -774,8 +774,8 @@ export default function CreatorBioPage({ params }) {
                                 (() => {
                                     const heroItem = displayedProducts[0];
                                     const baseItem = heroItem.name ? heroItem.name.split(' ')[0] : 'Item';
-                                    const heroPrice = parseFloat(heroItem.price || 0);
-                                    const heroCompare = parseFloat(heroItem.compareAtPrice || heroItem.comparePrice || Math.round(heroPrice * 1.35 * 100) / 100);
+                                    const heroPrice = parseFloat(heroItem.price !== undefined && heroItem.price !== null && heroItem.price !== '' ? heroItem.price : 52.99);
+                                    const heroCompare = parseFloat(heroItem.compareAtPrice || heroItem.comparePrice || (heroPrice === 52.99 ? 69.99 : Math.round(heroPrice * 1.35 * 100) / 100));
                                     const discountPct = heroCompare > heroPrice ? Math.round(((heroCompare - heroPrice) / heroCompare) * 100) : 0;
                                     const heroBullets = Array.isArray(heroItem.bullets) && heroItem.bullets.length > 0
                                         ? heroItem.bullets
@@ -851,7 +851,7 @@ export default function CreatorBioPage({ params }) {
                                                             subtitle: "Two-Pet Household / matching photos",
                                                             totalPrice: Math.round(heroPrice * 1.4082075 * 100) / 100,
                                                             pricePerUnit: Math.round((heroPrice * 1.4082075 / 2) * 100) / 100,
-                                                            badge: "SAVE 15% ⭐"
+                                                            badge: "Two-Pet Household ⭐"
                                                         },
                                                         {
                                                             qty: 3,
@@ -859,7 +859,7 @@ export default function CreatorBioPage({ params }) {
                                                             subtitle: "Costume Party Pack",
                                                             totalPrice: Math.round(heroPrice * 1.81623 * 100) / 100,
                                                             pricePerUnit: Math.round((heroPrice * 1.81623 / 3) * 100) / 100,
-                                                            badge: "SAVE 25% 🔥"
+                                                            badge: "Costume Party Pack 🔥"
                                                         }
                                                     ];
                                                 const activeBundle = bundles[selectedPackIndex] || bundles[0];
@@ -968,7 +968,7 @@ export default function CreatorBioPage({ params }) {
                                                 className="bg-white rounded-2xl p-3 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-all flex items-center gap-3 group"
                                             >
                                                 {/* Square Rounded Thumbnail */}
-                                                <div className="size-16 sm:size-18 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-100 relative">
+                                                <div className="size-16 sm:w-16 sm:h-16 object-cover rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-100 relative">
                                                     <img 
                                                         src={getSafeImageUrl(item.image || (item.images && item.images[0]))} 
                                                         alt={item.name || 'Product'} 
@@ -1151,7 +1151,7 @@ export default function CreatorBioPage({ params }) {
             {/* ─── Floating Sticky Bottom Buy Bar (Appears on Scroll) ─── */}
             {showStickyBar && displayedProducts.length > 0 && (() => {
                 const heroItem = displayedProducts[0];
-                const heroPrice = parseFloat(heroItem?.price || 0);
+                const heroPrice = parseFloat(heroItem?.price !== undefined && heroItem?.price !== null && heroItem?.price !== '' ? heroItem.price : 52.99);
                 const bundles = (Array.isArray(heroItem?.customBundles) && heroItem.customBundles.length > 0)
                     ? heroItem.customBundles
                     : [];

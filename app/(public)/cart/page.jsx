@@ -63,13 +63,13 @@ export default function Cart() {
                 product = {
                     id: key,
                     name: "Purchased Store Item",
-                    price: 29.99,
+                    price: 52.99,
                     category: "Featured",
                     image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200"
                 };
             }
 
-            const itemPrice = parseFloat(product.price || 29.99);
+            const itemPrice = parseFloat(product.price || 52.99);
             resolved.push({
                 ...product,
                 id: key,
@@ -115,7 +115,7 @@ export default function Cart() {
                                 cartArray.map((item, index) => (
                                     <tr key={index} className="space-x-2">
                                         <td className="flex gap-3 my-4">
-                                            <div className="flex gap-3 items-center justify-center bg-slate-100 size-18 rounded-md overflow-hidden">
+                                            <div className="flex gap-3 items-center justify-center bg-slate-100 w-16 h-16 object-cover rounded-md overflow-hidden">
                                                 <Image 
                                                     src={item.images?.[0] || item.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100"} 
                                                     className="h-14 w-auto object-cover" 

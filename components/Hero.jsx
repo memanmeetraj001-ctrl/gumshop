@@ -179,12 +179,12 @@ export default function Hero() {
                                     
                                     <div className="mt-4 p-3 rounded-xl bg-slate-900 border border-slate-800">
                                         <p className="text-xs font-semibold text-slate-200">Crystal Hair Eraser (Viral)</p>
-                                        <p className="text-sm font-bold text-emerald-400 mt-1">$29.99 <span className="line-through text-slate-500 text-xs">$49.99</span></p>
+                                        <p className="text-sm font-bold text-emerald-400 mt-1">$52.99 <span className="line-through text-slate-500 text-xs">$69.99</span></p>
                                     </div>
 
                                     <div className="mt-4">
                                         <button className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 font-bold text-slate-950 text-xs shadow-md transition flex items-center justify-center gap-1.5 active:scale-95">
-                                            <Zap size={14} className="fill-slate-950" /> ⚡ Buy Now ($29.99)
+                                            <Zap size={14} className="fill-slate-950" /> ⚡ Buy Now ($52.99)
                                         </button>
                                     </div>
                                 </div>

@@ -68,7 +68,7 @@ export default function WishlistDrawer({ isOpen, onClose, onOpenCart }) {
                                     <img 
                                         src={product.image || product.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200'} 
                                         alt="" 
-                                        className="size-18 rounded-xl object-cover bg-white border border-slate-200 shrink-0"
+                                        className="w-16 h-16 rounded-xl object-cover bg-white border border-slate-200 shrink-0"
                                     />
                                     <div className="flex-1 flex flex-col justify-between">
                                         <div className="flex items-start justify-between gap-2">

@@ -52,10 +52,10 @@ const ProductDetails = ({ product, storeInfo }) => {
     
     const [mainImage, setMainImage] = useState(images[0]);
 
-    const unitPrice = parseFloat(product.price !== undefined && product.price !== null ? product.price : 0);
+    const unitPrice = parseFloat(product.price !== undefined && product.price !== null && product.price !== '' ? product.price : 52.99);
     const sizeDelta = parseFloat(selectedSize?.priceDelta || 0);
     const effectiveUnitPrice = unitPrice + sizeDelta;
-    const compareAt = parseFloat(product.compareAtPrice || product.mrp || Math.round(unitPrice * 1.35 * 100) / 100) + sizeDelta;
+    const compareAt = parseFloat(product.compareAtPrice || product.mrp || (unitPrice === 52.99 ? 69.99 : Math.round(unitPrice * 1.35 * 100) / 100)) + sizeDelta;
 
     const colorCode = selectedColor?.name?.substring(0, 3).toUpperCase() || 'DEF';
     const sizeCode = selectedSize?.name?.substring(0, 3).toUpperCase() || 'STD';
@@ -110,6 +110,7 @@ const ProductDetails = ({ product, storeInfo }) => {
                 product: {
                     ...product,
                     name: `${product.name} (${activeVariantLabel})`,
+                    image: images[0],
                     price: currentTier.pricePerUnit,
                     variant: activeVariantLabel,
                     selectedColor: selectedColor?.name,

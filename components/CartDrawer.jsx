@@ -29,7 +29,8 @@ export default function CartDrawer({ isOpen, onClose }) {
 
     for (const [key, qty] of Object.entries(cartItems)) {
         if (!qty || qty <= 0) continue;
-        let product = cartProducts[key] || (products || []).find(p => p.id === key);
+        const baseId = key.includes('__') ? key.split('__')[0] : key;
+        let product = cartProducts[key] || cartProducts[baseId] || Object.values(cartProducts).find(p => p?.id === key || p?.id === baseId) || (products || []).find(p => p.id === key || p.id === baseId);
 
         if (!product && typeof window !== 'undefined') {
             for (let i = 0; i < localStorage.length; i++) {
@@ -37,9 +38,9 @@ export default function CartDrawer({ isOpen, onClose }) {
                 if (lsKey && (lsKey.startsWith('cloned_store_') || lsKey.startsWith('store_') || lsKey.startsWith('gumshop_db_products/'))) {
                     try {
                         const parsed = JSON.parse(localStorage.getItem(lsKey) || '{}');
-                        if (parsed.id === key) { product = parsed; break; }
+                        if (parsed.id === key || parsed.id === baseId) { product = parsed; break; }
                         if (parsed.products) {
-                            const match = parsed.products.find(p => p.id === key);
+                            const match = parsed.products.find(p => p.id === key || p.id === baseId);
                             if (match) { product = match; break; }
                         }
                     } catch {}
@@ -220,14 +221,14 @@ export default function CartDrawer({ isOpen, onClose }) {
                                     <img 
                                         src={getSafeImageUrl(item.image)} 
                                         alt={item.name || "Product"} 
+                                        className="w-16 h-16 object-cover rounded-xl bg-white border border-slate-200 shrink-0"
                                         onError={(e) => handleImageError(e, 'product')}
-                                        className="size-18 rounded-xl object-cover bg-white border border-slate-200 shrink-0"
                                     />
                                     <div className="flex-1 flex flex-col justify-between">
                                         <div className="flex items-start justify-between gap-2">
                                             <h4 className="text-xs font-bold text-slate-900 line-clamp-2">{item.name}</h4>
                                             <button 
-                                                onClick={() => dispatch(deleteItemFromCart({ productId: item.id }))}
+                                                onClick={() => dispatch(deleteItemFromCart({ productId: item.id, itemKey: item.id }))}
                                                 className="text-slate-400 hover:text-rose-600 p-1 transition"
                                                 title="Remove"
                                             >
@@ -240,14 +241,14 @@ export default function CartDrawer({ isOpen, onClose }) {
                                             </span>
                                             <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg p-0.5">
                                                 <button
-                                                    onClick={() => dispatch(removeFromCart({ productId: item.id }))}
+                                                    onClick={() => dispatch(removeFromCart({ productId: item.id, itemKey: item.id }))}
                                                     className="size-5 rounded flex items-center justify-center text-slate-500 hover:bg-slate-100 transition"
                                                 >
                                                     <Minus size={11} />
                                                 </button>
                                                 <span className="text-xs font-bold px-1 min-w-4 text-center">{item.quantity}</span>
                                                 <button
-                                                    onClick={() => dispatch(addToCart({ productId: item.id, product: item }))}
+                                                    onClick={() => dispatch(addToCart({ productId: item.id, itemKey: item.id, product: item }))}
                                                     className="size-5 rounded flex items-center justify-center text-slate-500 hover:bg-slate-100 transition"
                                                 >
                                                     <Plus size={11} />
