@@ -1034,20 +1034,20 @@ export default function StoreSettings() {
                         </div>
 
                         {/* Webhook Configuration Box */}
-                        <div className="p-5 rounded-2xl bg-slate-900 text-white space-y-3">
+                        <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 space-y-3">
                             <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                                     <span>Real-Time Webhook Ping URL</span>
                                 </span>
-                                <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">
+                                <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
                                     Automatic Order Ingestion
                                 </span>
                             </div>
-                            <p className="text-xs text-slate-400 leading-relaxed">
+                            <p className="text-xs text-slate-600 leading-relaxed">
                                 Paste this Webhook URL into your Gumroad account so every completed payment automatically generates an order with customer details in your GumShop dashboard.
                             </p>
-                            <div className="flex items-center gap-2 bg-slate-800 p-2 rounded-xl border border-slate-700">
-                                <code className="text-xs font-mono text-emerald-400 flex-1 px-2 select-all overflow-x-auto">
+                            <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200">
+                                <code className="text-xs font-mono text-emerald-700 flex-1 px-2 select-all overflow-x-auto">
                                     {typeof window !== 'undefined' ? `${window.location.origin}/api/gumroad/webhook` : 'https://gumshop.online/api/gumroad/webhook'}
                                 </code>
                                 <button
@@ -1057,7 +1057,7 @@ export default function StoreSettings() {
                                         navigator.clipboard.writeText(url);
                                         toast.success("Webhook URL copied!");
                                     }}
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shrink-0"
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shrink-0"
                                 >
                                     <Copy size={13} />
                                     <span>Copy URL</span>
@@ -1146,40 +1146,40 @@ export default function StoreSettings() {
                         </div>
 
                         {/* DNS Instructions Card */}
-                        <div className="p-5 rounded-2xl bg-slate-900 text-white space-y-4">
-                            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                        <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 space-y-4">
+                            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                                <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
                                     <Sparkles size={14} /> DNS Configuration Guide
                                 </span>
-                                <span className="text-[10px] font-mono text-slate-400">Automatic Free SSL</span>
+                                <span className="text-[10px] font-mono text-slate-500 font-bold bg-white px-2 py-0.5 rounded-full border border-slate-200">Automatic Free SSL</span>
                             </div>
 
-                            <p className="text-xs text-slate-300 leading-relaxed">
+                            <p className="text-xs text-slate-600 leading-relaxed">
                                 Add the following record in your domain registrar (GoDaddy, Namecheap, Cloudflare, Google Domains):
                             </p>
 
-                            <div className="overflow-x-auto">
+                            <div className="overflow-x-auto bg-white rounded-xl border border-slate-200 p-2">
                                 <table className="w-full text-left text-xs font-mono border-collapse">
                                     <thead>
-                                        <tr className="border-b border-slate-800 text-slate-400">
-                                            <th className="py-2 pr-4 font-normal">Type</th>
-                                            <th className="py-2 pr-4 font-normal">Name / Host</th>
-                                            <th className="py-2 pr-4 font-normal">Target / Value</th>
-                                            <th className="py-2 font-normal">TTL</th>
+                                        <tr className="border-b border-slate-100 text-slate-500">
+                                            <th className="py-2 pr-4 font-semibold">Type</th>
+                                            <th className="py-2 pr-4 font-semibold">Name / Host</th>
+                                            <th className="py-2 pr-4 font-semibold">Target / Value</th>
+                                            <th className="py-2 font-semibold">TTL</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-800/60 text-slate-200">
+                                    <tbody className="divide-y divide-slate-100 text-slate-700">
                                         <tr>
-                                            <td className="py-2.5 pr-4 text-emerald-400 font-bold">CNAME</td>
+                                            <td className="py-2.5 pr-4 text-emerald-700 font-bold">CNAME</td>
                                             <td className="py-2.5 pr-4">shop (or @)</td>
-                                            <td className="py-2.5 pr-4 text-emerald-300">cname.vercel-dns.com</td>
+                                            <td className="py-2.5 pr-4 text-emerald-600 font-bold">cname.vercel-dns.com</td>
                                             <td className="py-2.5">Auto / 3600</td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
 
-                            <p className="text-[11px] text-slate-400 pt-1">
+                            <p className="text-[11px] text-slate-500 pt-1">
                                 DNS propagation usually takes 5 to 30 minutes. Once propagated, your custom domain will load your store with free automatic HTTPS.
                             </p>
                         </div>

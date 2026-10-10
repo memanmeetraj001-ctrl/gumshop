@@ -200,22 +200,22 @@ export default function StoreMarketingLaunchKit() {
             </div>
 
             {/* Quick 3-Day Posting Strategy Guide */}
-            <div className="mt-8 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-950 to-slate-900 text-white border border-slate-800">
+            <div className="mt-8 p-6 sm:p-8 rounded-3xl bg-white text-slate-900 border border-slate-200 shadow-sm">
                 <h3 className="text-base sm:text-lg font-bold flex items-center gap-2">
-                    <Sparkles size={18} className="text-emerald-400" />
+                    <Sparkles size={18} className="text-emerald-600" />
                     <span>The 48-Hour Sales Formula for Beginners</span>
                 </h3>
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-slate-300">
-                    <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
-                        <p className="font-bold text-emerald-400 mb-1">Step 1: Bio Setup</p>
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-slate-600">
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                        <p className="font-bold text-emerald-700 mb-1">Step 1: Bio Setup</p>
                         <p>Paste your GumShop link-in-bio URL (/creator/{storeSlug}) in your TikTok & Instagram bio. Switch account to Creator/Business.</p>
                     </div>
-                    <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
-                        <p className="font-bold text-teal-400 mb-1">Step 2: Post 2x Daily</p>
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                        <p className="font-bold text-teal-700 mb-1">Step 2: Post 2x Daily</p>
                         <p>Post 1 reel at 12:00 PM and 1 reel at 6:30 PM using the FOMO caption template with trending sounds.</p>
                     </div>
-                    <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
-                        <p className="font-bold text-emerald-400 mb-1">Step 3: 1-Click Fulfill</p>
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                        <p className="font-bold text-emerald-700 mb-1">Step 3: 1-Click Fulfill</p>
                         <p>When customer buys, export your Supplier CSV in your Orders tab to fulfill in 30 seconds!</p>
                     </div>
                 </div>

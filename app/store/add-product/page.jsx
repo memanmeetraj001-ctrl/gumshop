@@ -334,17 +334,17 @@ function AddProductContent() {
             </div>
 
             {/* Target Store Banner & Selector */}
-            <div className="mt-6 bg-slate-900 border border-slate-800 rounded-3xl p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md">
+            <div className="mt-6 bg-white border border-slate-200 rounded-3xl p-5 text-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
                 <div className="flex items-center gap-3">
-                    <div className="size-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold shrink-0 border border-emerald-500/30">
+                    <div className="size-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold shrink-0 border border-emerald-200">
                         <Store size={20} />
                     </div>
                     <div>
-                        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Publish Destination Store</div>
-                        <div className="text-sm font-extrabold text-white flex items-center gap-2 mt-0.5">
+                        <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Publish Destination Store</div>
+                        <div className="text-sm font-extrabold text-slate-900 flex items-center gap-2 mt-0.5">
                             <span>{selectedStore?.name || 'No Store Selected'}</span>
                             {selectedStore?.username && (
-                                <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                                <span className="text-[11px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-bold">
                                     /shop/{selectedStore.username}
                                 </span>
                             )}
@@ -354,7 +354,7 @@ function AddProductContent() {
 
                 {availableStores.length > 1 && (
                     <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-400">Switch store:</span>
+                        <span className="text-xs text-slate-500 font-medium">Switch store:</span>
                         <select
                             value={selectedStore?.username || ''}
                             onChange={(e) => {
@@ -364,7 +364,7 @@ function AddProductContent() {
                                     setActiveStoreSlug(found);
                                 }
                             }}
-                            className="bg-slate-800 border border-slate-700 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-emerald-500 cursor-pointer"
+                            className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-emerald-500 focus:bg-white cursor-pointer"
                         >
                             {availableStores.map(st => (
                                 <option key={st.id || st.username} value={st.username}>

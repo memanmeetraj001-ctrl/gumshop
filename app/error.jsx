@@ -18,13 +18,13 @@ export default function GlobalError({ error, reset }) {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6">
-            <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl text-center">
-                <div className="size-14 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-red-500/10">
+        <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col items-center justify-center p-6">
+            <div className="w-full max-w-md bg-white border border-slate-200 rounded-3xl p-8 shadow-xl text-center">
+                <div className="size-14 bg-red-50 border border-red-200 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-xs">
                     <AlertCircle size={28} />
                 </div>
-                <h1 className="text-xl font-bold mb-2">Something went wrong</h1>
-                <p className="text-slate-400 text-xs mb-6">
+                <h1 className="text-xl font-bold mb-2 text-slate-900">Something went wrong</h1>
+                <p className="text-slate-600 text-xs mb-6">
                     A temporary interface issue occurred. You can reload the page or return to the storefront.
                 </p>
 
@@ -33,14 +33,14 @@ export default function GlobalError({ error, reset }) {
                         onClick={() => {
                             try { reset(); } catch { handleHardReload(); }
                         }}
-                        className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/20"
+                        className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                     >
                         <RefreshCw size={14} />
                         <span>Reload Page</span>
                     </button>
                     <Link
                         href="/"
-                        className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 border border-slate-700"
+                        className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 border border-slate-200"
                     >
                         <Home size={14} />
                         <span>Storefront</span>

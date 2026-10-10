@@ -12,11 +12,11 @@ const AdminLayout = ({ children }) => {
     }
 
     return (
-        <div className="flex flex-col h-screen bg-slate-900 text-slate-100">
+        <div className="flex flex-col h-screen bg-slate-50 text-slate-900">
             <AdminNavbar />
             <div className="flex flex-1 items-start h-full overflow-y-scroll no-scrollbar">
                 <AdminSidebar />
-                <div className="flex-1 h-full p-5 lg:pl-10 lg:pt-8 overflow-y-scroll bg-slate-950/50">
+                <div className="flex-1 h-full p-5 lg:pl-10 lg:pt-8 overflow-y-scroll bg-slate-50">
                     {children}
                 </div>
             </div>

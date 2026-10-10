@@ -111,37 +111,37 @@ export default function LoginGate() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4">
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4">
             <div className="w-full max-w-sm">
                 {/* Back to Store link */}
                 <div className="mb-6 flex items-center justify-between">
-                    <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition">
+                    <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 transition font-medium">
                         <ArrowLeft size={14} />
                         <span>Return to Storefront</span>
                     </Link>
-                    <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                         HQ Portal
                     </span>
                 </div>
 
                 {/* Logo */}
                 <div className="flex items-center justify-center gap-2 mb-8">
-                    <div className="size-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <div className="size-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-md shadow-emerald-600/20">
                         <Zap size={20} className="text-white fill-white" />
                     </div>
-                    <span className="text-white font-black text-xl tracking-tight">GumShop</span>
+                    <span className="text-slate-900 font-black text-xl tracking-tight">GumShop</span>
                 </div>
 
                 {/* Already Authenticated Banner */}
                 {isAlreadyAuth && !checking && (
-                    <div className="mb-5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5 text-emerald-400 text-xs font-bold mb-2">
+                    <div className="mb-5 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5 text-emerald-700 text-xs font-bold mb-2">
                             <ShieldCheck size={16} />
                             <span>Active Master Session Detected</span>
                         </div>
                         <a
                             href="/dashboard"
-                            className="inline-flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition shadow-md shadow-emerald-600/20"
+                            className="inline-flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
                         >
                             <span>Open Master Command Center</span>
                             <ArrowRight size={14} />
@@ -150,12 +150,12 @@ export default function LoginGate() {
                     </div>
                 )}
 
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
-                    <div className="flex items-center justify-center size-12 bg-slate-800 rounded-2xl mx-auto mb-6">
-                        <Lock size={20} className="text-emerald-400" />
+                <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xl">
+                    <div className="flex items-center justify-center size-12 bg-emerald-50 text-emerald-600 rounded-2xl mx-auto mb-6">
+                        <Lock size={20} />
                     </div>
-                    <h1 className="text-white font-bold text-xl text-center mb-1">Store Owner Access</h1>
-                    <p className="text-slate-400 text-xs text-center mb-8">Enter your master password to manage your stores</p>
+                    <h1 className="text-slate-900 font-bold text-xl text-center mb-1">Store Owner Access</h1>
+                    <p className="text-slate-500 text-xs text-center mb-8">Enter your master password to manage your stores</p>
 
                     <form onSubmit={handleLogin} className="space-y-4">
                         <div className="relative">
@@ -165,12 +165,12 @@ export default function LoginGate() {
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}
                                 autoFocus
-                                className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-2xl px-4 py-3.5 text-sm outline-none focus:border-emerald-500 transition pr-12"
+                                className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-2xl px-4 py-3.5 text-sm outline-none focus:border-emerald-500 focus:bg-white transition pr-12"
                             />
                             <button
                                 type="button"
                                 onClick={() => setShow(s => !s)}
-                                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition"
+                                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
                             >
                                 {show ? <EyeOff size={16} /> : <Eye size={16} />}
                             </button>
@@ -178,7 +178,7 @@ export default function LoginGate() {
                         <button
                             type="submit"
                             disabled={loading || !password.trim()}
-                            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-sm rounded-2xl shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 cursor-pointer"
+                            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm rounded-2xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
                         >
                             {loading ? (
                                 <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -192,7 +192,7 @@ export default function LoginGate() {
                     </form>
                 </div>
 
-                <p className="text-slate-600 text-xs text-center mt-6">Private store management only</p>
+                <p className="text-slate-500 text-xs text-center mt-6">Private store management only</p>
             </div>
         </div>
     );
