@@ -47,7 +47,7 @@ export default function CartDrawer({ isOpen, onClose }) {
             }
         }
 
-        const price = parseFloat(product?.price || 29.99);
+        const price = parseFloat(product?.price !== undefined && product?.price !== null ? product.price : 0);
         const name = product?.name || 'Featured Item';
         const image = product?.image || product?.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200';
 

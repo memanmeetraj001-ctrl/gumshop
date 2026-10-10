@@ -38,6 +38,7 @@ import {
     getStoreAndCatalogSync 
 } from '@/lib/storePresets';
 import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
+import LiveSalesToaster from '@/components/LiveSalesToaster';
 import toast from 'react-hot-toast';
 
 const PRESET_STYLES = {
@@ -149,6 +150,7 @@ export default function CreatorBioPage({ params }) {
     
     // High-Conversion Sales States
     const [showStickyBar, setShowStickyBar] = useState(false);
+    const [selectedPackIndex, setSelectedPackIndex] = useState(0);
 
     // Scroll listener for sticky floating buy bar
     useEffect(() => {
@@ -285,12 +287,19 @@ export default function CreatorBioPage({ params }) {
         }
     }, [creator]);
 
-    // ⚡ Instant Buy via Gumroad Trigger
-    const handleInstantBuy = async (product) => {
+    // ⚡ Instant Buy via Gumroad Trigger (Supports Selected Bundle & Quantity)
+    const handleInstantBuy = async (product, bundle = null) => {
+        const qty = bundle ? (bundle.qty || 1) : 1;
+        const finalPrice = bundle 
+            ? parseFloat(bundle.totalPrice || bundle.price || product.price) 
+            : parseFloat(product.price || 0);
+        const bundleLabel = bundle?.label;
+        const itemName = bundleLabel ? `${product.name} (${bundleLabel})` : product.name;
+
         const orderSessionId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         firePixelEvent('InitiateCheckout', {
-            content_name: product.name,
-            value: parseFloat(product.price || 0),
+            content_name: itemName,
+            value: finalPrice,
             currency: 'USD'
         });
         
@@ -303,9 +312,9 @@ export default function CreatorBioPage({ params }) {
                     storeName: creator.name || 'Creator Store',
                     items: [{
                         productId: product.id,
-                        name: product.name,
-                        price: parseFloat(product.price || 0),
-                        quantity: 1,
+                        name: itemName,
+                        price: finalPrice,
+                        quantity: qty,
                         image: product.image || product.images?.[0]
                     }],
                     gumroadProductUrl: creator.gumroadProductUrl || product.gumroadUrl || ''
@@ -316,8 +325,9 @@ export default function CreatorBioPage({ params }) {
 
             setCheckoutModal({
                 isOpen: true,
-                product: product,
-                total: parseFloat(product.price || 0),
+                product: { ...product, name: itemName },
+                selectedBundle: bundle,
+                total: finalPrice,
                 gumroadUrl: data.checkoutUrl || '',
                 orderSessionId: data.orderSessionId || orderSessionId
             });
@@ -325,8 +335,9 @@ export default function CreatorBioPage({ params }) {
             console.warn("Dynamic checkout fallback:", e);
             setCheckoutModal({
                 isOpen: true,
-                product: product,
-                total: parseFloat(product.price || 0),
+                product: { ...product, name: itemName },
+                selectedBundle: bundle,
+                total: finalPrice,
                 gumroadUrl: '',
                 orderSessionId: orderSessionId
             });
@@ -818,45 +829,115 @@ export default function CreatorBioPage({ params }) {
                                                 ))}
                                             </div>
 
-                                            {/* Pricing & Quantity Pack Selector */}
-                                            <div className="pt-2 border-t border-slate-100 space-y-2">
-                                                <div className="flex items-baseline justify-between mb-2">
-                                                    <div className="flex items-baseline gap-2">
-                                                        <span className="text-2xl font-black text-slate-950">${heroPrice.toFixed(2)}</span>
-                                                        {heroCompare > heroPrice && (
-                                                            <span className="text-sm text-slate-400 line-through font-semibold">${heroCompare.toFixed(2)}</span>
-                                                        )}
-                                                    </div>
-                                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
-                                                        Ships within 48h
-                                                    </span>
-                                                </div>
+                                            {/* Dynamic Multi-Pack Bundle Selector */}
+                                            {(() => {
+                                                const bundles = (Array.isArray(heroItem.customBundles) && heroItem.customBundles.length > 0)
+                                                    ? heroItem.customBundles
+                                                    : [
+                                                        {
+                                                            qty: 1,
+                                                            label: `1 ${baseItem}`,
+                                                            subtitle: "One legendary rider",
+                                                            totalPrice: heroPrice,
+                                                            pricePerUnit: heroPrice,
+                                                            badge: null
+                                                        },
+                                                        {
+                                                            qty: 2,
+                                                            label: `2 ${baseItem}s`,
+                                                            subtitle: "Two-Pet Household / matching photos",
+                                                            totalPrice: Math.round(heroPrice * 1.4082075 * 100) / 100,
+                                                            pricePerUnit: Math.round((heroPrice * 1.4082075 / 2) * 100) / 100,
+                                                            badge: "SAVE 15% ⭐"
+                                                        },
+                                                        {
+                                                            qty: 3,
+                                                            label: `3 ${baseItem}s`,
+                                                            subtitle: "Costume Party Pack",
+                                                            totalPrice: Math.round(heroPrice * 1.81623 * 100) / 100,
+                                                            pricePerUnit: Math.round((heroPrice * 1.81623 / 3) * 100) / 100,
+                                                            badge: "SAVE 25% 🔥"
+                                                        }
+                                                    ];
+                                                const activeBundle = bundles[selectedPackIndex] || bundles[0];
+                                                const activeBundlePrice = parseFloat(activeBundle.totalPrice || activeBundle.price || heroPrice);
 
-                                                {/* Single or Multi-Pack Options */}
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <div className="p-3 rounded-2xl border-2 border-slate-900 bg-slate-50/50 text-left">
-                                                        <p className="text-xs font-bold text-slate-900">1 {baseItem}</p>
-                                                        <p className="text-[11px] font-black text-slate-700 mt-0.5">${heroPrice.toFixed(2)}</p>
-                                                    </div>
-                                                    <div className="p-3 rounded-2xl border-2 border-slate-200 bg-white text-left hover:border-slate-300 transition">
-                                                        <p className="text-xs font-bold text-slate-900 flex items-center justify-between">
-                                                            <span>2 {baseItem}s</span>
-                                                            <span className="text-[10px] bg-amber-100 text-amber-800 font-extrabold px-1.5 py-0.2 rounded-full">SAVE 15%</span>
-                                                        </p>
-                                                        <p className="text-[11px] font-black text-slate-700 mt-0.5">${(heroPrice * 1.7).toFixed(2)}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                                return (
+                                                    <div className="space-y-3 pt-2 border-t border-slate-100">
+                                                        {/* Price Banner & Stock Urgency */}
+                                                        <div className="flex items-baseline justify-between">
+                                                            <div className="flex items-baseline gap-2">
+                                                                <span className="text-2xl sm:text-3xl font-black text-slate-950">
+                                                                    ${activeBundlePrice.toFixed(2)}
+                                                                </span>
+                                                                {heroCompare > heroPrice && (
+                                                                    <span className="text-sm text-slate-400 line-through font-semibold">
+                                                                        ${(heroCompare * (activeBundle.qty || 1)).toFixed(2)}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                                                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                                Ships in 24-48h
+                                                            </span>
+                                                        </div>
 
-                                            {/* Instant 1-Tap Checkout Button */}
-                                            <button
-                                                onClick={() => handleInstantBuy(heroItem)}
-                                                className="w-full py-4 px-6 rounded-2xl text-white font-black text-sm tracking-wide shadow-lg transition active:scale-98 flex items-center justify-center gap-2"
-                                                style={{ backgroundColor: creator.themeColor || '#f97316' }}
-                                            >
-                                                <Zap size={18} className="fill-white" />
-                                                <span>⚡ Buy Now with Inframe Checkout (${heroPrice.toFixed(2)})</span>
-                                            </button>
+                                                        {/* Interactive Multi-Pack Cards */}
+                                                        <div className={`grid gap-2 ${bundles.length >= 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                                                            {bundles.map((bundle, bIdx) => {
+                                                                const isSelected = selectedPackIndex === bIdx;
+                                                                const bPrice = parseFloat(bundle.totalPrice || bundle.price || heroPrice);
+                                                                return (
+                                                                    <button
+                                                                        key={bIdx}
+                                                                        type="button"
+                                                                        onClick={() => setSelectedPackIndex(bIdx)}
+                                                                        className={`relative p-2.5 sm:p-3 rounded-2xl text-left transition-all cursor-pointer border-2 ${
+                                                                            isSelected 
+                                                                                ? 'border-slate-950 bg-slate-900/5 shadow-sm ring-1 ring-slate-950' 
+                                                                                : 'border-slate-200 bg-white hover:border-slate-300'
+                                                                        }`}
+                                                                    >
+                                                                        {bundle.badge && (
+                                                                            <span className="absolute -top-2.5 right-1.5 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-500 text-white shadow-2xs">
+                                                                                {bundle.badge}
+                                                                            </span>
+                                                                        )}
+                                                                        <div className="flex items-center justify-between gap-1">
+                                                                            <p className={`text-xs font-bold truncate ${isSelected ? 'text-slate-950 font-black' : 'text-slate-800'}`}>
+                                                                                {bundle.label || `${bundle.qty || (bIdx + 1)} ${baseItem}`}
+                                                                            </p>
+                                                                            <div className={`size-3.5 rounded-full border flex items-center justify-center shrink-0 ${
+                                                                                isSelected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white'
+                                                                            }`}>
+                                                                                {isSelected && <Check size={10} strokeWidth={3} />}
+                                                                            </div>
+                                                                        </div>
+                                                                        <p className={`text-[12px] font-black mt-1 ${isSelected ? 'text-slate-950' : 'text-slate-700'}`}>
+                                                                            ${bPrice.toFixed(2)}
+                                                                        </p>
+                                                                        {bundle.subtitle && (
+                                                                            <p className="text-[9px] text-slate-500 font-medium leading-tight mt-0.5 line-clamp-1">
+                                                                                {bundle.subtitle}
+                                                                            </p>
+                                                                        )}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+
+                                                        {/* Instant 1-Tap Checkout Button */}
+                                                        <button
+                                                            onClick={() => handleInstantBuy(heroItem, activeBundle)}
+                                                            className="w-full py-4 px-6 rounded-2xl text-white font-black text-sm tracking-wide shadow-lg transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer hover:opacity-95"
+                                                            style={{ backgroundColor: creator.themeColor || '#f97316' }}
+                                                        >
+                                                            <Zap size={18} className="fill-white" />
+                                                            <span>⚡ Buy Now with Inframe Checkout (${activeBundlePrice.toFixed(2)})</span>
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })()}
 
                                             <div className="flex items-center justify-center gap-3 text-[11px] text-slate-500 font-semibold pt-1">
                                                 <span className="flex items-center gap-1">
@@ -1065,36 +1146,47 @@ export default function CreatorBioPage({ params }) {
             </main>
 
             {/* ─── Floating Sticky Bottom Buy Bar (Appears on Scroll) ─── */}
-            {showStickyBar && displayedProducts.length > 0 && (
-                <div className="fixed bottom-3 left-0 right-0 z-40 px-4 max-w-[420px] mx-auto animate-in slide-in-from-bottom-4 duration-300">
-                    <div className="bg-slate-950/95 backdrop-blur-md text-white p-2.5 px-3.5 rounded-2xl shadow-2xl border border-slate-800 flex items-center justify-between gap-3 ring-1 ring-white/10">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="size-9 rounded-xl overflow-hidden bg-slate-800 shrink-0 border border-slate-700">
-                                <img 
-                                    src={getSafeImageUrl(displayedProducts[0].image || (displayedProducts[0].images && displayedProducts[0].images[0]))} 
-                                    alt={displayedProducts[0].name || 'Product'} 
-                                    onError={(e) => handleImageError(e, 'product')}
-                                    className="w-full h-full object-cover" 
-                                />
+            {showStickyBar && displayedProducts.length > 0 && (() => {
+                const heroItem = displayedProducts[0];
+                const heroPrice = parseFloat(heroItem?.price || 0);
+                const bundles = (Array.isArray(heroItem?.customBundles) && heroItem.customBundles.length > 0)
+                    ? heroItem.customBundles
+                    : [];
+                const activeBundle = bundles[selectedPackIndex] || (bundles.length > 0 ? bundles[0] : null);
+                const displayPrice = activeBundle ? parseFloat(activeBundle.totalPrice || activeBundle.price || heroPrice) : heroPrice;
+
+                return (
+                    <div className="fixed bottom-3 left-0 right-0 z-40 px-4 max-w-[420px] mx-auto animate-in slide-in-from-bottom-4 duration-300">
+                        <div className="bg-slate-950/95 backdrop-blur-md text-white p-2.5 px-3.5 rounded-2xl shadow-2xl border border-slate-800 flex items-center justify-between gap-3 ring-1 ring-white/10">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="size-9 rounded-xl overflow-hidden bg-slate-800 shrink-0 border border-slate-700">
+                                    <img 
+                                        src={getSafeImageUrl(displayedProducts[0].image || (displayedProducts[0].images && displayedProducts[0].images[0]))} 
+                                        alt={displayedProducts[0].name || 'Product'} 
+                                        onError={(e) => handleImageError(e, 'product')}
+                                        className="w-full h-full object-cover" 
+                                    />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-xs font-bold text-white truncate">{displayedProducts[0].name}</p>
+                                    <p className="text-[11px] font-black text-emerald-400">
+                                        ${displayPrice.toFixed(2)}
+                                        {activeBundle && <span className="text-[10px] text-slate-400 font-normal ml-1">({activeBundle.label})</span>}
+                                    </p>
+                                </div>
                             </div>
-                            <div className="min-w-0">
-                                <p className="text-xs font-bold text-white truncate">{displayedProducts[0].name}</p>
-                                <p className="text-[11px] font-black text-emerald-400">
-                                    ${parseFloat(displayedProducts[0].price || 0).toFixed(2)}
-                                </p>
-                            </div>
+                            <button
+                                onClick={() => handleInstantBuy(displayedProducts[0], activeBundle)}
+                                className="px-3.5 py-2 rounded-xl text-xs font-black text-slate-950 flex items-center gap-1 shrink-0 shadow-sm active:scale-95 transition cursor-pointer"
+                                style={{ backgroundColor: creator.themeColor || '#10B981' }}
+                            >
+                                <Zap size={13} className="fill-slate-950" />
+                                <span>Claim Now</span>
+                            </button>
                         </div>
-                        <button
-                            onClick={() => handleInstantBuy(displayedProducts[0])}
-                            className="px-3.5 py-2 rounded-xl text-xs font-black text-slate-950 flex items-center gap-1 shrink-0 shadow-sm active:scale-95 transition cursor-pointer"
-                            style={{ backgroundColor: creator.themeColor || '#10B981' }}
-                        >
-                            <Zap size={13} className="fill-slate-950" />
-                            <span>Claim Now</span>
-                        </button>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* ⚡ In-Page Gumroad Checkout Modal (Zero-Redirect) */}
             <GumroadIframeModal
@@ -1104,14 +1196,17 @@ export default function CreatorBioPage({ params }) {
                 items={checkoutModal.product ? [{
                     id: checkoutModal.product.id,
                     name: checkoutModal.product.name,
-                    price: checkoutModal.product.price,
-                    quantity: 1,
+                    price: checkoutModal.total,
+                    quantity: checkoutModal.selectedBundle?.qty || 1,
                     image: checkoutModal.product.image || checkoutModal.product.images?.[0]
                 }] : []}
                 total={checkoutModal.total}
                 gumroadUrl={checkoutModal.gumroadUrl}
                 orderSessionId={checkoutModal.orderSessionId}
             />
+
+            {/* 🔥 Live Sales Pop-up (Social Proof Toaster) */}
+            <LiveSalesToaster products={displayedProducts} storeName={creator?.name} />
 
             {/* Free Download Email Modal */}
             {freeDownloadModal.isOpen && (

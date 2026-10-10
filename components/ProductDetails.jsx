@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import GumroadIframeModal from "./GumroadIframeModal";
+import LiveSalesToaster from "./LiveSalesToaster";
 import { getSafeImageUrl, handleImageError } from "@/lib/imageUtils";
 
 const ProductDetails = ({ product, storeInfo }) => {
@@ -51,7 +52,7 @@ const ProductDetails = ({ product, storeInfo }) => {
     
     const [mainImage, setMainImage] = useState(images[0]);
 
-    const unitPrice = parseFloat(product.price || 29.99);
+    const unitPrice = parseFloat(product.price !== undefined && product.price !== null ? product.price : 0);
     const sizeDelta = parseFloat(selectedSize?.priceDelta || 0);
     const effectiveUnitPrice = unitPrice + sizeDelta;
     const compareAt = parseFloat(product.compareAtPrice || product.mrp || Math.round(unitPrice * 1.35 * 100) / 100) + sizeDelta;
@@ -615,6 +616,9 @@ const ProductDetails = ({ product, storeInfo }) => {
                 gumroadUrl={checkoutModal.gumroadUrl}
                 orderSessionId={checkoutModal.orderSessionId}
             />
+
+            {/* 🔥 Live Verified Sales Pop-Up (Social Proof) */}
+            <LiveSalesToaster product={product} storeName={storeInfo?.name} />
         </div>
     );
 };

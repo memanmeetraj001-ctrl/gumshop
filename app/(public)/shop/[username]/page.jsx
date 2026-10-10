@@ -7,6 +7,7 @@ import StorefrontNavbar from "@/components/StorefrontNavbar";
 import StoreHeroBanner from "@/components/StoreHeroBanner";
 import ExitIntentModal from "@/components/ExitIntentModal";
 import AiShoppingAssistant from "@/components/AiShoppingAssistant";
+import LiveSalesToaster from "@/components/LiveSalesToaster";
 import { getStoreByUsername, getProductsByStore, getAllStores, isProductDeleted, isJunkProductName } from "@/lib/firebaseDb";
 import { useAuth } from "@/lib/AuthContext";
 import Link from "next/link";
@@ -249,6 +250,9 @@ export default function StoreShop({ params }) {
                     })
                 }}
             />
+
+            {/* 🔥 Live Verified Sales Pop-Up (Social Proof) */}
+            <LiveSalesToaster products={products} storeName={storeInfo?.name} />
         </div>
     );
 }

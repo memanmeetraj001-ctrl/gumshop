@@ -21,7 +21,7 @@ export default function ProductQuickView({ product, isOpen, onClose, onOpenCart 
 
     const isWishlisted = has(product.id);
     const images = product.images?.length > 0 ? product.images : [product.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'];
-    const price = parseFloat(product.price || 29.99);
+    const price = parseFloat(product.price !== undefined && product.price !== null ? product.price : 0);
     const compareAt = parseFloat(product.compareAtPrice || Math.round(price * 1.35 * 100) / 100);
     const discountPercent = compareAt > price ? Math.round(((compareAt - price) / compareAt) * 100) : 0;
 

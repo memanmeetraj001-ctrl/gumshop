@@ -67,6 +67,7 @@ export default function StoreSettings() {
         description: "",
         logo: "",
         avatar: "",
+        singleProductStore: false,
         bioProfile: null,
         gumroadToken: "",
         gumroadProductUrl: "",
@@ -457,6 +458,7 @@ export default function StoreSettings() {
                 flashSale: storeInfo.flashSale || { enabled: true, text: "⚡ FLASH SALE: 25% OFF STOREWIDE — Today Only!", countdownHours: 3 },
                 tracking: storeInfo.tracking || { metaPixelId: '', tiktokPixelId: '', googleAnalyticsId: '' },
                 status: storeInfo.status || "approved",
+                singleProductStore: Boolean(storeInfo.singleProductStore),
                 products: currentProducts,
                 updatedAt: new Date().toISOString()
             };
@@ -792,6 +794,33 @@ export default function StoreSettings() {
                                     <ExternalLink size={13} />
                                 </a>
                             </div>
+                        </div>
+
+                        {/* Single-Product Store (Hero Lander Mode) Toggle */}
+                        <div className="p-5 rounded-2xl bg-amber-50/70 border border-amber-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="p-1 rounded-md bg-amber-500 text-white">
+                                        <Sparkles size={13} />
+                                    </span>
+                                    <p className="text-xs font-bold text-slate-900">Single-Product Store (Hero Lander Mode)</p>
+                                    <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800">
+                                        Stan Store & Lander CRO
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-600">
+                                    Optimizes your storefront and Stan Store as an ultra-high converting single-product hero lander with bundle selector, live social proof toaster, and 1-tap checkout.
+                                </p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                <input
+                                    type="checkbox"
+                                    checked={Boolean(storeInfo.singleProductStore)}
+                                    onChange={(e) => setStoreInfo(prev => ({ ...prev, singleProductStore: e.target.checked }))}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                            </label>
                         </div>
 
                         {/* Quick Gumroad Connect Callout */}

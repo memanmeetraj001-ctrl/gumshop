@@ -18,6 +18,7 @@ import ProductCard from '@/components/ProductCard';
 import CartDrawer from '@/components/CartDrawer';
 import WishlistDrawer from '@/components/WishlistDrawer';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import LiveSalesToaster from '@/components/LiveSalesToaster';
 import { getAllProducts, getProductsByStore } from '@/lib/firebaseDb';
 import { getActiveStoreSync, getHomepageStoreSync, getHomepageStoreSlug } from '@/lib/activeStore';
 import { useDispatch, useSelector } from 'react-redux';
@@ -496,6 +497,9 @@ export default function SuperStorefront() {
                 onOpenWishlist={() => setWishlistDrawerOpen(true)}
                 onFocusSearch={scrollToCatalog}
             />
+
+            {/* 🔥 Live Verified Sales Pop-Up (Social Proof) */}
+            <LiveSalesToaster products={products} storeName={activeStore?.name} />
 
         </div>
     );
