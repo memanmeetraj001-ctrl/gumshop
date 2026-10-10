@@ -846,23 +846,23 @@ export default function MasterDashboardPage() {
 
     if (authChecking) {
         return (
-            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-3">
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-3">
                 <div className="size-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs font-mono text-slate-400">Verifying Master Command Center Access...</p>
+                <p className="text-xs font-mono text-slate-600">Verifying Master Command Center Access...</p>
             </div>
         );
     }
 
     if (!isAuthenticated) {
         return (
-            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4">
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4">
                 <div className="w-full max-w-sm">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">
-                        <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition">
+                        <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 transition">
                             <span>← Return to Storefront</span>
                         </Link>
-                        <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                             Master HQ Gate
                         </span>
                     </div>
@@ -871,15 +871,15 @@ export default function MasterDashboardPage() {
                         <div className="size-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
                             <Zap size={20} className="text-white fill-white" />
                         </div>
-                        <span className="text-white font-black text-xl tracking-tight">GumShop Master Engine</span>
+                        <span className="text-slate-900 font-black text-xl tracking-tight">GumShop Master Engine</span>
                     </div>
 
-                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
-                        <div className="flex items-center justify-center size-12 bg-slate-800 rounded-2xl mx-auto mb-6">
+                    <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xl">
+                        <div className="flex items-center justify-center size-12 bg-emerald-50 rounded-2xl mx-auto mb-6 text-emerald-600">
                             <ShieldCheck size={22} className="text-emerald-400" />
                         </div>
-                        <h1 className="text-white font-bold text-xl text-center mb-1">Enter Master Password</h1>
-                        <p className="text-slate-400 text-xs text-center mb-6">Unlock Command Center to manage all stores and settings</p>
+                        <h1 className="text-slate-900 font-bold text-xl text-center mb-1">Enter Master Password</h1>
+                        <p className="text-slate-500 text-xs text-center mb-6">Unlock Command Center to manage all stores and settings</p>
 
                         <form onSubmit={handleInPageLogin} className="space-y-4">
                             <div className="relative">
@@ -889,12 +889,12 @@ export default function MasterDashboardPage() {
                                     value={inPagePassword}
                                     onChange={e => setInPagePassword(e.target.value)}
                                     autoFocus
-                                    className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-2xl px-4 py-3.5 text-sm outline-none focus:border-emerald-500 transition pr-12"
+                                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-2xl px-4 py-3.5 text-sm outline-none focus:border-emerald-500 focus:bg-white transition pr-12"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setInPageShow(s => !s)}
-                                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition"
+                                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition"
                                 >
                                     {inPageShow ? <EyeOff size={16} /> : <Eye size={16} />}
                                 </button>
@@ -923,17 +923,17 @@ export default function MasterDashboardPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">
+        <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased">
             {/* Header */}
-            <header className="px-6 py-4 border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between">
+            <header className="px-6 py-4 border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="size-9 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-black shadow-md shadow-emerald-500/20">
                         <Zap size={20} />
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
-                            <h1 className="text-base font-black text-white tracking-tight">GumShop Master Engine</h1>
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <h1 className="text-base font-black text-slate-900 tracking-tight">GumShop Master Engine</h1>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                                 Personal HQ
                             </span>
                         </div>
@@ -942,9 +942,9 @@ export default function MasterDashboardPage() {
                     {/* Active Store & Homepage Store Indicators */}
                     <div className="hidden lg:flex items-center gap-2.5 ml-4">
                         {activeStore && (
-                            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs">
-                                <span className="text-slate-400">Active:</span>
-                                <span className="font-bold text-emerald-400">{activeStore.name}</span>
+                            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-xl text-xs">
+                                <span className="text-slate-500">Active:</span>
+                                <span className="font-bold text-emerald-700">{activeStore.name}</span>
                                 <span className="text-[10px] font-mono text-slate-500">/shop/{activeStore.username}</span>
                                 <a
                                     href={`/shop/${activeStore.username}`}
@@ -958,9 +958,9 @@ export default function MasterDashboardPage() {
                             </div>
                         )}
                         {homepageStoreSlug && (
-                            <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs">
-                                <span className="text-amber-400 font-bold">⭐ Homepage:</span>
-                                <span className="font-bold text-amber-200">
+                            <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 rounded-xl text-xs">
+                                <span className="text-amber-700 font-bold">⭐ Homepage:</span>
+                                <span className="font-bold text-amber-900">
                                     {shops.find(s => s.username === homepageStoreSlug || s.id === homepageStoreSlug)?.name || homepageStoreSlug}
                                 </span>
                                 <a
@@ -994,7 +994,7 @@ export default function MasterDashboardPage() {
                         )}
 
                         <div 
-                            className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-800/80 border border-slate-700/60 rounded-xl text-xs text-slate-300"
+                            className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600"
                             title="Multi-Store State: Synced with Supabase & Local Edge"
                         >
                             <span className="size-1.5 rounded-full bg-emerald-400"></span>
@@ -1007,7 +1007,7 @@ export default function MasterDashboardPage() {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition flex items-center gap-1.5 shadow-sm"
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-200 transition flex items-center gap-1.5 shadow-sm"
                     >
                         <Plus size={13} />
                         <span>+ CREATE STORE</span>
@@ -1023,7 +1023,7 @@ export default function MasterDashboardPage() {
 
                     <Link
                         href="/store/add-product"
-                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs border border-slate-700 transition hidden md:flex items-center gap-1.5"
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-200 transition hidden md:flex items-center gap-1.5"
                     >
                         <Plus size={13} />
                         <span>+ ADD PRODUCT</span>
@@ -1031,7 +1031,7 @@ export default function MasterDashboardPage() {
 
                     <button
                         onClick={handleExportBackup}
-                        className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs border border-slate-700 transition hidden sm:flex items-center gap-1.5"
+                        className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-200 transition hidden sm:flex items-center gap-1.5"
                         title="Export All Stores & Products to JSON"
                     >
                         <Download size={13} className="text-emerald-400" />
@@ -1039,7 +1039,7 @@ export default function MasterDashboardPage() {
                     </button>
 
                     <label
-                        className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs border border-slate-700 transition hidden sm:flex items-center gap-1.5 cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-200 transition hidden sm:flex items-center gap-1.5 cursor-pointer"
                         title="Import Stores from JSON Backup"
                     >
                         <Upload size={13} className="text-teal-400" />
@@ -1074,7 +1074,7 @@ export default function MasterDashboardPage() {
             </header>
 
             {/* Master HQ Navigation Bar (Section 27) */}
-            <nav className="border-b border-slate-800 bg-slate-900/40 px-6 overflow-x-auto no-scrollbar sticky top-[65px] z-20 backdrop-blur-md">
+            <nav className="border-b border-slate-200 bg-white/70 px-6 overflow-x-auto no-scrollbar sticky top-[65px] z-20 backdrop-blur-md">
                 <div className="max-w-7xl mx-auto flex items-center gap-1 sm:gap-2">
                     {[
                         { id: 'overview', label: activeStore ? `${activeStore.name} Dashboard` : 'Store Dashboard', icon: LayoutDashboard },
@@ -1095,8 +1095,8 @@ export default function MasterDashboardPage() {
                                 }}
                                 className={`px-3 sm:px-4 py-3 text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap border-b-2 ${
                                     isActive 
-                                        ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5' 
-                                        : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/40'
+                                        ? 'border-emerald-500 text-emerald-700 bg-emerald-50/50' 
+                                        : 'border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-100/60'
                                 }`}
                             >
                                 <Icon size={14} className={isActive ? 'text-emerald-400' : 'text-slate-500'} />
@@ -1114,9 +1114,9 @@ export default function MasterDashboardPage() {
                 {activeNavTab === 'overview' && (
                     <>
                         {/* ─── DEDICATED STORE SWITCHER RIBBON ─── */}
-                        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                        <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
                             <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap flex items-center gap-1.5 shrink-0">
+                                <span className="text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap flex items-center gap-1.5 shrink-0">
                                     <Store size={14} className="text-emerald-400" />
                                     <span>Store:</span>
                                 </span>
@@ -1130,8 +1130,8 @@ export default function MasterDashboardPage() {
                                                 onClick={() => handleSetActiveStore(shop)}
                                                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                                                     isSelected
-                                                        ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 font-extrabold'
-                                                        : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700'
+                                                        ? 'bg-emerald-600 text-white shadow-sm font-extrabold'
+                                                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
                                                 }`}
                                             >
                                                 <span>{shop.name}</span>
@@ -1145,7 +1145,7 @@ export default function MasterDashboardPage() {
                             <div className="flex items-center gap-2 shrink-0">
                                 <button
                                     onClick={() => setActiveNavTab('stores')}
-                                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold border border-slate-700 transition flex items-center gap-1"
+                                    className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 transition flex items-center gap-1"
                                 >
                                     <span>All Stores ({shops.length})</span>
                                     <ArrowRight size={12} />
@@ -1159,7 +1159,7 @@ export default function MasterDashboardPage() {
                                 </Link>
                                 <button
                                     onClick={() => setIsCreateModalOpen(true)}
-                                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition flex items-center gap-1"
+                                    className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-200 transition flex items-center gap-1"
                                 >
                                     <Plus size={12} />
                                     <span>+ New</span>
@@ -1170,7 +1170,7 @@ export default function MasterDashboardPage() {
                         {activeStore ? (
                             <>
                                 {/* ─── DEDICATED STORE BANNER & QUICK ACTIONS ─── */}
-                                <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm relative overflow-hidden">
                                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
                                         <div className="flex items-start sm:items-center gap-4">
                                             <div className="size-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-black text-2xl shadow-lg shadow-emerald-500/20 shrink-0">
@@ -1182,21 +1182,21 @@ export default function MasterDashboardPage() {
                                             </div>
                                             <div>
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">{activeStore.name}</h2>
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                                                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{activeStore.name}</h2>
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                                                         {activeStore.theme?.replace('_', ' ') || 'tech hardware'}
                                                     </span>
-                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                                                         <Check size={10} /> Active
                                                     </span>
                                                     {activeStore.username === homepageStoreSlug ? (
-                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-sm">
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1 shadow-sm">
                                                             ⭐ Official Root Homepage (/)
                                                         </span>
                                                     ) : (
                                                         <button
                                                             onClick={() => handleSetHomepage(activeStore)}
-                                                            className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-slate-700 hover:border-amber-500/30 transition flex items-center gap-1 cursor-pointer"
+                                                            className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-800 border border-slate-200 hover:border-amber-300 transition flex items-center gap-1 cursor-pointer"
                                                             title="Designate this store as the default root homepage (/)"
                                                         >
                                                             ⭐ Set as Homepage (/)
@@ -1233,7 +1233,7 @@ export default function MasterDashboardPage() {
                                                 href={`/creator/${activeStore.username}`}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-300 hover:text-white font-bold text-xs border border-rose-500/30 transition flex items-center gap-1.5"
+                                                className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 transition flex items-center gap-1.5"
                                             >
                                                 <Smartphone size={13} className="text-rose-400" />
                                                 <span>Stan Store</span>
@@ -1242,7 +1242,7 @@ export default function MasterDashboardPage() {
                                             <Link
                                                 href="/store/bio-editor"
                                                 onClick={() => setActiveStoreSlug(activeStore)}
-                                                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs border border-slate-700 transition flex items-center gap-1.5"
+                                                className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-200 transition flex items-center gap-1.5"
                                             >
                                                 <Smartphone size={13} />
                                                 <span>Bio Editor</span>
@@ -1250,7 +1250,7 @@ export default function MasterDashboardPage() {
                                             <Link
                                                 href="/store/add-product"
                                                 onClick={() => setActiveStoreSlug(activeStore)}
-                                                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs border border-slate-700 transition flex items-center gap-1.5"
+                                                className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-200 transition flex items-center gap-1.5"
                                             >
                                                 <Plus size={13} />
                                                 <span>Add Product</span>
@@ -1258,7 +1258,7 @@ export default function MasterDashboardPage() {
                                             <Link
                                                 href="/store/settings"
                                                 onClick={() => setActiveStoreSlug(activeStore)}
-                                                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition border border-slate-700"
+                                                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-200"
                                                 title="Store Settings"
                                             >
                                                 <Settings size={14} />
@@ -1269,39 +1269,39 @@ export default function MasterDashboardPage() {
 
                                 {/* ─── DEDICATED STORE PERFORMANCE METRICS (NO MIXING) ─── */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
+                                    <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
                                         <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
                                             <span>Store Revenue</span>
                                             <DollarSign size={15} className="text-emerald-400" />
                                         </div>
-                                        <div className="text-2xl font-black text-white mt-2">${activeStoreRevenue.toFixed(2)}</div>
+                                        <div className="text-2xl font-black text-slate-900 mt-2">${activeStoreRevenue.toFixed(2)}</div>
                                         <div className="text-[11px] text-slate-500 mt-1">From {activeStoreOrders.length} customer orders</div>
                                     </div>
 
-                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
+                                    <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
                                         <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
                                             <span>Customer Orders</span>
                                             <Package size={15} className="text-teal-400" />
                                         </div>
-                                        <div className="text-2xl font-black text-white mt-2">{activeStoreOrders.length}</div>
+                                        <div className="text-2xl font-black text-slate-900 mt-2">{activeStoreOrders.length}</div>
                                         <div className="text-[11px] text-slate-500 mt-1">{activeStoreCompletedOrders} fulfilled orders</div>
                                     </div>
 
-                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
+                                    <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
                                         <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
                                             <span>Live Products</span>
                                             <ShoppingBag size={15} className="text-amber-400" />
                                         </div>
-                                        <div className="text-2xl font-black text-emerald-400 mt-2">{activeStoreProducts.length}</div>
+                                        <div className="text-2xl font-black text-emerald-600 mt-2">{activeStoreProducts.length}</div>
                                         <div className="text-[11px] text-slate-500 mt-1">In this store's catalog</div>
                                     </div>
 
-                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
+                                    <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
                                         <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
                                             <span>Avg Order Value</span>
                                             <TrendingUp size={15} className="text-rose-400" />
                                         </div>
-                                        <div className="text-2xl font-black text-white mt-2">${activeStoreAOV.toFixed(2)}</div>
+                                        <div className="text-2xl font-black text-slate-900 mt-2">${activeStoreAOV.toFixed(2)}</div>
                                         <div className="text-[11px] text-slate-500 mt-1">Store checkout average</div>
                                     </div>
                                 </div>
@@ -1309,12 +1309,12 @@ export default function MasterDashboardPage() {
                                 {/* ─── TWO-COLUMN WORKBENCH: PRODUCTS & RECENT ORDERS ─── */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     {/* Left Column: Products for this Store */}
-                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+                                    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
                                         <div>
-                                            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                                            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                                                 <div>
-                                                    <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
-                                                        <ShoppingBag size={15} className="text-emerald-400" />
+                                                    <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                                                        <ShoppingBag size={15} className="text-emerald-600" />
                                                         <span>Products for {activeStore.name} ({activeStoreProducts.length})</span>
                                                     </h3>
                                                     <p className="text-[11px] text-slate-500 mt-0.5">Live catalog items displayed on this storefront</p>
@@ -1322,7 +1322,7 @@ export default function MasterDashboardPage() {
                                                 <Link
                                                     href="/store/add-product"
                                                     onClick={() => setActiveStoreSlug(activeStore)}
-                                                    className="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 hover:text-white transition flex items-center gap-1"
+                                                    className="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-700 hover:text-white transition flex items-center gap-1"
                                                 >
                                                     <Plus size={11} />
                                                     <span>Add</span>
@@ -1330,11 +1330,11 @@ export default function MasterDashboardPage() {
                                             </div>
 
                                             {activeStoreProducts.length > 0 ? (
-                                                <div className="divide-y divide-slate-800/60 mt-3">
+                                                <div className="divide-y divide-slate-100 mt-3">
                                                     {activeStoreProducts.slice(0, 4).map((p, idx) => (
                                                         <div key={p.id || idx} className="py-3 flex items-center justify-between gap-3">
                                                             <div className="flex items-center gap-3 min-w-0">
-                                                                <div className="size-10 rounded-xl bg-slate-800 overflow-hidden shrink-0 border border-slate-700">
+                                                                <div className="size-10 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200">
                                                                     <img
                                                                         src={p.image || p.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100'}
                                                                         alt={p.name}
@@ -1342,12 +1342,12 @@ export default function MasterDashboardPage() {
                                                                     />
                                                                 </div>
                                                                 <div className="min-w-0">
-                                                                    <div className="font-bold text-xs text-white truncate">{p.name}</div>
+                                                                    <div className="font-bold text-xs text-slate-900 truncate">{p.name}</div>
                                                                     <div className="text-[10px] text-slate-500 font-mono">{p.category || 'Featured'}</div>
                                                                 </div>
                                                             </div>
                                                             <div className="text-right shrink-0">
-                                                                <div className="font-mono font-bold text-xs text-emerald-400">
+                                                                <div className="font-mono font-bold text-xs text-emerald-600">
                                                                     ${(parseFloat(typeof p.price === 'object' ? p.price?.amount : p.price) || 0).toFixed(2)}
                                                                 </div>
                                                                 <Link
@@ -1373,7 +1373,7 @@ export default function MasterDashboardPage() {
                                                 setSelectedCatalogStore(activeStore.username);
                                                 setActiveNavTab('products');
                                             }}
-                                            className="w-full mt-4 py-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-800 text-xs font-bold text-slate-300 hover:text-white transition flex items-center justify-center gap-1.5 border border-slate-700/60"
+                                            className="w-full mt-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition flex items-center justify-center gap-1.5 border border-slate-200"
                                         >
                                             <span>Manage All {activeStoreProducts.length} Products in Catalog</span>
                                             <ArrowRight size={12} />
@@ -1381,12 +1381,12 @@ export default function MasterDashboardPage() {
                                     </div>
 
                                     {/* Right Column: Recent Orders for this Store */}
-                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+                                    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
                                         <div>
-                                            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                                            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                                                 <div>
-                                                    <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
-                                                        <Package size={15} className="text-teal-400" />
+                                                    <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                                                        <Package size={15} className="text-teal-600" />
                                                         <span>Orders for {activeStore.name} ({activeStoreOrders.length})</span>
                                                     </h3>
                                                     <p className="text-[11px] text-slate-500 mt-0.5">Customer transactions belonging strictly to this store</p>
@@ -1401,11 +1401,11 @@ export default function MasterDashboardPage() {
                                             </div>
 
                                             {activeStoreOrders.length > 0 ? (
-                                                <div className="divide-y divide-slate-800/60 mt-3">
+                                                <div className="divide-y divide-slate-100 mt-3">
                                                     {activeStoreOrders.slice(0, 4).map((o, idx) => (
                                                         <div key={o.id || o.orderSessionId || idx} className="py-3 flex items-center justify-between gap-3">
                                                             <div className="min-w-0">
-                                                                <div className="font-mono text-xs font-bold text-white truncate">
+                                                                <div className="font-mono text-xs font-bold text-slate-900 truncate">
                                                                     #{o.id || o.orderSessionId}
                                                                 </div>
                                                                 <div className="text-[10px] text-slate-400 truncate">
@@ -1413,7 +1413,7 @@ export default function MasterDashboardPage() {
                                                                 </div>
                                                             </div>
                                                             <div className="text-right shrink-0">
-                                                                <div className="font-mono font-bold text-xs text-white">
+                                                                <div className="font-mono font-bold text-xs text-slate-900">
                                                                     ${(parseFloat(o.total || o.amount || 0)).toFixed(2)}
                                                                 </div>
                                                                 <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-400">
@@ -1435,7 +1435,7 @@ export default function MasterDashboardPage() {
                                                 setSelectedOrdersStore(activeStore.username);
                                                 setActiveNavTab('orders');
                                             }}
-                                            className="w-full mt-4 py-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-800 text-xs font-bold text-slate-300 hover:text-white transition flex items-center justify-center gap-1.5 border border-slate-700/60"
+                                            className="w-full mt-4 py-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-800 text-xs font-bold text-slate-700 hover:text-white transition flex items-center justify-center gap-1.5 border border-slate-700/60"
                                         >
                                             <span>View All {activeStoreOrders.length} Store Orders</span>
                                             <ArrowRight size={12} />
@@ -1445,7 +1445,7 @@ export default function MasterDashboardPage() {
                             </>
                         ) : (
                             /* Empty State when no stores exist */
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center max-w-xl mx-auto space-y-4">
+                            <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center max-w-xl mx-auto space-y-4 shadow-sm">
                                 <div className="size-16 rounded-3xl bg-slate-800 text-emerald-400 flex items-center justify-center mx-auto shadow-md">
                                     <Store size={28} />
                                 </div>
@@ -1479,7 +1479,7 @@ export default function MasterDashboardPage() {
                     <div className="space-y-6">
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div>
-                                <h2 className="text-lg font-black text-white">All Stores ({shops.length})</h2>
+                                <h2 className="text-lg font-black text-slate-900">All Stores ({shops.length})</h2>
                                 <p className="text-xs text-slate-400 mt-0.5">
                                     Each store operates independently with isolated products, branding, and themes.
                                 </p>
@@ -1505,13 +1505,13 @@ export default function MasterDashboardPage() {
 
                         {/* Quick Store Switcher & Homepage Controller */}
                         {shops.length > 0 && (
-                            <div className="p-4 bg-slate-900 border border-slate-800 rounded-3xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-md">
+                            <div className="p-4 bg-white border border-slate-200 rounded-3xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-sm">
                                 <div className="flex items-center gap-3">
                                     <div className="size-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
                                         <Globe size={15} />
                                     </div>
                                     <div>
-                                        <div className="text-xs font-bold text-white flex items-center gap-2">
+                                        <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
                                             <span>Default Homepage (gumshop.online):</span>
                                             <span className="text-amber-400 font-extrabold">
                                                 {shops.find(s => s.username === homepageStoreSlug || s.id === homepageStoreSlug)?.name || homepageStoreSlug || 'Auto (First Active Store)'}
@@ -1524,7 +1524,7 @@ export default function MasterDashboardPage() {
                                 </div>
 
                                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                                    <div className="flex items-center gap-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+                                    <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
                                         <span className="text-slate-400 font-semibold">Active:</span>
                                         <select
                                             value={activeStore?.username || ''}
@@ -1535,14 +1535,14 @@ export default function MasterDashboardPage() {
                                             className="bg-transparent text-white font-bold focus:outline-none cursor-pointer"
                                         >
                                             {shops.map(s => (
-                                                <option key={s.username} value={s.username} className="bg-slate-900 text-white">
+                                                <option key={s.username} value={s.username} className="bg-white text-slate-900">
                                                     {s.name} ({s.username}){s.username === homepageStoreSlug ? ' ⭐ [Homepage]' : ''}
                                                 </option>
                                             ))}
                                         </select>
                                     </div>
 
-                                    <div className="flex items-center gap-2 bg-amber-950/30 px-3 py-1.5 rounded-xl border border-amber-500/30 text-xs">
+                                    <div className="flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 text-xs">
                                         <span className="text-amber-300 font-bold">⭐ Set Homepage:</span>
                                         <select
                                             value={homepageStoreSlug || ''}
@@ -1552,9 +1552,9 @@ export default function MasterDashboardPage() {
                                             }}
                                             className="bg-transparent text-amber-200 font-bold focus:outline-none cursor-pointer"
                                         >
-                                            <option value="" className="bg-slate-900 text-slate-300">Default (First Active Store)</option>
+                                            <option value="" className="bg-white text-slate-600">Default (First Active Store)</option>
                                             {shops.map(s => (
-                                                <option key={s.username} value={s.username} className="bg-slate-900 text-amber-200">
+                                                <option key={s.username} value={s.username} className="bg-white text-amber-800">
                                                     {s.name} ({s.username})
                                                 </option>
                                             ))}
@@ -1573,26 +1573,26 @@ export default function MasterDashboardPage() {
                                     placeholder="Search by store name or slug..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition"
+                                    className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 focus:border-emerald-500 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none transition"
                                 />
                             </div>
 
-                            <div className="flex bg-slate-900 border border-slate-800 p-0.5 rounded-xl text-xs font-semibold">
+                            <div className="flex bg-slate-100 border border-slate-200 p-0.5 rounded-xl text-xs font-semibold">
                                 <button
                                     onClick={() => setStatusFilter('all')}
-                                    className={`px-3 py-1 rounded-lg transition ${statusFilter === 'all' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+                                    className={`px-3 py-1 rounded-lg transition ${statusFilter === 'all' ? 'bg-white text-slate-900 font-bold shadow-sm' : 'text-slate-400 hover:text-white'}`}
                                 >
                                     All ({shops.length})
                                 </button>
                                 <button
                                     onClick={() => setStatusFilter('active')}
-                                    className={`px-3 py-1 rounded-lg transition ${statusFilter === 'active' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+                                    className={`px-3 py-1 rounded-lg transition ${statusFilter === 'active' ? 'bg-white text-slate-900 font-bold shadow-sm' : 'text-slate-400 hover:text-white'}`}
                                 >
                                     Active
                                 </button>
                                 <button
                                     onClick={() => setStatusFilter('archived')}
-                                    className={`px-3 py-1 rounded-lg transition ${statusFilter === 'archived' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+                                    className={`px-3 py-1 rounded-lg transition ${statusFilter === 'archived' ? 'bg-white text-slate-900 font-bold shadow-sm' : 'text-slate-400 hover:text-white'}`}
                                 >
                                     Archived
                                 </button>
@@ -1621,12 +1621,12 @@ export default function MasterDashboardPage() {
                             {/* Quick Create Card */}
                             <button
                                 onClick={() => setIsCreateModalOpen(true)}
-                                className="bg-slate-900/40 border-2 border-dashed border-slate-800 hover:border-emerald-500/50 rounded-3xl p-8 flex flex-col items-center justify-center text-center transition group min-h-[300px]"
+                                className="bg-white/60 border-2 border-dashed border-slate-200 hover:border-emerald-500 rounded-3xl p-8 flex flex-col items-center justify-center text-center transition group min-h-[300px]" font-bold
                             >
                                 <div className="size-12 rounded-2xl bg-slate-800 group-hover:bg-emerald-500/10 flex items-center justify-center text-slate-500 group-hover:text-emerald-400 transition mb-3">
                                     <Plus size={22} />
                                 </div>
-                                <h4 className="font-bold text-sm text-slate-300 group-hover:text-white transition">New Blank Store</h4>
+                                <h4 className="font-bold text-sm text-slate-700 group-hover:text-white transition">New Blank Store</h4>
                                 <p className="text-xs text-slate-500 mt-1 max-w-[200px]">Launch an empty storefront and build custom products</p>
                             </button>
                         </div>
@@ -1638,7 +1638,7 @@ export default function MasterDashboardPage() {
                     <div className="space-y-6">
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div>
-                                <h2 className="text-lg font-black text-white">
+                                <h2 className="text-lg font-black text-slate-900">
                                     {selectedCatalogStore === 'all'
                                         ? `All Stores Catalog (${filteredMasterProducts.length} items)`
                                         : `Catalog for "${shops.find(s => s.username === selectedCatalogStore)?.name || selectedCatalogStore}" (${filteredMasterProducts.length} items)`}
@@ -1658,7 +1658,7 @@ export default function MasterDashboardPage() {
                                         const found = shops.find(s => s.username === e.target.value);
                                         if (found) handleSetActiveStore(found);
                                     }}
-                                    className="px-3 py-2 bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl text-xs text-white focus:outline-none transition cursor-pointer"
+                                    className="px-3 py-2 bg-white border border-slate-200 focus:border-emerald-500 rounded-xl text-xs text-slate-900 focus:outline-none transition cursor-pointer"
                                 >
                                     {shops.map(s => (
                                         <option key={s.username} value={s.username}>Store: {s.name} ({s.productsCount || 0} items)</option>
@@ -1677,10 +1677,10 @@ export default function MasterDashboardPage() {
                         </div>
 
                         {filteredMasterProducts.length > 0 ? (
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+                            <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-xs">
-                                        <thead className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
                                             <tr>
                                                 <th className="py-3 px-4">Product</th>
                                                 <th className="py-3 px-4">Assigned Store</th>
@@ -1689,12 +1689,12 @@ export default function MasterDashboardPage() {
                                                 <th className="py-3 px-4 text-right">Action</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-800/60 text-slate-200">
+                                        <tbody className="divide-y divide-slate-100 text-slate-200">
                                             {filteredMasterProducts.map((p, idx) => (
                                                 <tr key={p.id || idx} className="hover:bg-slate-800/30 transition">
                                                     <td className="py-3 px-4">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="size-10 rounded-xl bg-slate-800 overflow-hidden shrink-0 border border-slate-700">
+                                                            <div className="size-10 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200">
                                                                 <img 
                                                                     src={p.image || p.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100'} 
                                                                     alt={p.name} 
@@ -1708,7 +1708,7 @@ export default function MasterDashboardPage() {
                                                         </div>
                                                     </td>
                                                     <td className="py-3 px-4">
-                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-700 border border-slate-700">
                                                             <Store size={10} />
                                                             {p.storeName}
                                                         </span>
@@ -1737,7 +1737,7 @@ export default function MasterDashboardPage() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="text-center py-16 bg-slate-900 border border-slate-800 rounded-3xl p-8">
+                            <div className="text-center py-16 bg-white border border-slate-200 rounded-3xl p-8 shadow-sm">
                                 <ShoppingBag size={32} className="mx-auto text-slate-600 mb-3" />
                                 <h4 className="text-sm font-bold text-white">No products found for this selection</h4>
                                 <p className="text-xs text-slate-500 mt-1">Import a store or add a new product to this store.</p>
@@ -1749,7 +1749,7 @@ export default function MasterDashboardPage() {
                 {/* ─── TAB 4: MASTER IMPORTS & HISTORY (Section 26) ─── */}
                 {activeNavTab === 'imports' && (
                     <div className="space-y-6">
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-900/80 border border-slate-800 rounded-3xl p-6">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
                             <div>
                                 <div className="flex items-center gap-2">
                                     <Sparkles size={18} className="text-emerald-400" />
@@ -1770,10 +1770,10 @@ export default function MasterDashboardPage() {
                         </div>
 
                         {/* Import History Table */}
-                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-                            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                                 <div>
-                                    <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                                    <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
                                         <History size={15} className="text-slate-400" />
                                         <span>Master Import History</span>
                                     </h3>
@@ -1791,7 +1791,7 @@ export default function MasterDashboardPage() {
                             {importHistory.length > 0 ? (
                                 <div className="overflow-x-auto mt-4">
                                     <table className="w-full text-left text-xs">
-                                        <thead className="text-[10px] uppercase font-bold text-slate-500 border-b border-slate-800 pb-2">
+                                        <thead className="text-[10px] uppercase font-bold text-slate-500 border-b border-slate-100 pb-2">
                                             <tr>
                                                 <th className="py-2.5 px-3">Source</th>
                                                 <th className="py-2.5 px-3">Date</th>
@@ -1802,11 +1802,11 @@ export default function MasterDashboardPage() {
                                                 <th className="py-2.5 px-3 text-right">View</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                                        <tbody className="divide-y divide-slate-100 text-slate-700">
                                             {importHistory.map((item, idx) => (
                                                 <tr key={item.id || idx} className="hover:bg-slate-800/30 transition">
                                                     <td className="py-3 px-3">
-                                                        <div className="font-mono text-[11px] text-slate-300 truncate max-w-xs" title={item.sourceUrl}>
+                                                        <div className="font-mono text-[11px] text-slate-700 truncate max-w-xs" title={item.sourceUrl}>
                                                             {item.sourceUrl || 'Direct Catalog Import'}
                                                         </div>
                                                     </td>
@@ -1859,7 +1859,7 @@ export default function MasterDashboardPage() {
                     <div className="space-y-6">
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div>
-                                <h2 className="text-lg font-black text-white">
+                                <h2 className="text-lg font-black text-slate-900">
                                     {selectedOrdersStore === 'all'
                                         ? `All Stores Orders (${filteredOrders.length})`
                                         : `Customer Orders for "${shops.find(s => s.username === selectedOrdersStore)?.name || selectedOrdersStore}" (${filteredOrders.length})`}
@@ -1879,7 +1879,7 @@ export default function MasterDashboardPage() {
                                         const found = shops.find(s => s.username === e.target.value);
                                         if (found) handleSetActiveStore(found);
                                     }}
-                                    className="px-3 py-2 bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl text-xs text-white focus:outline-none transition cursor-pointer"
+                                    className="px-3 py-2 bg-white border border-slate-200 focus:border-emerald-500 rounded-xl text-xs text-slate-900 focus:outline-none transition cursor-pointer"
                                 >
                                     {shops.map(s => (
                                         <option key={s.username} value={s.username}>Store: {s.name}</option>
@@ -1907,17 +1907,17 @@ export default function MasterDashboardPage() {
 
                         {/* Order Summary Cards */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
+                            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
                                 <div className="text-[11px] font-bold text-slate-400">Total Orders</div>
                                 <div className="text-2xl font-black text-white mt-1">{filteredOrders.length}</div>
                             </div>
-                            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
+                            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
                                 <div className="text-[11px] font-bold text-slate-400">Completed Orders</div>
                                 <div className="text-2xl font-black text-emerald-400 mt-1">
                                     {filteredOrders.filter(o => (o.status || '').toLowerCase() === 'completed' || o.verified).length}
                                 </div>
                             </div>
-                            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
+                            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
                                 <div className="text-[11px] font-bold text-slate-400">Gross Revenue</div>
                                 <div className="text-2xl font-black text-teal-400 mt-1 font-mono">
                                     ${filteredOrders.reduce((sum, o) => sum + (parseFloat(o.total || o.amount || o.price || 0) || 0), 0).toFixed(2)}
@@ -1926,10 +1926,10 @@ export default function MasterDashboardPage() {
                         </div>
 
                         {filteredOrders.length > 0 ? (
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+                            <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-xs">
-                                        <thead className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
                                             <tr>
                                                 <th className="py-3 px-4">Order ID</th>
                                                 <th className="py-3 px-4">Store</th>
@@ -1940,14 +1940,14 @@ export default function MasterDashboardPage() {
                                                 <th className="py-3 px-4 text-right">Fulfillment</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-800/60 text-slate-200">
+                                        <tbody className="divide-y divide-slate-100 text-slate-200">
                                             {filteredOrders.map((ord, idx) => (
                                                 <tr key={ord.id || idx} className="hover:bg-slate-800/30 transition">
                                                     <td className="py-3 px-4 font-mono font-bold text-white">
                                                         {ord.id || `ORD-${idx + 1}`}
                                                     </td>
                                                     <td className="py-3 px-4">
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-700 border border-slate-700">
                                                             <Store size={10} />
                                                             {ord.storeName || ord.storeSlug || ord.storeId || 'Store'}
                                                         </span>
@@ -1985,9 +1985,9 @@ export default function MasterDashboardPage() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-10 text-center space-y-3">
+                            <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center space-y-3 shadow-sm">
                                 <Package size={36} className="mx-auto text-slate-600" />
-                                <h3 className="text-base font-bold text-white">No customer orders recorded yet</h3>
+                                <h3 className="text-base font-bold text-slate-900">No customer orders recorded yet</h3>
                                 <p className="text-xs text-slate-500 max-w-md mx-auto">
                                     When customers place orders via Gumroad checkout on any storefront, verified transactions will populate here automatically.
                                 </p>
@@ -2000,16 +2000,16 @@ export default function MasterDashboardPage() {
                 {activeNavTab === 'analytics' && (
                     <div className="space-y-6">
                         <div>
-                            <h2 className="text-lg font-black text-white">Master Commerce Analytics</h2>
+                            <h2 className="text-lg font-black text-slate-900">Master Commerce Analytics</h2>
                             <p className="text-xs text-slate-400 mt-0.5">
                                 Verified commercial metrics and live storefront engagement. Zero simulated claims.
                             </p>
                         </div>
 
                         {/* Storefront Engagement Metrics */}
-                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+                        <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                                     <TrendingUp size={16} className="text-emerald-400" />
                                     <span>GumShop Storefront Engagement (Local Metrics)</span>
                                 </h3>
@@ -2017,22 +2017,22 @@ export default function MasterDashboardPage() {
                             </div>
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
                                     <div className="text-[11px] text-slate-400 font-bold">Total Stores</div>
                                     <div className="text-xl font-black text-white mt-1">{totalStores}</div>
                                     <div className="text-[10px] text-slate-500 mt-0.5">{activeStoresCount} active shops</div>
                                 </div>
-                                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
                                     <div className="text-[11px] text-slate-400 font-bold">Active Catalog Items</div>
                                     <div className="text-xl font-black text-white mt-1">{totalProducts}</div>
                                     <div className="text-[10px] text-slate-500 mt-0.5">Across all stores</div>
                                 </div>
-                                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
                                     <div className="text-[11px] text-slate-400 font-bold">Recorded Orders</div>
                                     <div className="text-xl font-black text-emerald-400 mt-1">{totalOrdersCount}</div>
                                     <div className="text-[10px] text-slate-500 mt-0.5">Real checkouts</div>
                                 </div>
-                                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
                                     <div className="text-[11px] text-slate-400 font-bold">Creator Bio Links</div>
                                     <div className="text-xl font-black text-rose-400 mt-1">{totalStores}</div>
                                     <div className="text-[10px] text-slate-500 mt-0.5">Active landing pages</div>
@@ -2041,8 +2041,8 @@ export default function MasterDashboardPage() {
                         </div>
 
                         {/* Gumroad Settlement Metrics */}
-                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
-                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                        <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
+                            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                                 <DollarSign size={16} className="text-teal-400" />
                                 <span>Gumroad Commercial Settlement (Verified Financials)</span>
                             </h3>
@@ -2051,17 +2051,17 @@ export default function MasterDashboardPage() {
                             </p>
 
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
                                     <div className="text-[11px] text-slate-400 font-bold">Verified Purchases</div>
                                     <div className="text-xl font-black text-white mt-1">{completedOrdersCount}</div>
                                     <div className="text-[10px] text-slate-500 mt-1">{completedOrdersCount > 0 ? 'Verified transactions' : 'No sales recorded yet'}</div>
                                 </div>
-                                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
                                     <div className="text-[11px] text-slate-400 font-bold">Net Revenue</div>
                                     <div className="text-xl font-black text-emerald-400 mt-1 font-mono">${totalRevenue.toFixed(2)}</div>
                                     <div className="text-[10px] text-slate-500 mt-1">Real gross GMV</div>
                                 </div>
-                                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
                                     <div className="text-[11px] text-slate-400 font-bold">Refund Rate</div>
                                     <div className="text-xl font-black text-white mt-1">0.0%</div>
                                     <div className="text-[10px] text-slate-500 mt-1">Zero chargebacks</div>
@@ -2076,8 +2076,8 @@ export default function MasterDashboardPage() {
             {/* ─── MODAL: CREATE BLANK STORE ─── */}
             {isCreateModalOpen && (
                 <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl">
-                        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                    <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                             <div className="flex items-center gap-2">
                                 <div className="size-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
                                     <Plus size={16} />
@@ -2098,7 +2098,7 @@ export default function MasterDashboardPage() {
                                     placeholder="e.g. Velocity RC Store"
                                     value={newShopName}
                                     onChange={(e) => setNewShopName(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500"
+                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-emerald-500"
                                 />
                             </div>
 
@@ -2107,7 +2107,7 @@ export default function MasterDashboardPage() {
                                 <select
                                     value={newShopTheme}
                                     onChange={(e) => setNewShopTheme(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500"
+                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-emerald-500"
                                 >
                                     <option value="viral_lander">Viral Lander</option>
                                     <option value="tech_hardware">Tech Hardware & RC</option>
@@ -2132,8 +2132,8 @@ export default function MasterDashboardPage() {
             {/* ─── MODAL: 1-CLICK STORE DUPLICATION ─── */}
             {duplicatingShop && (
                 <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl">
-                        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                    <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                             <div className="flex items-center gap-2">
                                 <div className="size-8 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center">
                                     <Copy size={16} />
@@ -2159,7 +2159,7 @@ export default function MasterDashboardPage() {
                                         setDupName(e.target.value);
                                         setDupSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-'));
                                     }}
-                                    className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
                                 />
                             </div>
 
@@ -2170,13 +2170,13 @@ export default function MasterDashboardPage() {
                                     required
                                     value={dupSlug}
                                     onChange={(e) => setDupSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-'))}
-                                    className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono focus:outline-none focus:border-emerald-500"
                                 />
                             </div>
 
-                            <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800/80 space-y-2">
+                            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
                                 <span className="text-[11px] font-bold text-slate-400 block mb-1">Copy Options:</span>
-                                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={dupCopyProducts}
@@ -2186,7 +2186,7 @@ export default function MasterDashboardPage() {
                                     <span>Copy all catalog products ({duplicatingShop?.productsCount || 0} items)</span>
                                 </label>
 
-                                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={dupCopyBanners}
@@ -2196,7 +2196,7 @@ export default function MasterDashboardPage() {
                                     <span>Copy hero marketing banners</span>
                                 </label>
 
-                                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={dupCopyTheme}
@@ -2206,7 +2206,7 @@ export default function MasterDashboardPage() {
                                     <span>Copy theme & color palette</span>
                                 </label>
 
-                                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={dupCopyBranding}
@@ -2218,9 +2218,9 @@ export default function MasterDashboardPage() {
                             </div>
 
                             {dupCopyProducts && (
-                                <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800/80 space-y-2">
+                                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <label className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                                        <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
                                             <Scissors size={12} className="text-rose-400" />
                                             <span>Slash Product Prices (% Discount):</span>
                                         </label>
@@ -2237,7 +2237,7 @@ export default function MasterDashboardPage() {
                                                 className={`px-2 py-1 rounded-lg text-[11px] font-bold transition border ${
                                                     dupSlashPercent === pct
                                                         ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
-                                                        : 'bg-slate-900 text-slate-400 hover:text-white border-slate-800'
+                                                        : 'bg-slate-100 text-slate-700 hover:text-slate-900 border-slate-200'
                                                 }`}
                                             >
                                                 {pct === 0 ? '0% (Keep Full)' : `-${pct}%`}
@@ -2256,14 +2256,14 @@ export default function MasterDashboardPage() {
                                                     const val = parseFloat(e.target.value);
                                                     setDupSlashPercent(isNaN(val) ? 0 : Math.min(Math.max(val, 0), 99));
                                                 }}
-                                                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400"
+                                                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-rose-400 focus:bg-white"
                                             />
                                         </div>
                                         {dupSlashPercent > 0 && (
                                             <button
                                                 type="button"
                                                 onClick={() => setDupSlashPercent(0)}
-                                                className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-400 hover:text-white transition"
+                                                className="px-2.5 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-[11px] text-slate-600 hover:text-slate-900 transition"
                                             >
                                                 Reset
                                             </button>
@@ -2298,14 +2298,14 @@ function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onS
 
     return (
         <div
-            className={`bg-slate-900 border rounded-3xl p-6 transition flex flex-col justify-between group hover:border-slate-700 shadow-lg ${
+            className={`bg-white border rounded-3xl p-6 transition flex flex-col justify-between group hover:border-slate-300 shadow-sm ${
                 isHomepage
-                    ? 'border-amber-500/60 ring-1 ring-amber-500/30'
+                    ? 'border-amber-400 ring-2 ring-amber-400/20 shadow-md'
                     : isActive 
-                        ? 'border-emerald-500/50 ring-1 ring-emerald-500/20' 
+                        ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md' 
                         : shop.status === 'archived' 
-                            ? 'border-slate-800/60 opacity-60' 
-                            : 'border-slate-800'
+                            ? 'border-slate-200 opacity-60 bg-slate-50' 
+                            : 'border-slate-200'
             }`}
         >
             <div>
@@ -2371,12 +2371,12 @@ function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onS
                 )}
 
                 {/* Metrics Summary */}
-                <div className="grid grid-cols-2 gap-2 mt-4 p-3 rounded-2xl bg-slate-950/60 border border-slate-800/60">
+                <div className="grid grid-cols-2 gap-2 mt-4 p-3 rounded-2xl bg-slate-50 border border-slate-200">
                     <div className="text-center">
                         <div className="text-[11px] text-slate-500 font-medium">Products</div>
                         <div className="text-sm font-bold text-white mt-0.5">{shop.productsCount}</div>
                     </div>
-                    <div className="text-center border-l border-slate-800/60">
+                    <div className="text-center border-l border-slate-200">
                         <div className="text-[11px] text-slate-500 font-medium">Checkout</div>
                         <div className="text-sm font-bold text-emerald-400 mt-0.5">Ready</div>
                     </div>
@@ -2412,7 +2412,7 @@ function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onS
             </div>
 
             {/* Store Actions Panel */}
-            <div className="mt-4 pt-4 border-t border-slate-800 space-y-2">
+            <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
                 <div className="flex items-center gap-2">
                     <Link
                         href={`/store?store=${shop.username || shop.id}`}
@@ -2428,7 +2428,7 @@ function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onS
                         href={`/shop/${shop.username}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center gap-1 transition"
+                        className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-700 hover:text-white font-bold text-xs flex items-center justify-center gap-1 transition"
                         title="Open public storefront"
                     >
                         <Globe size={13} />
