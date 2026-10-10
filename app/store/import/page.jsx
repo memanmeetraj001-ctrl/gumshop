@@ -90,6 +90,8 @@ export default function StoreImportPage() {
     const [destTheme, setDestTheme] = useState('viral_lander');
     const [destThemeColor, setDestThemeColor] = useState('#10B981');
     const [destDescription, setDestDescription] = useState('');
+    const [storeArchitecture, setStoreArchitecture] = useState('multi'); // 'multi' | 'single'
+    const [autoConvertCurrency, setAutoConvertCurrency] = useState(true);
 
     // 1-Click Homepage Setting & Rights Confirmation
     const [setAsHomepage, setSetAsHomepage] = useState(false);
@@ -516,7 +518,8 @@ export default function StoreImportPage() {
                 id: chosenExisting?.id || selectedExistingStoreId,
                 name: chosenExisting?.name || selectedExistingStoreId,
                 slug: chosenExisting?.username || selectedExistingStoreId,
-                sourceUrl: targetUrl.trim()
+                sourceUrl: targetUrl.trim(),
+                singleProductStore: storeArchitecture === 'single'
             } : {
                 name: destStoreName.trim(),
                 slug: (destStoreSlug.trim() || destStoreName.toLowerCase().replace(/[^a-z0-9-]+/g, '-') || 'store').replace(/^-|-$/g, ''),
@@ -525,7 +528,8 @@ export default function StoreImportPage() {
                 description: destDescription.trim(),
                 logo: importData.store?.logo || finalProducts[0]?.image || '',
                 heroBanner: cleanHeroUrl,
-                sourceUrl: targetUrl.trim()
+                sourceUrl: targetUrl.trim(),
+                singleProductStore: storeArchitecture === 'single'
             };
 
             const payload = {
@@ -533,6 +537,7 @@ export default function StoreImportPage() {
                 destinationMode: destMode,
                 setAsHomepage,
                 slashPercent: activeSlashPercent,
+                autoConvertCurrency,
                 selectedProducts: finalProducts.map(p => ({
                     ...p,
                     _preCalculated: activeSlashPercent > 0
@@ -1494,6 +1499,57 @@ export default function StoreImportPage() {
                                                     className="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-r-xl text-sm text-white font-mono focus:outline-none focus:border-emerald-500"
                                                 />
                                             </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-400 mb-1">Store Architecture</label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setStoreArchitecture('multi')}
+                                                    className={`p-3 rounded-xl border text-left transition ${
+                                                        storeArchitecture === 'multi'
+                                                            ? 'border-emerald-500 bg-emerald-500/10 text-white'
+                                                            : 'border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-700'
+                                                    }`}
+                                                >
+                                                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                                                        <span>🏬 Catalog Store</span>
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">Multi-product grid & catalog</p>
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setStoreArchitecture('single')}
+                                                    className={`p-3 rounded-xl border text-left transition ${
+                                                        storeArchitecture === 'single'
+                                                            ? 'border-emerald-500 bg-emerald-500/10 text-white'
+                                                            : 'border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-700'
+                                                    }`}
+                                                >
+                                                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                                                        <span>🎯 Single-Product Lander</span>
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">Viral 1-product funnel & Stan Store</p>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-400 mb-1">Currency Auto-Conversion</label>
+                                            <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-800 bg-slate-950 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={autoConvertCurrency}
+                                                    onChange={(e) => setAutoConvertCurrency(e.target.checked)}
+                                                    className="size-4 accent-emerald-500 rounded"
+                                                />
+                                                <div className="text-xs">
+                                                    <span className="font-bold text-white">Auto-convert foreign currency (Rs / ₹ / € / £) to USD</span>
+                                                    <p className="text-[10px] text-slate-400">e.g. Rs. 5,300 automatically converted to standard baseline</p>
+                                                </div>
+                                            </label>
                                         </div>
 
                                         <div>

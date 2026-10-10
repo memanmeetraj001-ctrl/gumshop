@@ -27,28 +27,23 @@ const ProductDetails = ({ product, storeInfo }) => {
     const dispatch = useDispatch();
     const router = useRouter();
 
-    // Dynamic Color & Size Variant Switcher
-    const availableColors = (Array.isArray(product.colors) && product.colors.length > 0)
-        ? product.colors
-        : [
-            { name: "Obsidian Black", hex: "#18181b" },
-            { name: "Titanium Silver", hex: "#94a3b8" },
-            { name: "Emerald Green", hex: "#10b981" }
-        ];
+    // Dynamic Color & Size Variant Switcher (ONLY if authentic variants exist)
+    const hasExplicitColors = Array.isArray(product.colors) && product.colors.length > 0;
+    const hasExplicitSizes = Array.isArray(product.sizes) && product.sizes.length > 0;
+    const hasVariantsArray = Array.isArray(product.variants) && product.variants.length > 0;
 
-    const availableSizes = (Array.isArray(product.sizes) && product.sizes.length > 0)
-        ? product.sizes
-        : [
-            { name: "Standard Edition", priceDelta: 0 },
-            { name: "Pro Bundle (+ Kit)", priceDelta: 15 }
-        ];
+    const availableColors = hasExplicitColors ? product.colors : [];
+    const availableSizes = hasExplicitSizes 
+        ? product.sizes 
+        : (hasVariantsArray ? product.variants.map(v => ({ name: v.name, priceDelta: v.priceDelta || 0 })) : []);
 
-    const [selectedColor, setSelectedColor] = useState(availableColors[0]);
-    const [selectedSize, setSelectedSize] = useState(availableSizes[0]);
+    const [selectedColor, setSelectedColor] = useState(availableColors[0] || null);
+    const [selectedSize, setSelectedSize] = useState(availableSizes[0] || null);
     const [selectedQuantity, setSelectedQuantity] = useState(1);
     const [openFaq, setOpenFaq] = useState(0);
     const [checkoutModal, setCheckoutModal] = useState({ isOpen: false, gumroadUrl: '', orderSessionId: '' });
     const [isCheckingOut, setIsCheckingOut] = useState(false);
+    const [hasShippingProtection, setHasShippingProtection] = useState(true);
 
     const images = (product.images && product.images.length > 0) 
         ? product.images 
@@ -70,32 +65,38 @@ const ProductDetails = ({ product, storeInfo }) => {
     const isOutOfStock = product.inStock === false || rawStock <= 0;
     const isLowStock = !isOutOfStock && rawStock <= 12;
 
-    const activeVariantLabel = `${selectedColor?.name || 'Default'}${selectedSize ? ` • ${selectedSize.name}` : ''}`;
+    const activeVariantLabel = `${selectedColor ? selectedColor.name : ''}${selectedSize ? (selectedColor ? ' • ' : '') + selectedSize.name : ''}` || 'Standard Edition';
 
-    // Quantity Tier Breaks Calculations
-    const quantityTiers = [
-        {
-            qty: 1,
-            label: "Buy 1 Item",
-            pricePerUnit: effectiveUnitPrice,
-            totalPrice: effectiveUnitPrice,
-            badge: null
-        },
-        {
-            qty: 2,
-            label: "Buy 2 (Save 15%)",
-            pricePerUnit: Math.round(effectiveUnitPrice * 0.85 * 100) / 100,
-            totalPrice: Math.round(effectiveUnitPrice * 0.85 * 2 * 100) / 100,
-            badge: "Most Popular ⭐"
-        },
-        {
-            qty: 3,
-            label: "Buy 3 (Save 30% + Free Shipping)",
-            pricePerUnit: Math.round(effectiveUnitPrice * 0.70 * 100) / 100,
-            totalPrice: Math.round(effectiveUnitPrice * 0.70 * 3 * 100) / 100,
-            badge: "Best Value 🔥"
-        }
-    ];
+    // Quantity Tier Breaks: Prefer authentic product-specific customBundles if available
+    const baseItemName = product.name ? product.name.split(' ')[0] : 'Item';
+    const quantityTiers = (Array.isArray(product.customBundles) && product.customBundles.length > 0)
+        ? product.customBundles
+        : [
+            {
+                qty: 1,
+                label: `1 ${baseItemName}`,
+                subtitle: "One legendary rider",
+                pricePerUnit: effectiveUnitPrice,
+                totalPrice: effectiveUnitPrice,
+                badge: null
+            },
+            {
+                qty: 2,
+                label: `2 ${baseItemName}s`,
+                subtitle: "Two-Pet Household / matching Halloween photos",
+                pricePerUnit: Math.round((Math.round(effectiveUnitPrice * 1.4082075 * 100) / 100 / 2) * 100) / 100,
+                totalPrice: Math.round(effectiveUnitPrice * 1.4082075 * 100) / 100,
+                badge: "Two-Pet Household ⭐"
+            },
+            {
+                qty: 3,
+                label: `3 ${baseItemName}s`,
+                subtitle: "Costume Party Pack",
+                pricePerUnit: Math.round((Math.round(effectiveUnitPrice * 1.81623 * 100) / 100 / 3) * 100) / 100,
+                totalPrice: Math.round(effectiveUnitPrice * 1.81623 * 100) / 100,
+                badge: "Costume Party Pack 🔥"
+            }
+        ];
 
     const currentTier = quantityTiers.find(t => t.qty === selectedQuantity) || quantityTiers[0];
 
@@ -281,23 +282,48 @@ const ProductDetails = ({ product, storeInfo }) => {
                         </div>
                     </div>
 
-                    {/* Product Title, SKU & Category */}
+                    {/* High-Converting Kicker & Punchline Headline */}
                     <div>
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
-                                {product.category || 'Featured Collection'}
-                            </span>
-                            <span className="font-mono text-[11px] text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg font-semibold">
-                                SKU: {activeSku}
-                            </span>
-                        </div>
-                        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight leading-snug">
+                        {product.kicker && (
+                            <div className="mb-2">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-500/10 text-amber-700 border border-amber-500/30">
+                                    <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+                                    {product.kicker}
+                                </span>
+                            </div>
+                        )}
+                        {product.subtitle && (
+                            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight uppercase font-serif mb-2">
+                                {product.subtitle}
+                            </h2>
+                        )}
+                        <h1 className="text-base sm:text-lg font-bold text-slate-700 tracking-tight leading-snug">
                             {product.name}
                         </h1>
                     </div>
 
+                    {/* Benefit Checkmarks */}
+                    {(() => {
+                        const bulletList = (Array.isArray(product.bullets) && product.bullets.length > 0)
+                            ? product.bullets
+                            : (Array.isArray(product.bulletPoints) && product.bulletPoints.length > 0 ? product.bulletPoints : []);
+                        if (bulletList.length === 0) return null;
+                        return (
+                            <div className="space-y-2 py-1">
+                                {bulletList.map((bullet, idx) => (
+                                    <div key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-800 font-medium">
+                                        <div className="size-4 rounded-full bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                                            <Check size={11} className="stroke-[3]" />
+                                        </div>
+                                        <span>{bullet}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    })()}
+
                     {/* Price Header & Real-Time Stock Status */}
-                    <div className="space-y-3">
+                    <div className="space-y-3 pt-2">
                         <div className="flex items-baseline gap-3">
                             <span className="text-3xl sm:text-4xl font-black text-slate-950">
                                 ${currentTier.pricePerUnit.toFixed(2)}
@@ -313,7 +339,7 @@ const ProductDetails = ({ product, storeInfo }) => {
                                 </span>
                             ) : (
                                 <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                                    ✓ In Stock ({rawStock} units)
+                                    ✓ In Stock • Ships within 48 hours
                                 </span>
                             )}
                         </div>
@@ -443,6 +469,33 @@ const ProductDetails = ({ product, storeInfo }) => {
                                 </div>
                             ))}
                         </div>
+                    </div>
+
+                    {/* Shipping Protection & Skip The Line Add-on Checkbox */}
+                    <div className="space-y-2 pt-2">
+                        <label 
+                            onClick={() => setHasShippingProtection(!hasShippingProtection)}
+                            className={`p-3 rounded-xl border-2 flex items-center justify-between cursor-pointer transition select-none ${
+                                hasShippingProtection ? 'border-amber-400 bg-amber-50/60 shadow-xs' : 'border-slate-200 bg-white hover:border-slate-300'
+                            }`}
+                        >
+                            <div className="flex items-center gap-2.5">
+                                <input
+                                    type="checkbox"
+                                    checked={hasShippingProtection}
+                                    onChange={(e) => setHasShippingProtection(e.target.checked)}
+                                    className="size-4 accent-amber-500 rounded cursor-pointer"
+                                />
+                                <div>
+                                    <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                        <ShieldCheck size={14} className="text-amber-600" />
+                                        <span>Shipping Protection</span>
+                                    </p>
+                                    <p className="text-[11px] text-slate-500">Lost, stolen or damaged in transit? We reship or refund.</p>
+                                </div>
+                            </div>
+                            <span className="text-xs font-bold text-slate-900 shrink-0">+$4.99</span>
+                        </label>
                     </div>
 
                     {/* The Primary "⚡ Buy Now" & "Add to Cart" Actions */}

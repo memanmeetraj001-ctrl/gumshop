@@ -754,8 +754,122 @@ export default function CreatorBioPage({ params }) {
 
                             </div>
 
-                            {/* ─── Stacked Store Product Cards ─── */}
-                            {displayedProducts.length > 0 ? (
+                            {/* ─── Product Section: Single-Product Hero Lander OR Multi-Product Stack ─── */}
+                            {(displayedProducts.length === 1 || storeInfo?.singleProductStore) ? (
+                                /* 🚀 ULTRA HIGH-CONVERTING SINGLE-PRODUCT HERO LANDER */
+                                (() => {
+                                    const heroItem = displayedProducts[0];
+                                    const baseItem = heroItem.name ? heroItem.name.split(' ')[0] : 'Item';
+                                    const heroPrice = parseFloat(heroItem.price || 0);
+                                    const heroCompare = parseFloat(heroItem.compareAtPrice || heroItem.comparePrice || Math.round(heroPrice * 1.35 * 100) / 100);
+                                    const discountPct = heroCompare > heroPrice ? Math.round(((heroCompare - heroPrice) / heroCompare) * 100) : 0;
+                                    const heroBullets = Array.isArray(heroItem.bullets) && heroItem.bullets.length > 0
+                                        ? heroItem.bullets
+                                        : [
+                                            "Light-up pumpkin lantern with high-intensity LED",
+                                            "Adjustable chest & belly straps for comfy all-night fit",
+                                            "Lightweight padded saddle — fits cats and dogs easily"
+                                        ];
+
+                                    return (
+                                        <div className="mt-4 bg-white rounded-3xl p-4 sm:p-5 border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.06)] space-y-4">
+                                            {/* Large Immersive Product Imagery */}
+                                            <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-100">
+                                                <img 
+                                                    src={getSafeImageUrl(heroItem.image || (heroItem.images && heroItem.images[0]))} 
+                                                    alt={heroItem.name} 
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                {discountPct > 0 && (
+                                                    <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-slate-900/90 text-white font-black text-xs shadow-md">
+                                                        Save {discountPct}%
+                                                    </span>
+                                                )}
+                                                <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-emerald-500 text-white font-bold text-xs shadow-md flex items-center gap-1">
+                                                    <span className="size-1.5 rounded-full bg-white animate-pulse" />
+                                                    In Stock
+                                                </span>
+                                            </div>
+
+                                            {/* Headline & Kicker */}
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
+                                                        ● {heroItem.kicker || 'HALLOWEEN 2026'}
+                                                    </span>
+                                                </div>
+                                                <h3 className="text-lg sm:text-xl font-black text-slate-950 leading-tight">
+                                                    {heroItem.name}
+                                                </h3>
+                                                {heroItem.subtitle && (
+                                                    <p className="text-xs font-serif text-slate-500 uppercase tracking-wider mt-0.5">
+                                                        {heroItem.subtitle}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {/* Key Benefit Highlights */}
+                                            <div className="space-y-1.5 py-1">
+                                                {heroBullets.map((bullet, bIdx) => (
+                                                    <div key={bIdx} className="flex items-start gap-2 text-xs text-slate-700 font-medium">
+                                                        <Check size={14} className="text-amber-600 shrink-0 mt-0.5 stroke-[3]" />
+                                                        <span>{bullet}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Pricing & Quantity Pack Selector */}
+                                            <div className="pt-2 border-t border-slate-100 space-y-2">
+                                                <div className="flex items-baseline justify-between mb-2">
+                                                    <div className="flex items-baseline gap-2">
+                                                        <span className="text-2xl font-black text-slate-950">${heroPrice.toFixed(2)}</span>
+                                                        {heroCompare > heroPrice && (
+                                                            <span className="text-sm text-slate-400 line-through font-semibold">${heroCompare.toFixed(2)}</span>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                                                        Ships within 48h
+                                                    </span>
+                                                </div>
+
+                                                {/* Single or Multi-Pack Options */}
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="p-3 rounded-2xl border-2 border-slate-900 bg-slate-50/50 text-left">
+                                                        <p className="text-xs font-bold text-slate-900">1 {baseItem}</p>
+                                                        <p className="text-[11px] font-black text-slate-700 mt-0.5">${heroPrice.toFixed(2)}</p>
+                                                    </div>
+                                                    <div className="p-3 rounded-2xl border-2 border-slate-200 bg-white text-left hover:border-slate-300 transition">
+                                                        <p className="text-xs font-bold text-slate-900 flex items-center justify-between">
+                                                            <span>2 {baseItem}s</span>
+                                                            <span className="text-[10px] bg-amber-100 text-amber-800 font-extrabold px-1.5 py-0.2 rounded-full">SAVE 15%</span>
+                                                        </p>
+                                                        <p className="text-[11px] font-black text-slate-700 mt-0.5">${(heroPrice * 1.7).toFixed(2)}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Instant 1-Tap Checkout Button */}
+                                            <button
+                                                onClick={() => handleInstantBuy(heroItem)}
+                                                className="w-full py-4 px-6 rounded-2xl text-white font-black text-sm tracking-wide shadow-lg transition active:scale-98 flex items-center justify-center gap-2"
+                                                style={{ backgroundColor: creator.themeColor || '#f97316' }}
+                                            >
+                                                <Zap size={18} className="fill-white" />
+                                                <span>⚡ Buy Now with Inframe Checkout (${heroPrice.toFixed(2)})</span>
+                                            </button>
+
+                                            <div className="flex items-center justify-center gap-3 text-[11px] text-slate-500 font-semibold pt-1">
+                                                <span className="flex items-center gap-1">
+                                                    <ShieldCheck size={13} className="text-emerald-600" />
+                                                    Damage-Free Guarantee
+                                                </span>
+                                                <span>•</span>
+                                                <span>Free Tracked US Shipping</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })()
+                            ) : displayedProducts.length > 1 ? (
                                 <div className="mt-4 space-y-3">
                                     {displayedProducts.map((item, index) => {
                                         const isFree = parseFloat(item.price || 0) === 0 || item.isFreeDownload;

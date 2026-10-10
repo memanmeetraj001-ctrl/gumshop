@@ -21,6 +21,7 @@ export async function POST(req) {
             setAsHomepage = false,
             isCents = false,
             slashPercent = 0,
+            autoConvertCurrency = true,
             selectedProducts = [], 
             selectedBanners = [], 
             selectedCategories = [] 
@@ -56,6 +57,9 @@ export async function POST(req) {
 
         const storeRecord = existingStore ? {
             ...existingStore,
+            singleProductStore: destinationStore.singleProductStore !== undefined 
+                ? Boolean(destinationStore.singleProductStore) 
+                : Boolean(existingStore.singleProductStore || selectedProducts.length === 1),
             categories: Array.from(new Set([...(existingStore.categories || []), ...cleanCategories])),
             banners: Array.from(new Set([...(existingStore.banners || []), ...cleanBanners])),
             productsCount: (existingStore.productsCount || 0) + selectedProducts.length,
@@ -76,6 +80,7 @@ export async function POST(req) {
                 themeColor: destinationStore.themeColor || '#10B981',
                 verified: true
             },
+            singleProductStore: Boolean(destinationStore.singleProductStore || selectedProducts.length === 1),
             favicon: destinationStore.favicon || '',
             banner: cleanHeroBanner,
             banners: cleanBanners,
@@ -93,9 +98,9 @@ export async function POST(req) {
         // 2. Prepare and sanitize products scoped strictly to this storeId
         const savedProducts = selectedProducts.map((p, idx) => {
             const prodId = `prod_${cleanSlug}_${idx}_${Math.random().toString(36).substring(2, 6)}`;
-            const rawPrice = normalizeProductPrice(p.price, { isCents });
+            const rawPrice = normalizeProductPrice(p.price, { isCents, autoConvert: autoConvertCurrency });
             const rawCompareAt = p.compareAtPrice 
-                ? normalizeProductPrice(p.compareAtPrice, { isCents }) 
+                ? normalizeProductPrice(p.compareAtPrice, { isCents, autoConvert: autoConvertCurrency }) 
                 : (rawPrice > 0 ? Math.round(rawPrice * 1.35 * 100) / 100 : 0);
 
             const numSlash = (p._preCalculated || p.isPricePreCalculated) ? 0 : (parseFloat(slashPercent) || 0);
@@ -109,9 +114,17 @@ export async function POST(req) {
                 name: p.name || 'Featured Product',
                 slug: (p.slug || p.name || 'product').toLowerCase().replace(/[^a-z0-9-]+/g, '-'),
                 description: p.description || storeRecord.description,
+                bodyHtml: p.bodyHtml || '',
+                bullets: Array.isArray(p.bullets) ? p.bullets : (Array.isArray(p.bulletPoints) ? p.bulletPoints : []),
+                bulletPoints: Array.isArray(p.bulletPoints) ? p.bulletPoints : (Array.isArray(p.bullets) ? p.bullets : []),
+                kicker: p.kicker || '',
+                subtitle: p.subtitle || '',
+                customBundles: Array.isArray(p.customBundles) ? p.customBundles : [],
+                variants: Array.isArray(p.variants) ? p.variants : [],
+                options: Array.isArray(p.options) ? p.options : [],
                 price,
                 compareAtPrice: finalCompareAt,
-                currency: p.currency || 'USD',
+                currency: autoConvertCurrency ? 'USD' : (p.currency || 'USD'),
                 category: p.category || 'Featured',
                 image: p.image || '',
                 images: Array.isArray(p.images) && p.images.length > 0 ? p.images : [p.image].filter(Boolean),

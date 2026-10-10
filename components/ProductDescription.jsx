@@ -20,9 +20,20 @@ const ProductDescription = ({ product }) => {
                 ))}
             </div>
 
-            {/* Description */}
+            {/* Description / Story Lander */}
             {selectedTab === "Description" && (
-                <p className="max-w-xl">{product.description}</p>
+                <div className="max-w-3xl space-y-6">
+                    {product.bodyHtml ? (
+                        <div 
+                            className="prose prose-slate max-w-none text-slate-700 leading-relaxed [&_h1]:text-2xl [&_h1]:font-black [&_h2]:text-xl [&_h2]:font-bold [&_h3]:text-lg [&_h3]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_li]:text-sm [&_p]:text-sm [&_p]:leading-relaxed [&_img]:rounded-2xl [&_img]:shadow-md [&_img]:my-4"
+                            dangerouslySetInnerHTML={{ __html: product.bodyHtml }}
+                        />
+                    ) : (
+                        <p className="max-w-xl text-base leading-relaxed text-slate-700 whitespace-pre-line">
+                            {product.description}
+                        </p>
+                    )}
+                </div>
             )}
 
             {/* Reviews */}
