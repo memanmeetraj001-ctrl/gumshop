@@ -170,6 +170,34 @@ export default function Product() {
                 <div className="mt-12">
                     <ProductDescription product={product} />
                 </div>
+
+                {/* Schema.org Product Structured Data for SEO Rich Snippets */}
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            '@context': 'https://schema.org/',
+                            '@type': 'Product',
+                            name: product.name || 'Store Product',
+                            image: Array.isArray(product.images) && product.images.length > 0 
+                                ? product.images 
+                                : [product.image || 'https://gumshop.online/images/og-default.jpg'],
+                            description: product.description || `Buy ${product.name} at GumShop with instant tracking and secure checkout.`,
+                            brand: {
+                                '@type': 'Brand',
+                                name: 'GumShop'
+                            },
+                            offers: {
+                                '@type': 'Offer',
+                                url: typeof window !== 'undefined' ? window.location.href : `https://gumshop.online/product/${product.id}`,
+                                priceCurrency: 'USD',
+                                price: parseFloat(product.price || 29.99).toFixed(2),
+                                availability: product.inStock !== false ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+                                itemCondition: 'https://schema.org/NewCondition'
+                            }
+                        })
+                    }}
+                />
             </div>
         </div>
     );

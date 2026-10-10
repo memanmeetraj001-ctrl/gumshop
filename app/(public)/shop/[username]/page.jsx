@@ -229,6 +229,26 @@ export default function StoreShop({ params }) {
                 storeName={storeInfo?.name || 'Store'} 
                 themeColor="#10B981" 
             />
+
+            {/* Schema.org Store Structured Data for SEO Rich Snippets */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        '@context': 'https://schema.org',
+                        '@type': 'OnlineStore',
+                        name: storeInfo?.name || `${username} Store`,
+                        description: storeInfo?.description || `Official store for ${storeInfo?.name || username} on GumShop.`,
+                        url: typeof window !== 'undefined' ? window.location.href : `https://gumshop.online/shop/${username}`,
+                        hasMerchantReturnPolicy: {
+                            '@type': 'MerchantReturnPolicy',
+                            applicableCountry: 'US',
+                            returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+                            merchantReturnDays: 30
+                        }
+                    })
+                }}
+            />
         </div>
     );
 }
