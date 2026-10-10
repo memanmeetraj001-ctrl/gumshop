@@ -63,10 +63,11 @@ export default function CartDrawer({ isOpen, onClose }) {
     }
 
     const freeShippingThreshold = 50;
+    const shippingFee = subtotal >= freeShippingThreshold || subtotal === 0 ? 0 : 4.99;
     const amountNeededForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
     const freeShippingProgress = Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100));
 
-    const finalTotal = Math.max(0, subtotal - appliedDiscount);
+    const finalTotal = Math.max(0, subtotal + shippingFee - appliedDiscount);
 
     const handleApplyCoupon = async (e) => {
         e.preventDefault();
@@ -120,7 +121,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                         gumroadUrl: i.gumroadUrl || ''
                     })),
                     discountAmount: appliedDiscount,
-                    shippingFee: subtotal >= freeShippingThreshold ? 0 : 4.99
+                    shippingFee: shippingFee
                 })
             });
 
@@ -349,6 +350,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                 onClose={() => setCheckoutModal({ isOpen: false, gumroadUrl: '', orderSessionId: '' })}
                 items={items}
                 total={finalTotal}
+                shippingFee={shippingFee}
                 gumroadUrl={checkoutModal.gumroadUrl}
                 orderSessionId={checkoutModal.orderSessionId}
             />

@@ -120,7 +120,7 @@ export async function POST(req) {
         duplicatedStore.products = duplicatedProducts;
         duplicatedStore.productsCount = duplicatedProducts.length;
 
-        // 5. Persist to Firestore
+        // 5. Persist to Firestore and serverDb memory cache / Supabase
         try {
             await createStore(duplicatedStore);
             for (const dp of duplicatedProducts) {
@@ -128,6 +128,16 @@ export async function POST(req) {
             }
         } catch (dbErr) {
             console.warn('Firebase duplication error:', dbErr.message);
+        }
+
+        try {
+            const { serverSaveStore, serverSaveProducts } = await import('@/lib/serverDb');
+            await serverSaveStore(duplicatedStore);
+            if (duplicatedProducts.length > 0) {
+                await serverSaveProducts(newStoreId, duplicatedProducts);
+            }
+        } catch (cacheErr) {
+            console.warn('ServerDb duplication sync error:', cacheErr.message);
         }
 
         return NextResponse.json({

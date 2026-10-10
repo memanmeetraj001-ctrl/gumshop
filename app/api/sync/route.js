@@ -6,8 +6,10 @@ export async function POST() {
     // 1-Click Sync: revalidates all storefront and creator routes
     revalidatePath('/', 'layout');
     revalidatePath('/dashboard');
-    revalidatePath('/shop/[slug]', 'page');
-    revalidatePath('/creator/[slug]', 'page');
+    revalidatePath('/shop/[username]', 'page');
+    revalidatePath('/creator/[username]', 'page');
+    revalidatePath('/[username]', 'page');
+    revalidatePath('/product/[productId]', 'page');
     return NextResponse.json({ success: true, timestamp: Date.now() });
   } catch (err) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

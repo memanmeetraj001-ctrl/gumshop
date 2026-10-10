@@ -57,10 +57,24 @@ export async function POST(req) {
 
                         const variantBasePrice = baseRetail + sizeDelta;
                         const clientPrice = parseFloat(item.price || 0);
-                        const minAcceptableTierPrice = Math.round(variantBasePrice * 0.70 * 100) / 100;
+
+                        // Check if client price matches an authentic merchant-configured bundle
+                        let isConfiguredBundle = false;
+                        if (Array.isArray(dbProduct.customBundles) && dbProduct.customBundles.length > 0) {
+                            isConfiguredBundle = dbProduct.customBundles.some(b => {
+                                const bUnit = b.pricePerUnit 
+                                    ? parseFloat(b.pricePerUnit) 
+                                    : (b.totalPrice ? Number((parseFloat(b.totalPrice) / (b.qty || 1)).toFixed(2)) : null);
+                                return bUnit !== null && Math.abs(bUnit - clientPrice) <= 0.05;
+                            });
+                        }
+
+                        const isMultiPack = parseInt(item.quantity || 1) >= 2;
+                        // Volume tier breaks allow authentic bundle discounts down to 55% off
+                        const minAcceptableTierPrice = Math.round(variantBasePrice * (isMultiPack ? 0.45 : 0.55) * 100) / 100;
                         
-                        // Respect valid client price if matching variant delta or valid volume tier break (up to 30% off)
-                        if (clientPrice >= minAcceptableTierPrice && clientPrice <= variantBasePrice * 1.5) {
+                        // Respect valid client price if matching configured bundle, variant delta, or valid volume tier break
+                        if (isConfiguredBundle || (clientPrice >= minAcceptableTierPrice && clientPrice <= variantBasePrice * 1.5)) {
                             authoritativePrice = clientPrice;
                         } else {
                             authoritativePrice = variantBasePrice;

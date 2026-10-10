@@ -293,6 +293,9 @@ export default function CreatorBioPage({ params }) {
         const finalPrice = bundle 
             ? parseFloat(bundle.totalPrice || bundle.price || product.price) 
             : parseFloat(product.price || 0);
+        const unitPrice = bundle
+            ? (bundle.pricePerUnit ? parseFloat(bundle.pricePerUnit) : Number((finalPrice / qty).toFixed(2)))
+            : finalPrice;
         const bundleLabel = bundle?.label;
         const itemName = bundleLabel ? `${product.name} (${bundleLabel})` : product.name;
 
@@ -313,7 +316,7 @@ export default function CreatorBioPage({ params }) {
                     items: [{
                         productId: product.id,
                         name: itemName,
-                        price: finalPrice,
+                        price: unitPrice,
                         quantity: qty,
                         image: product.image || product.images?.[0]
                     }],
@@ -327,7 +330,7 @@ export default function CreatorBioPage({ params }) {
                 isOpen: true,
                 product: { ...product, name: itemName },
                 selectedBundle: bundle,
-                total: finalPrice,
+                total: typeof data.total === 'number' ? data.total : finalPrice,
                 gumroadUrl: data.checkoutUrl || '',
                 orderSessionId: data.orderSessionId || orderSessionId
             });
@@ -1196,7 +1199,9 @@ export default function CreatorBioPage({ params }) {
                 items={checkoutModal.product ? [{
                     id: checkoutModal.product.id,
                     name: checkoutModal.product.name,
-                    price: checkoutModal.total,
+                    price: checkoutModal.selectedBundle 
+                        ? (checkoutModal.selectedBundle.pricePerUnit ? parseFloat(checkoutModal.selectedBundle.pricePerUnit) : Number((checkoutModal.total / (checkoutModal.selectedBundle.qty || 1)).toFixed(2)))
+                        : checkoutModal.total,
                     quantity: checkoutModal.selectedBundle?.qty || 1,
                     image: checkoutModal.product.image || checkoutModal.product.images?.[0]
                 }] : []}
