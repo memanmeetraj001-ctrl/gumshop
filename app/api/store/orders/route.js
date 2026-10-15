@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerOrdersByStore, saveServerOrder } from '@/lib/serverOrderStore';
+import { getServerOrdersByStore, saveServerOrder } from '@/lib/db/orders';
 
 export async function GET(req) {
     try {

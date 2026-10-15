@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 import { useAuth } from "@/lib/AuthContext";
 import { updateStore, updateUser } from "@/lib/firebaseDb";
 import { getActiveStore, setActiveStoreSlug } from "@/lib/activeStore";
-import { database } from "@/lib/firebase";
+const database = null;
 const ref = () => null;
 const update = () => Promise.resolve();
 const set = () => Promise.resolve();

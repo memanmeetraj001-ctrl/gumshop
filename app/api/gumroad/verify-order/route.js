@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerGumroadToken } from '@/lib/serverVault';
 import { PaymentStatus, OrderStatus, FulfillmentStatus, ShipmentStatus } from '@/lib/paymentStatus';
-import { getServerOrder, saveServerOrder } from '@/lib/serverOrderStore';
+import { getServerOrder, saveServerOrder } from '@/lib/db/orders';
 
 import { incrementCouponUsage } from '@/lib/firebaseDb';
 

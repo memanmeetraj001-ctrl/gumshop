@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerGumroadToken } from '@/lib/serverVault';
-import { saveServerOrder } from '@/lib/serverOrderStore';
+import { saveServerOrder } from '@/lib/db/orders';
 
 /**
  * ⚡ GumShop.online Instant Gumroad Sales Sync & Verification API
