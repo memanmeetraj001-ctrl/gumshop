@@ -37,19 +37,19 @@ async function itAsync(title, fn) {
 }
 
 // 1. Check SEO Metadata in app/layout.jsx
-it('SEO title & description highlight 1-Click Clone to Gumroad Store with Best Pricing & Wholesale Rates', () => {
+it('SEO title & description highlight The Best E-Commerce Store for Best Deals & Viral Products', () => {
     const layoutCode = fs.readFileSync(path.join(ROOT, 'app/layout.jsx'), 'utf-8');
-    assert.ok(layoutCode.includes('1-Click Clone to Gumroad Store | Best Pricing & Verified Wholesale Rates'), 'Missing updated title in layout.jsx');
-    assert.ok(layoutCode.includes('1-Click clone any winning e-commerce or creator store directly to Gumroad'), 'Missing updated description in layout.jsx');
+    assert.ok(layoutCode.includes('The Best E-Commerce Store for Best Deals & Viral Products'), 'Missing updated title in layout.jsx');
+    assert.ok(layoutCode.includes('The Best E-Commerce Store for Best Deals and Viral Products'), 'Missing updated description in layout.jsx');
     assert.ok(layoutCode.includes('wholesale rates dropshipping'), 'Missing wholesale rates keyword');
     assert.ok(layoutCode.includes('1 click clone to gumroad store'), 'Missing 1 click clone keyword');
 });
 
 // 2. Check manifest.json
-it('public/manifest.json reflects 1-Click Clone to Gumroad Store with Wholesale E-Commerce branding', () => {
+it('public/manifest.json reflects The Best E-Commerce Store for Best Deals & Viral Products branding', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/manifest.json'), 'utf-8'));
-    assert.ok(manifest.name.includes('1-Click Clone to Gumroad Store & Wholesale E-Commerce'), 'Manifest name mismatch');
-    assert.ok(manifest.description.includes('guaranteed best pricing, direct wholesale rates'), 'Manifest description mismatch');
+    assert.ok(manifest.name.includes('The Best E-Commerce Store for Best Deals & Viral Products'), 'Manifest name mismatch');
+    assert.ok(manifest.description.includes('The Best E-Commerce Store for Best Deals and Viral Products'), 'Manifest description mismatch');
 });
 
 // 3. Check updateProduct in lib/firebaseDb.js

@@ -9,11 +9,15 @@ import "./globals.css";
 export const metadata = {
     metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online'),
     title: {
-        default: "GumShop.online — 1-Click Clone to Gumroad Store | Best Pricing & Verified Wholesale Rates",
-        template: "%s | GumShop — 1-Click Gumroad Store Cloner"
+        default: "GumShop.online — The Best E-Commerce Store for Best Deals & Viral Products | 1-Click Clone to Gumroad",
+        template: "%s | GumShop — Best Deals & Viral Products"
     },
-    description: "1-Click clone any winning e-commerce or creator store directly to Gumroad. Access guaranteed best pricing, direct supplier wholesale rates, automated Gumroad checkout, and high-converting storefronts with zero monthly subscription fees.",
+    description: "The Best E-Commerce Store for Best Deals and Viral Products. 1-Click clone any winning store directly to Gumroad with guaranteed best pricing, direct supplier wholesale rates, automated Gumroad checkout, and high-converting storefronts with zero monthly subscription fees.",
     keywords: [
+        "best e-commerce store",
+        "best deals and viral products",
+        "viral products ecommerce",
+        "best deals online store",
         "1 click clone to gumroad store",
         "gumroad store cloner",
         "gumroad online store",
@@ -44,8 +48,8 @@ export const metadata = {
         canonical: 'https://gumshop.online',
     },
     openGraph: {
-        title: "GumShop.online — 1-Click Clone to Gumroad Store | Best Pricing & Wholesale Rates",
-        description: "1-Click clone any winning store to Gumroad with verified customer reviews, high-res media, creator bio mode, and automated checkout. 100% free with direct wholesale supplier margins.",
+        title: "GumShop.online — The Best E-Commerce Store for Best Deals & Viral Products",
+        description: "The Best E-Commerce Store for Best Deals and Viral Products. 1-Click clone winning stores to Gumroad with verified wholesale rates and automated checkout.",
         url: "https://gumshop.online",
         siteName: "GumShop.online",
         locale: "en_US",
@@ -55,14 +59,14 @@ export const metadata = {
                 url: '/favicon.svg',
                 width: 512,
                 height: 512,
-                alt: 'GumShop — 1-Click Clone to Gumroad Store'
+                alt: 'GumShop — Best Deals & Viral Products'
             }
         ]
     },
     twitter: {
         card: "summary_large_image",
-        title: "GumShop.online — 1-Click Clone to Gumroad Store | Best Pricing & Wholesale Rates",
-        description: "1-Click clone any store directly to Gumroad in 60 seconds. Guaranteed best pricing, direct wholesale rates, and zero monthly fees.",
+        title: "GumShop.online — The Best E-Commerce Store for Best Deals & Viral Products",
+        description: "The Best E-Commerce Store for Best Deals and Viral Products. 1-Click clone any store to Gumroad in 60s.",
         images: ['/favicon.svg']
     },
     robots: {
