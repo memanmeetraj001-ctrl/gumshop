@@ -771,20 +771,20 @@ export default function StoreImportPage() {
                                 </button>
                             </div>
 
-                            {/* Import Crawl Scope & Optimization Mode Selector (Available on Step 1) */}
+                            {/* Unified Store Architecture & Import Mode Selector */}
                             <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-4">
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <label className="block text-xs font-black uppercase tracking-wider text-slate-800">
-                                                1. Import Crawl Scope
+                                                Store Architecture & Import Mode
                                             </label>
                                             <p className="text-[11px] text-slate-500 mt-0.5">
-                                                Choose whether to extract only the target page/product or paginate across the full store
+                                                Choose whether to create a focused 1-product lander or a full multi-product store
                                             </p>
                                         </div>
-                                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                                            {importScope === 'single' ? '📄 One Page' : '📚 Multi-Page'}
+                                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                                            {storeArchitecture === 'single' ? '🎯 Single-Product Lander' : '🏬 Multi-Product Catalog'}
                                         </span>
                                     </div>
 
@@ -792,75 +792,9 @@ export default function StoreImportPage() {
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                setImportScope('single');
                                                 setStoreArchitecture('single');
+                                                setImportScope('single');
                                             }}
-                                            className={`p-3.5 rounded-xl border text-left transition cursor-pointer ${
-                                                importScope === 'single'
-                                                    ? 'border-emerald-500 bg-white ring-2 ring-emerald-500/20 text-slate-900 shadow-sm'
-                                                    : 'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300'
-                                            }`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                                                    <span>📄 Single-Page Import (One Page)</span>
-                                                </div>
-                                                {importScope === 'single' && (
-                                                    <span className="size-4 rounded-full bg-emerald-500 text-white flex items-center justify-center">
-                                                        <Check size={11} className="stroke-[3]" />
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                                                Extracts only the specified product URL or first page (fastest, ideal for 1-product landers or drop tests).
-                                            </p>
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setImportScope('multi');
-                                                setStoreArchitecture('multi');
-                                            }}
-                                            className={`p-3.5 rounded-xl border text-left transition cursor-pointer ${
-                                                importScope === 'multi'
-                                                    ? 'border-emerald-500 bg-white ring-2 ring-emerald-500/20 text-slate-900 shadow-sm'
-                                                    : 'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300'
-                                            }`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                                                    <span>📚 Multi-Page Catalog Import</span>
-                                                </div>
-                                                {importScope === 'multi' && (
-                                                    <span className="size-4 rounded-full bg-emerald-500 text-white flex items-center justify-center">
-                                                        <Check size={11} className="stroke-[3]" />
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                                                Deep crawls across multiple pages (page 1, 2, 3...) to extract the full catalog across all collections.
-                                            </p>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2 pt-2 border-t border-slate-200/80">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <label className="block text-xs font-black uppercase tracking-wider text-slate-800">
-                                                2. Store Architecture Mode
-                                            </label>
-                                            <p className="text-[11px] text-slate-500 mt-0.5">
-                                                Choose how your destination storefront will be presented to customers
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => setStoreArchitecture('single')}
                                             className={`p-3.5 rounded-xl border text-left transition cursor-pointer ${
                                                 storeArchitecture === 'single'
                                                     ? 'border-emerald-500 bg-white ring-2 ring-emerald-500/20 text-slate-900 shadow-sm'
@@ -878,13 +812,16 @@ export default function StoreImportPage() {
                                                 )}
                                             </div>
                                             <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                                                Dedicated hero lander with 1, 2, and 3-pack volume bundles and instant direct checkout.
+                                                Extracts target product/landing page. Configures a high-converting hero lander with 1, 2, and 3-pack volume bundles.
                                             </p>
                                         </button>
 
                                         <button
                                             type="button"
-                                            onClick={() => setStoreArchitecture('multi')}
+                                            onClick={() => {
+                                                setStoreArchitecture('multi');
+                                                setImportScope('multi');
+                                            }}
                                             className={`p-3.5 rounded-xl border text-left transition cursor-pointer ${
                                                 storeArchitecture === 'multi'
                                                     ? 'border-emerald-500 bg-white ring-2 ring-emerald-500/20 text-slate-900 shadow-sm'
@@ -902,7 +839,7 @@ export default function StoreImportPage() {
                                                 )}
                                             </div>
                                             <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                                                Standard browsable catalog collection with category filters, product search grid, and shopping cart.
+                                                Deep crawls across multiple pages. Configures a full browsable catalog with search, category filters, and cart.
                                             </p>
                                         </button>
                                     </div>
