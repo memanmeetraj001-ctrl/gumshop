@@ -47,19 +47,22 @@ export default function SuperStorefront() {
         const loadStoreAndCatalog = async () => {
             setLoading(true);
             try {
-                // 1. Resolve designated homepage store (Highest priority)
-                let store = getHomepageStoreSync();
-                let targetSlug = getHomepageStoreSlug();
+                // 1. Resolve designated homepage store directly from server (Highest priority)
+                let store = null;
+                let targetSlug = null;
+                try {
+                    const hpRes = await fetch('/api/store/homepage', { cache: 'no-store' });
+                    if (hpRes.ok) {
+                        const hpData = await hpRes.json();
+                        if (hpData.homepageStore) store = hpData.homepageStore;
+                        if (hpData.homepageSlug) targetSlug = hpData.homepageSlug;
+                    }
+                } catch {}
 
+                // Offline fallback if server API is unavailable
                 if (!store) {
-                    try {
-                        const hpRes = await fetch('/api/store/homepage', { cache: 'no-store' });
-                        if (hpRes.ok) {
-                            const hpData = await hpRes.json();
-                            if (hpData.homepageStore) store = hpData.homepageStore;
-                            if (hpData.homepageSlug) targetSlug = hpData.homepageSlug;
-                        }
-                    } catch {}
+                    store = getHomepageStoreSync();
+                    targetSlug = targetSlug || getHomepageStoreSlug();
                 }
 
                 // If targetSlug exists but store object not hydrated yet, resolve via direct API
@@ -83,7 +86,7 @@ export default function SuperStorefront() {
                     store = getActiveStoreSync();
                 }
 
-                // 3. Fallback to first registered store
+                // 3. Fallback to active store from activeStore helper
                 if (!store) {
                     const { getAllLocalStores } = await import('@/lib/activeStore');
                     const localStores = getAllLocalStores();

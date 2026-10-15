@@ -250,9 +250,10 @@ const ProductDetails = ({ product, storeInfo }) => {
 
                     {/* Customer Photo Reviews UGC Gallery (Rendered only when real reviews exist) */}
                     {(() => {
-                        const reviewsList = (Array.isArray(product.reviews) && product.reviews.length > 0)
-                            ? product.reviews
-                            : (Array.isArray(product.rating) && product.rating.length > 0 && typeof product.rating[0] === 'object' ? product.rating : []);
+                        const rawRevs = product.reviews || product.data?.reviews || product.rating || product.data?.rating;
+                        const reviewsList = Array.isArray(rawRevs)
+                            ? rawRevs
+                            : (rawRevs && typeof rawRevs === 'object' ? [rawRevs] : []);
 
                         const validReviews = reviewsList.map(rev => {
                             if (typeof rev === 'string') {

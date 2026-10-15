@@ -63,7 +63,7 @@ export default function LiveSalesToaster({ product, products, storeName }) {
 
     const buyer = BUYER_PROFILES[currentIndex] || BUYER_PROFILES[0];
     const imageSrc = getSafeImageUrl(activeItem.image || (activeItem.images && activeItem.images[0]));
-    const itemName = activeItem.name || activeItem.title || 'Pet Costume';
+    const itemName = activeItem.name || activeItem.title || 'Popular Item';
     const bundleText = currentIndex % 3 === 1 
         ? 'Purchased 2x Pack' 
         : currentIndex % 3 === 2 

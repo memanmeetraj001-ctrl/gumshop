@@ -198,15 +198,30 @@ export default function CreatorBioPage({ params }) {
     const [activeReviewIndex, setActiveReviewIndex] = useState(0);
     const [isHoveredReview, setIsHoveredReview] = useState(false);
 
+    // Resolve customer reviews from storeInfo or primary product
+    const effectiveReviews = useMemo(() => {
+        if (Array.isArray(storeInfo?.reviews) && storeInfo.reviews.length > 0) {
+            return storeInfo.reviews;
+        }
+        const p0 = products && products.length > 0 ? products[0] : null;
+        if (p0) {
+            const pRevs = p0.reviews || p0.data?.reviews || p0.rating || p0.data?.rating;
+            if (Array.isArray(pRevs) && pRevs.length > 0 && typeof pRevs[0] === 'object') {
+                return pRevs;
+            }
+        }
+        return [];
+    }, [storeInfo?.reviews, products]);
+
     useEffect(() => {
-        const reviewCount = storeInfo?.reviews?.length || 0;
+        const reviewCount = effectiveReviews.length;
         if (isHoveredReview || reviewCount <= 1) return;
         const reviewTimer = setInterval(() => {
             if (typeof document !== 'undefined' && document.hidden) return;
             setActiveReviewIndex(prev => (prev + 1) % reviewCount);
         }, 3500);
         return () => clearInterval(reviewTimer);
-    }, [isHoveredReview, storeInfo?.reviews]);
+    }, [isHoveredReview, effectiveReviews]);
 
     useEffect(() => {
         let isMounted = true;
@@ -1137,8 +1152,8 @@ export default function CreatorBioPage({ params }) {
                                 </span>
                             </div>
 
-                            {/* ─── Authentic Store Reviews (Rendered strictly if store has configured customer testimonials) ─── */}
-                            {Array.isArray(storeInfo?.reviews) && storeInfo.reviews.length > 0 && (
+                            {/* ─── Authentic Store Reviews (Rendered strictly if store or primary product has customer testimonials) ─── */}
+                            {Array.isArray(effectiveReviews) && effectiveReviews.length > 0 && (
                                 <div 
                                     className="mt-6 pt-5 border-t border-slate-200/70"
                                     onMouseEnter={() => setIsHoveredReview(true)}
@@ -1150,41 +1165,41 @@ export default function CreatorBioPage({ params }) {
                                             <span>Customer Feedback</span>
                                         </span>
                                         <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                                            Verified Reviews ({storeInfo.reviews.length})
+                                            Verified Reviews ({effectiveReviews.length})
                                         </span>
                                     </div>
 
                                     <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2.5 transition-all duration-300 relative">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-0.5 text-amber-400">
-                                                {[...Array(storeInfo.reviews[activeReviewIndex]?.rating || 5)].map((_, i) => (
+                                                {[...Array(effectiveReviews[activeReviewIndex]?.rating || 5)].map((_, i) => (
                                                     <Star key={i} size={11} className="fill-amber-400" />
                                                 ))}
                                             </div>
                                             <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
-                                                {storeInfo.reviews[activeReviewIndex]?.badge || 'Verified Purchase'}
+                                                {effectiveReviews[activeReviewIndex]?.badge || 'Verified Purchase'}
                                             </span>
                                         </div>
 
                                         <p className="text-xs text-slate-700 font-medium italic leading-relaxed min-h-[46px]">
-                                            "{storeInfo.reviews[activeReviewIndex]?.text || storeInfo.reviews[activeReviewIndex]?.review || storeInfo.reviews[activeReviewIndex]?.comment || storeInfo.reviews[activeReviewIndex]?.content || 'Exceptional quality and fast delivery!'}"
+                                            "{effectiveReviews[activeReviewIndex]?.text || effectiveReviews[activeReviewIndex]?.review || effectiveReviews[activeReviewIndex]?.comment || effectiveReviews[activeReviewIndex]?.content || 'Exceptional quality and fast delivery!'}"
                                         </p>
 
                                         <div className="flex items-center justify-between pt-1">
                                             <div className="flex items-center gap-2">
                                                 <div className="size-6 rounded-full bg-slate-100 text-[11px] font-black flex items-center justify-center shrink-0">
-                                                    {(storeInfo.reviews[activeReviewIndex]?.name || storeInfo.reviews[activeReviewIndex]?.author || storeInfo.reviews[activeReviewIndex]?.user?.name || 'Customer').charAt(0)}
+                                                    {(effectiveReviews[activeReviewIndex]?.name || effectiveReviews[activeReviewIndex]?.author || effectiveReviews[activeReviewIndex]?.user?.name || 'Customer').charAt(0)}
                                                 </div>
                                                 <div>
                                                     <span className="text-xs font-bold text-slate-800 block leading-tight">
-                                                        {storeInfo.reviews[activeReviewIndex]?.name || storeInfo.reviews[activeReviewIndex]?.author || storeInfo.reviews[activeReviewIndex]?.user?.name || 'Verified Customer'}
+                                                        {effectiveReviews[activeReviewIndex]?.name || effectiveReviews[activeReviewIndex]?.author || effectiveReviews[activeReviewIndex]?.user?.name || 'Verified Customer'}
                                                     </span>
                                                 </div>
                                             </div>
 
                                             {/* Carousel Navigation Dots */}
                                             <div className="flex items-center gap-1.5">
-                                                {storeInfo.reviews.map((_, dotIdx) => (
+                                                {effectiveReviews.map((_, dotIdx) => (
                                                     <button
                                                         key={dotIdx}
                                                         type="button"
