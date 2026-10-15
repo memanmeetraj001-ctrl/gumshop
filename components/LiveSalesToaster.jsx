@@ -27,13 +27,17 @@ export default function LiveSalesToaster({ product, products, storeName }) {
 
         // Initial delay before first pop-up (5 seconds)
         const initialTimer = setTimeout(() => {
+            if (typeof document !== 'undefined' && document.hidden) return;
             setIsVisible(true);
         }, 5000);
 
-        // Rotating interval: visible for 6s, hidden for 22s
+        let innerTimeoutId = null;
+        // Rotating interval: visible for 6s, hidden for 18s
         const interval = setInterval(() => {
+            if (typeof document !== 'undefined' && document.hidden) return;
             setIsVisible(false);
-            setTimeout(() => {
+            innerTimeoutId = setTimeout(() => {
+                if (typeof document !== 'undefined' && document.hidden) return;
                 setCurrentIndex(prev => (prev + 1) % BUYER_PROFILES.length);
                 setIsVisible(true);
             }, 18000); // 18s hidden
@@ -41,6 +45,7 @@ export default function LiveSalesToaster({ product, products, storeName }) {
 
         return () => {
             clearTimeout(initialTimer);
+            if (innerTimeoutId) clearTimeout(innerTimeoutId);
             clearInterval(interval);
         };
     }, [isDismissed, activeItem]);
@@ -77,6 +82,8 @@ export default function LiveSalesToaster({ product, products, storeName }) {
                         <img 
                             src={imageSrc} 
                             alt={itemName} 
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover" 
                         />
                     ) : (

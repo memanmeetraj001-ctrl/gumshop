@@ -3,7 +3,7 @@ import ProductDescription from "@/components/ProductDescription";
 import ProductDetails from "@/components/ProductDetails";
 import Loading from "@/components/Loading";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { getProduct } from "@/lib/firebaseDb";
 import { fetchProducts } from "@/lib/features/product/productSlice";
@@ -16,7 +16,12 @@ export default function Product() {
     const [loading, setLoading] = useState(true);
     const [isOwner, setIsOwner] = useState(false);
     const products = useSelector(state => state.product.list);
+    const productsRef = useRef(products);
     const dispatch = useDispatch();
+
+    useEffect(() => {
+        productsRef.current = products;
+    }, [products]);
 
     useEffect(() => {
         const storedToken = typeof window !== 'undefined' 
@@ -39,6 +44,7 @@ export default function Product() {
     }, [dispatch, products]);
 
     useEffect(() => {
+        let isMounted = true;
         const fetchProductData = async () => {
             setLoading(true);
             try {
@@ -47,7 +53,7 @@ export default function Product() {
 
                 // 2. Fallback to Redux store
                 if (!foundProduct) {
-                    foundProduct = products?.find((p) => p.id === productId);
+                    foundProduct = productsRef.current?.find((p) => p.id === productId);
                 }
 
                 // 3. Fallback: check localStorage & sessionStorage cached stores
@@ -93,15 +99,14 @@ export default function Product() {
                     } catch {}
                 }
 
-                if (foundProduct) {
-                    setProduct(foundProduct);
-                } else {
-                    setProduct(null);
+                if (isMounted) {
+                    setProduct(foundProduct || null);
                 }
             } catch (err) {
                 console.error("Error loading product:", err);
+                if (isMounted) setProduct(null);
             } finally {
-                setLoading(false);
+                if (isMounted) setLoading(false);
             }
         };
 
@@ -109,7 +114,11 @@ export default function Product() {
         if (typeof window !== 'undefined') {
             window.scrollTo(0, 0);
         }
-    }, [productId, products]);
+
+        return () => {
+            isMounted = false;
+        };
+    }, [productId]);
 
     if (loading) {
         return <Loading />;

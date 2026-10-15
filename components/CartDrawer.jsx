@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart, removeFromCart, deleteItemFromCart, clearCart } from '@/lib/features/cart/cartSlice';
 import { X, Trash2, ShoppingBag, Plus, Minus, ArrowRight, Zap, ShieldCheck, Tag } from 'lucide-react';
@@ -21,47 +21,52 @@ export default function CartDrawer({ isOpen, onClose }) {
     const [appliedDiscount, setAppliedDiscount] = useState(0);
     const [checkoutModal, setCheckoutModal] = useState({ isOpen: false, gumroadUrl: '', orderSessionId: '' });
 
-    if (!isOpen) return null;
+    // Memoize resolved items and subtotal to avoid synchronous storage scans on every render
+    const { items, subtotal } = useMemo(() => {
+        if (!isOpen) return { items: [], subtotal: 0 };
+        const resolvedItems = [];
+        let calculatedSubtotal = 0;
 
-    // Resolve items
-    const items = [];
-    let subtotal = 0;
+        for (const [key, qty] of Object.entries(cartItems || {})) {
+            if (!qty || qty <= 0) continue;
+            const baseId = key.includes('__') ? key.split('__')[0] : key;
+            let product = cartProducts[key] || cartProducts[baseId] || Object.values(cartProducts).find(p => p?.id === key || p?.id === baseId) || (products || []).find(p => p.id === key || p.id === baseId);
 
-    for (const [key, qty] of Object.entries(cartItems)) {
-        if (!qty || qty <= 0) continue;
-        const baseId = key.includes('__') ? key.split('__')[0] : key;
-        let product = cartProducts[key] || cartProducts[baseId] || Object.values(cartProducts).find(p => p?.id === key || p?.id === baseId) || (products || []).find(p => p.id === key || p.id === baseId);
-
-        if (!product && typeof window !== 'undefined') {
-            for (let i = 0; i < localStorage.length; i++) {
-                const lsKey = localStorage.key(i);
-                if (lsKey && (lsKey.startsWith('cloned_store_') || lsKey.startsWith('store_') || lsKey.startsWith('gumshop_db_products/'))) {
-                    try {
-                        const parsed = JSON.parse(localStorage.getItem(lsKey) || '{}');
-                        if (parsed.id === key || parsed.id === baseId) { product = parsed; break; }
-                        if (parsed.products) {
-                            const match = parsed.products.find(p => p.id === key || p.id === baseId);
-                            if (match) { product = match; break; }
-                        }
-                    } catch {}
+            if (!product && typeof window !== 'undefined') {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const lsKey = localStorage.key(i);
+                    if (lsKey && (lsKey.startsWith('cloned_store_') || lsKey.startsWith('store_') || lsKey.startsWith('gumshop_db_products/'))) {
+                        try {
+                            const parsed = JSON.parse(localStorage.getItem(lsKey) || '{}');
+                            if (parsed.id === key || parsed.id === baseId) { product = parsed; break; }
+                            if (parsed.products) {
+                                const match = parsed.products.find(p => p.id === key || p.id === baseId);
+                                if (match) { product = match; break; }
+                            }
+                        } catch {}
+                    }
                 }
             }
+
+            const price = parseFloat(product?.price !== undefined && product?.price !== null ? product.price : 0);
+            const name = product?.name || 'Featured Item';
+            const image = product?.image || product?.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200';
+
+            resolvedItems.push({
+                id: key,
+                name,
+                price,
+                image,
+                quantity: qty,
+                storeId: product?.storeId || 'store_default'
+            });
+            calculatedSubtotal += price * qty;
         }
 
-        const price = parseFloat(product?.price !== undefined && product?.price !== null ? product.price : 0);
-        const name = product?.name || 'Featured Item';
-        const image = product?.image || product?.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200';
+        return { items: resolvedItems, subtotal: calculatedSubtotal };
+    }, [isOpen, cartItems, cartProducts, products]);
 
-        items.push({
-            id: key,
-            name,
-            price,
-            image,
-            quantity: qty,
-            storeId: product?.storeId || 'store_default'
-        });
-        subtotal += price * qty;
-    }
+    if (!isOpen) return null;
 
     const freeShippingThreshold = 50;
     const shippingFee = subtotal >= freeShippingThreshold || subtotal === 0 ? 0 : 4.99;
@@ -221,7 +226,9 @@ export default function CartDrawer({ isOpen, onClose }) {
                                     <img 
                                         src={getSafeImageUrl(item.image)} 
                                         alt={item.name || "Product"} 
-                                        className="w-16 h-16 object-cover rounded-xl bg-white border border-slate-200 shrink-0"
+                                        loading="lazy"
+                                        decoding="async"
+                                        className="w-16 h-16 rounded-xl object-cover bg-white border border-slate-200 shrink-0"
                                         onError={(e) => handleImageError(e, 'product')}
                                     />
                                     <div className="flex-1 flex flex-col justify-between">

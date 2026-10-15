@@ -152,11 +152,21 @@ export default function CreatorBioPage({ params }) {
     const [showStickyBar, setShowStickyBar] = useState(false);
     const [selectedPackIndex, setSelectedPackIndex] = useState(0);
 
-    // Scroll listener for sticky floating buy bar
+    // Scroll listener for sticky floating buy bar (throttled with RAF & boolean gating for 60fps smooth scrolling)
     useEffect(() => {
+        let ticking = false;
+        let lastState = false;
         const handleScroll = () => {
-            if (typeof window !== 'undefined') {
-                setShowStickyBar(window.scrollY > 240);
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    const shouldShow = window.scrollY > 240;
+                    if (shouldShow !== lastState) {
+                        lastState = shouldShow;
+                        setShowStickyBar(shouldShow);
+                    }
+                    ticking = false;
+                });
+                ticking = true;
             }
         };
         window.addEventListener('scroll', handleScroll, { passive: true });
@@ -192,6 +202,7 @@ export default function CreatorBioPage({ params }) {
         const reviewCount = storeInfo?.reviews?.length || 0;
         if (isHoveredReview || reviewCount <= 1) return;
         const reviewTimer = setInterval(() => {
+            if (typeof document !== 'undefined' && document.hidden) return;
             setActiveReviewIndex(prev => (prev + 1) % reviewCount);
         }, 3500);
         return () => clearInterval(reviewTimer);
@@ -593,6 +604,7 @@ export default function CreatorBioPage({ params }) {
                                         <img 
                                             src={getSafeImageUrl(creator.avatar, 'avatar')} 
                                             alt={creator.name || 'Store'} 
+                                            decoding="async"
                                             className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-300"
                                             onError={(e) => handleImageError(e, 'avatar', creator.name || 'Store')}
                                         />
@@ -792,6 +804,8 @@ export default function CreatorBioPage({ params }) {
                                                 <img 
                                                     src={getSafeImageUrl(heroItem.image || (heroItem.images && heroItem.images[0]))} 
                                                     alt={heroItem.name} 
+                                                    loading="lazy"
+                                                    decoding="async"
                                                     className="w-full h-full object-cover"
                                                 />
                                                 {discountPct > 0 && (
@@ -972,6 +986,8 @@ export default function CreatorBioPage({ params }) {
                                                     <img 
                                                         src={getSafeImageUrl(item.image || (item.images && item.images[0]))} 
                                                         alt={item.name || 'Product'} 
+                                                        loading="lazy"
+                                                        decoding="async"
                                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                         onError={(e) => handleImageError(e, 'product')}
                                                     />
@@ -1166,6 +1182,8 @@ export default function CreatorBioPage({ params }) {
                                     <img 
                                         src={getSafeImageUrl(displayedProducts[0].image || (displayedProducts[0].images && displayedProducts[0].images[0]))} 
                                         alt={displayedProducts[0].name || 'Product'} 
+                                        loading="lazy"
+                                        decoding="async"
                                         onError={(e) => handleImageError(e, 'product')}
                                         className="w-full h-full object-cover" 
                                     />

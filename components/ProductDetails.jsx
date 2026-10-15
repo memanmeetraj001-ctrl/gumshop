@@ -197,6 +197,7 @@ const ProductDetails = ({ product, storeInfo }) => {
                         <img 
                             src={getSafeImageUrl(mainImage)} 
                             alt={product.name} 
+                            decoding="async"
                             onError={(e) => handleImageError(e, 'product')}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                         />
@@ -221,6 +222,8 @@ const ProductDetails = ({ product, storeInfo }) => {
                                     <img 
                                         src={getSafeImageUrl(img)} 
                                         alt="" 
+                                        loading="lazy"
+                                        decoding="async"
                                         onError={(e) => handleImageError(e, 'product')}
                                         className="w-full h-full object-cover" 
                                     />
