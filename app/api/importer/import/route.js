@@ -128,6 +128,31 @@ export async function POST(req) {
                 ? generateContextualBundles(p.name || 'Featured Product', price, 'exact')
                 : existingBundles;
 
+            // Normalize reviews to guarantee both reviews and rating have clean polymorphic objects
+            const rawRevList = Array.isArray(p.reviews) && p.reviews.length > 0 
+                ? p.reviews 
+                : (Array.isArray(p.rating) && p.rating.length > 0 ? p.rating : []);
+            
+            const normalizedReviews = rawRevList.map(r => {
+                if (typeof r === 'string') {
+                    return { comment: r, review: r, text: r, author: 'Verified Buyer', name: 'Verified Buyer', rating: 5, date: 'Recent', badge: 'Verified Purchase' };
+                }
+                const body = r.comment || r.review || r.text || r.content || '';
+                const author = r.author || r.name || r.userName || r.user?.name || 'Verified Buyer';
+                return {
+                    ...r,
+                    author,
+                    name: author,
+                    user: r.user || { name: author },
+                    comment: body,
+                    review: body,
+                    text: body,
+                    rating: Number(r.rating || r.stars || 5),
+                    date: r.date || (r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'Recent'),
+                    badge: r.badge || 'Verified Purchase'
+                };
+            });
+
             return {
                 id: prodId,
                 storeId,
@@ -144,8 +169,8 @@ export async function POST(req) {
                 options: Array.isArray(p.options) ? p.options : [],
                 faqs: Array.isArray(p.faqs) ? p.faqs : [],
                 badges: Array.isArray(p.badges) ? p.badges : [],
-                reviews: Array.isArray(p.reviews) ? p.reviews : [],
-                rating: Array.isArray(p.rating) ? p.rating : (Array.isArray(p.reviews) ? p.reviews : []),
+                reviews: normalizedReviews,
+                rating: normalizedReviews,
                 specs: Array.isArray(p.specs) ? p.specs : [],
                 isEnhanced: Boolean(p.isEnhanced),
                 price,

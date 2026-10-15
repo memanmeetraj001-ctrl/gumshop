@@ -1142,17 +1142,17 @@ export default function CreatorBioPage({ params }) {
                                         </div>
 
                                         <p className="text-xs text-slate-700 font-medium italic leading-relaxed min-h-[46px]">
-                                            "{storeInfo.reviews[activeReviewIndex]?.text}"
+                                            "{storeInfo.reviews[activeReviewIndex]?.text || storeInfo.reviews[activeReviewIndex]?.review || storeInfo.reviews[activeReviewIndex]?.comment || storeInfo.reviews[activeReviewIndex]?.content || 'Exceptional quality and fast delivery!'}"
                                         </p>
 
                                         <div className="flex items-center justify-between pt-1">
                                             <div className="flex items-center gap-2">
                                                 <div className="size-6 rounded-full bg-slate-100 text-[11px] font-black flex items-center justify-center shrink-0">
-                                                    {(storeInfo.reviews[activeReviewIndex]?.name || 'C').charAt(0)}
+                                                    {(storeInfo.reviews[activeReviewIndex]?.name || storeInfo.reviews[activeReviewIndex]?.author || storeInfo.reviews[activeReviewIndex]?.user?.name || 'Customer').charAt(0)}
                                                 </div>
                                                 <div>
                                                     <span className="text-xs font-bold text-slate-800 block leading-tight">
-                                                        {storeInfo.reviews[activeReviewIndex]?.name}
+                                                        {storeInfo.reviews[activeReviewIndex]?.name || storeInfo.reviews[activeReviewIndex]?.author || storeInfo.reviews[activeReviewIndex]?.user?.name || 'Verified Customer'}
                                                     </span>
                                                 </div>
                                             </div>

@@ -235,33 +235,72 @@ const ProductDetails = ({ product, storeInfo }) => {
                     )}
 
                     {/* Customer Photo Reviews UGC Gallery (Rendered only when real reviews exist) */}
-                    {Array.isArray(product.reviews) && product.reviews.length > 0 && (
-                        <div className="pt-8 border-t border-slate-200">
-                            <h4 className="font-bold text-sm text-slate-900 mb-4 flex items-center justify-between">
-                                <span>Customer Reviews</span>
-                            </h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {product.reviews.map((rev, idx) => (
-                                    <div key={idx} className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-1 text-emerald-500">
-                                                {Array(5).fill('').map((_, i) => (
-                                                    <Star key={i} size={13} className="fill-emerald-500" />
-                                                ))}
+                    {(() => {
+                        const reviewsList = (Array.isArray(product.reviews) && product.reviews.length > 0)
+                            ? product.reviews
+                            : (Array.isArray(product.rating) && product.rating.length > 0 && typeof product.rating[0] === 'object' ? product.rating : []);
+
+                        const validReviews = reviewsList.map(rev => {
+                            if (typeof rev === 'string') {
+                                return { comment: rev, author: 'Verified Buyer', date: 'Recent', rating: 5, avatar: '' };
+                            }
+                            const comment = rev?.comment || rev?.review || rev?.text || rev?.content || rev?.body || '';
+                            const author = rev?.author || rev?.user?.name || rev?.name || rev?.userName || 'Verified Buyer';
+                            const date = rev?.date || (rev?.createdAt ? new Date(rev.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent');
+                            const rating = typeof rev?.rating === 'number' ? rev.rating : (typeof rev?.stars === 'number' ? rev.stars : 5);
+                            const avatar = rev?.user?.image || rev?.avatar || rev?.image || '';
+                            return { comment, author, date, rating, avatar };
+                        }).filter(r => Boolean(r.comment));
+
+                        if (validReviews.length === 0) return null;
+
+                        return (
+                            <div className="pt-8 border-t border-slate-200">
+                                <h4 className="font-bold text-sm text-slate-900 mb-4 flex items-center justify-between">
+                                    <span className="flex items-center gap-2">
+                                        <span>Customer Reviews</span>
+                                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                            {validReviews.length} Verified
+                                        </span>
+                                    </span>
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {validReviews.map((rev, idx) => (
+                                        <div key={idx} className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-1 text-emerald-500">
+                                                        {Array(Math.min(5, Math.max(1, rev.rating))).fill('').map((_, i) => (
+                                                            <Star key={i} size={13} className="fill-emerald-500" />
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-[10px] text-slate-400 font-medium">{rev.date}</span>
+                                                </div>
+                                                <p className="text-xs text-slate-700 font-medium mt-2.5 leading-relaxed">
+                                                    "{rev.comment}"
+                                                </p>
                                             </div>
-                                            <span className="text-[10px] text-slate-400">{rev.date || 'Recent'}</span>
+                                            <div className="text-[11px] font-bold text-slate-900 mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    {rev.avatar ? (
+                                                        <img src={rev.avatar} alt="" className="size-5 rounded-full object-cover" />
+                                                    ) : (
+                                                        <span className="size-5 rounded-full bg-emerald-100 text-emerald-700 font-black text-[10px] flex items-center justify-center">
+                                                            {rev.author.charAt(0)}
+                                                        </span>
+                                                    )}
+                                                    <span>{rev.author}</span>
+                                                </div>
+                                                <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                                                    <span>✓</span> Verified Buyer
+                                                </span>
+                                            </div>
                                         </div>
-                                        <p className="text-xs text-slate-700 font-medium mt-2 leading-relaxed">
-                                            "{rev.comment}"
-                                        </p>
-                                        <p className="text-[11px] font-bold text-slate-900 mt-2 flex items-center gap-1">
-                                            <span>{rev.author}</span>
-                                        </p>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        );
+                    })()}
                 </div>
 
                 {/* Right Column: Buy Box & Conversion Tiers */}

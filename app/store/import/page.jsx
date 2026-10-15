@@ -1986,9 +1986,9 @@ export default function StoreImportPage() {
                                                 </div>
                                             </div>
                                             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-700">
-                                                <p className="italic">"{previewProduct.reviews[0]?.review}"</p>
+                                                <p className="italic">"{previewProduct.reviews[0]?.review || previewProduct.reviews[0]?.comment || previewProduct.reviews[0]?.text || 'Exceptional quality!'}"</p>
                                                 <div className="mt-1 text-[10px] text-slate-500 font-semibold">
-                                                    — {previewProduct.reviews[0]?.user?.name || 'Customer'} (Verified Buyer)
+                                                    — {previewProduct.reviews[0]?.author || previewProduct.reviews[0]?.user?.name || previewProduct.reviews[0]?.name || 'Customer'} (Verified Buyer)
                                                 </div>
                                             </div>
                                         </div>
