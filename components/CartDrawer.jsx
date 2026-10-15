@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart, removeFromCart, deleteItemFromCart } from '@/lib/features/cart/cartSlice';
 import { X, Trash2, ShoppingBag, Plus, Minus, Zap, ShieldCheck, Tag, Sparkles } from 'lucide-react';
@@ -37,28 +38,30 @@ class CartDrawerErrorBoundary extends React.Component {
 
     render() {
         if (this.state.hasError) {
-            return (
+            const fallback = (
                 <div className="fixed inset-0 z-50 overflow-hidden animate-in fade-in duration-200">
-                    <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs" onClick={this.props.onClose} />
-                    <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-                        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between p-6">
-                            <div className="flex items-center justify-between border-b pb-4">
-                                <h3 className="text-base font-bold text-slate-900">Your Cart</h3>
-                                <button onClick={this.props.onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl">✕</button>
-                            </div>
-                            <div className="text-center py-12">
-                                <p className="text-sm text-slate-600 mb-4">Cart temporarily re-synced.</p>
-                                <button 
-                                    onClick={() => { this.setState({ hasError: false }); if (this.props.onClose) this.props.onClose(); }} 
-                                    className="px-6 py-2.5 rounded-full bg-emerald-600 text-white font-bold text-xs"
-                                >
-                                    Continue Shopping
-                                </button>
-                            </div>
+                    <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs transition-opacity" onClick={this.props.onClose} />
+                    <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col justify-between h-full p-6 z-10 overflow-hidden">
+                        <div className="flex items-center justify-between border-b pb-4">
+                            <h3 className="text-base font-bold text-slate-900">Your Cart</h3>
+                            <button onClick={this.props.onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl">✕</button>
+                        </div>
+                        <div className="text-center py-12">
+                            <p className="text-sm text-slate-600 mb-4">Cart temporarily re-synced.</p>
+                            <button 
+                                onClick={() => { this.setState({ hasError: false }); if (this.props.onClose) this.props.onClose(); }} 
+                                className="px-6 py-2.5 rounded-full bg-emerald-600 text-white font-bold text-xs"
+                            >
+                                Continue Shopping
+                            </button>
                         </div>
                     </div>
                 </div>
             );
+            if (typeof document !== 'undefined' && document.body) {
+                return createPortal(fallback, document.body);
+            }
+            return fallback;
         }
         return this.props.children;
     }
@@ -87,14 +90,14 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
         const resolvedItems = [];
         let calculatedSubtotal = 0;
 
-        for (const [key, qty] of Object.entries(cartItems || {})) {
+        for (const [rawKey, qty] of Object.entries(cartItems || {})) {
             const numQty = parseInt(qty || 0);
             if (!numQty || numQty <= 0) continue;
-            const strKey = String(key || '');
-            if (!strKey) continue;
-            const baseId = strKey.includes('__') ? strKey.split('__')[0] : strKey;
-            const variant = strKey.includes('__') ? strKey.split('__')[1] : '';
-            let product = cartProducts[strKey] || cartProducts[baseId] || Object.values(cartProducts).find(p => p && (p.id === strKey || p.id === baseId)) || (products || []).find(p => p && (p.id === strKey || p.id === baseId));
+            const key = String(rawKey || '');
+            if (!key) continue;
+            const baseId = key.includes('__') ? key.split('__')[0] : key;
+            const variant = key.includes('__') ? key.split('__')[1] : '';
+            let product = cartProducts[key] || cartProducts[baseId] || Object.values(cartProducts).find(p => p && (p.id === key || p.id === baseId)) || (products || []).find(p => p && (p.id === key || p.id === baseId));
 
             const rawPrice = product?.price !== undefined && product?.price !== null ? product.price : 0;
             const price = parseFloat(rawPrice) || 0;
@@ -102,7 +105,7 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
             const image = product?.image || (Array.isArray(product?.images) && product.images[0]) || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200';
 
             resolvedItems.push({
-                id: strKey,
+                id: key,
                 name,
                 variant,
                 price,
@@ -254,19 +257,18 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
         }
     };
 
-    return (
+    const drawerMarkup = (
         <div className="fixed inset-0 z-50 overflow-hidden animate-in fade-in duration-200">
             {/* Backdrop */}
             <div 
-                className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity"
+                className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity"
                 onClick={onClose}
             />
 
             {/* Slide Drawer */}
-            <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-                <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between">
-                    
-                    {/* Header */}
+            <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col justify-between h-full z-10 overflow-hidden">
+                
+                {/* Header */}
                     <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <div className="size-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
@@ -534,7 +536,6 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                     )}
 
                 </div>
-            </div>
 
             {/* In-Frame Checkout Modal */}
             <GumroadIframeModal
@@ -550,4 +551,9 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
             />
         </div>
     );
+
+    if (typeof document !== 'undefined' && document.body) {
+        return createPortal(drawerMarkup, document.body);
+    }
+    return drawerMarkup;
 }
