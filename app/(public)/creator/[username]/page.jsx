@@ -891,14 +891,14 @@ export default function CreatorBioPage({ params }) {
             </header>
 
             {/* Main Stage with Dynamic Atmosphere Preset */}
-            <main className={`flex-1 flex items-center justify-center p-0 md:py-10 md:px-4 ${activePreset.bg}`}>
+            <main className={`flex-1 flex flex-col items-center justify-start w-full min-h-screen p-0 md:py-8 md:px-4 overflow-x-hidden ${activePreset.bg}`}>
                 
                 {/* Mobile Smartphone Frame Container */}
                 <div 
                     className={`w-full transition-all duration-300 ${
                         viewMode === 'phone' 
-                            ? `max-w-[430px] md:my-auto md:rounded-[48px] md:border-[10px] md:border-slate-900 md:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] md:ring-1 md:ring-slate-800/10 relative overflow-hidden ${activePreset.frame}`
-                            : `max-w-xl mx-auto rounded-3xl shadow-xl border border-slate-200 my-6 ${activePreset.frame}`
+                            ? `w-full max-w-full sm:max-w-[430px] mx-auto md:my-auto md:rounded-[48px] md:border-[10px] md:border-slate-900 md:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] md:ring-1 md:ring-slate-800/10 relative overflow-hidden ${activePreset.frame}`
+                            : `w-full max-w-xl mx-auto rounded-3xl shadow-xl border border-slate-200 my-6 ${activePreset.frame}`
                     }`}
                 >
                     {/* Inner Content Canvas */}
@@ -1271,18 +1271,18 @@ export default function CreatorBioPage({ params }) {
                                                         {
                                                             qty: 2,
                                                             label: `2 ${baseItem}s`,
-                                                            subtitle: "Two-Pet Household / matching photos",
+                                                            subtitle: "Popular Choice",
                                                             totalPrice: Math.round(heroPrice * 1.4082075 * 100) / 100,
                                                             pricePerUnit: Math.round((heroPrice * 1.4082075 / 2) * 100) / 100,
-                                                            badge: "Two-Pet Household ⭐"
+                                                            badge: "MOST POPULAR"
                                                         },
                                                         {
                                                             qty: 3,
                                                             label: `3 ${baseItem}s`,
-                                                            subtitle: "Costume Party Pack",
+                                                            subtitle: "Ultimate Value",
                                                             totalPrice: Math.round(heroPrice * 1.81623 * 100) / 100,
                                                             pricePerUnit: Math.round((heroPrice * 1.81623 / 3) * 100) / 100,
-                                                            badge: "Costume Party Pack 🔥"
+                                                            badge: "BEST VALUE"
                                                         }
                                                     ];
                                                 const activeBundle = bundles[selectedPackIndex] || bundles[0];
@@ -1340,7 +1340,7 @@ export default function CreatorBioPage({ params }) {
                                                                         }`}
                                                                     >
                                                                         {bundle.badge && (
-                                                                            <span className="absolute -top-2.5 right-1.5 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-500 text-white shadow-2xs">
+                                                                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[8.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-500 text-white shadow-2xs whitespace-nowrap max-w-[95%] truncate">
                                                                                 {bundle.badge}
                                                                             </span>
                                                                         )}
@@ -1639,24 +1639,35 @@ export default function CreatorBioPage({ params }) {
                                 </div>
                             )}
 
-                            {/* In-Bio Customer Legal & Policy Links */}
-                            <div className="pt-4 pb-2 border-t border-slate-100 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] text-slate-400">
-                                <Link href={`/policies/shipping?store=${cleanUser}`} className="hover:text-slate-600 transition">
-                                    Shipping
-                                </Link>
-                                <span>•</span>
-                                <Link href={`/policies/refund?store=${cleanUser}`} className="hover:text-slate-600 transition">
-                                    Refunds
-                                </Link>
-                                <span>•</span>
-                                <Link href={`/policies/privacy?store=${cleanUser}`} className="hover:text-slate-600 transition">
-                                    Privacy
-                                </Link>
-                                <span>•</span>
-                                <Link href={`/policies/terms?store=${cleanUser}`} className="hover:text-slate-600 transition">
-                                    Terms
-                                </Link>
-                            </div>
+                            {/* ─── Stan Store In-Bio Footer ─── */}
+                            <footer className="mt-8 pt-5 pb-2 border-t border-slate-200/80 px-2 text-center">
+                                <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5 text-[11px] font-semibold text-slate-500">
+                                    <Link href={`/shop/${cleanUser}`} className="hover:text-slate-900 font-bold text-slate-800 transition">
+                                        Full Storefront
+                                    </Link>
+                                    <span className="text-slate-300">•</span>
+                                    <Link href={`/policies/shipping?store=${cleanUser}`} className="hover:text-slate-900 transition">
+                                        Shipping Policy
+                                    </Link>
+                                    <span className="text-slate-300">•</span>
+                                    <Link href={`/policies/refund?store=${cleanUser}`} className="hover:text-slate-900 transition">
+                                        Refund & Return Policy
+                                    </Link>
+                                    <span className="text-slate-300">•</span>
+                                    <Link href={`/policies/privacy?store=${cleanUser}`} className="hover:text-slate-900 transition">
+                                        Privacy Policy
+                                    </Link>
+                                    <span className="text-slate-300">•</span>
+                                    <Link href={`/policies/terms?store=${cleanUser}`} className="hover:text-slate-900 transition">
+                                        Terms of Service
+                                    </Link>
+                                </div>
+                                <div className="mt-3 flex items-center justify-center gap-2 text-[10px] text-slate-400 font-medium">
+                                    <span>🔒 256-Bit SSL Encrypted Checkout</span>
+                                    <span>•</span>
+                                    <span>© {new Date().getFullYear()} {creator.name}</span>
+                                </div>
+                            </footer>
 
                         </div>
 
@@ -1667,29 +1678,6 @@ export default function CreatorBioPage({ params }) {
                         <div className="w-32 h-1 bg-slate-900/80 rounded-full"></div>
                     </div>
 
-                </div>
-
-                {/* Desktop Outer Footer Policy Links */}
-                <div className="mt-6 pb-6 text-center text-xs text-slate-400 flex flex-wrap items-center justify-center gap-4">
-                    <Link href={`/shop/${cleanUser}`} className="hover:text-slate-600 transition font-bold text-slate-600">
-                        View Full Storefront
-                    </Link>
-                    <span>•</span>
-                    <Link href={`/policies/shipping?store=${cleanUser}`} className="hover:text-slate-600 transition">
-                        Shipping Policy
-                    </Link>
-                    <span>•</span>
-                    <Link href={`/policies/refund?store=${cleanUser}`} className="hover:text-slate-600 transition">
-                        Refund & Return Policy
-                    </Link>
-                    <span>•</span>
-                    <Link href={`/policies/privacy?store=${cleanUser}`} className="hover:text-slate-600 transition">
-                        Privacy Policy
-                    </Link>
-                    <span>•</span>
-                    <Link href={`/policies/terms?store=${cleanUser}`} className="hover:text-slate-600 transition">
-                        Terms of Service
-                    </Link>
                 </div>
 
             </main>
