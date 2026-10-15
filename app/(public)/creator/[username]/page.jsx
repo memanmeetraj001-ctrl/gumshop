@@ -107,6 +107,7 @@ function formatCreatorProfile(store, rawUsername) {
     if (!store) return null;
     const cleanUser = (rawUsername || store.username || '').toLowerCase().trim();
     const storeClean = (store.username || cleanUser).toLowerCase().trim();
+    const bioProfile = store.bioProfile || store.data?.bioProfile || {};
     const rawDisplayName = bioProfile.displayName || store.name || store.storeName || (rawUsername ? rawUsername.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Store');
     const displayName = decodeHtmlEntities(rawDisplayName);
     
