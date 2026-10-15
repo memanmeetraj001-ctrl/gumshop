@@ -230,6 +230,27 @@ for (const file of allFiles) {
     }
 }
 
+// 8. Check for unimported React hooks
+console.log('\n--- AUDIT 7: React Hook Import & In-Scope Verification ---');
+const standardHooks = ['useState', 'useEffect', 'useMemo', 'useCallback', 'useRef', 'useContext', 'useReducer', 'useId', 'useTransition', 'useDeferredValue'];
+for (const file of allFiles) {
+    if (file.includes('scripts')) continue;
+    const content = fs.readFileSync(file, 'utf8');
+    for (const hook of standardHooks) {
+        const callRegex = new RegExp('\\b' + hook + '\\s*\\(');
+        if (callRegex.test(content)) {
+            const hasReactPrefix = new RegExp('React\\.' + hook).test(content);
+            const hasImport = new RegExp('import\\s+[^;]*?\\b' + hook + '\\b[^;]*?from\\s+[\'"]react[\'"]').test(content);
+            const isDeclared = content.includes('function ' + hook) || content.includes('const ' + hook) || content.includes('let ' + hook);
+            if (!hasReactPrefix && !hasImport && !isDeclared) {
+                reportIssue('ERROR', path.relative(PROJECT_ROOT, file), 0, `Critical unimported React hook call: ${hook}()`);
+            } else {
+                checksPassed++;
+            }
+        }
+    }
+}
+
 console.log('\n====================================================');
 console.log(`TOTAL AUDIT CHECKS PASSED: ${checksPassed}`);
 console.log(`TOTAL ISSUES FLAGGED:     ${issuesFound.length}`);

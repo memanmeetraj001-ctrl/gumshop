@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { addToCart } from "@/lib/features/cart/cartSlice";
