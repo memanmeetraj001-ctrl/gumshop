@@ -217,7 +217,28 @@ export default function CreatorBioPage({ params }) {
 
         const loadCreatorStore = async () => {
             try {
-                const { store, products: resolvedProducts } = await getStoreAndCatalog(rawUsername);
+                // 1. Authoritative Supabase / serverDb fetch
+                let store = null;
+                let resolvedProducts = [];
+                try {
+                    const res = await fetch(`/api/store/data?slug=${encodeURIComponent(rawUsername)}`, { cache: 'no-store' });
+                    if (res.ok) {
+                        const apiData = await res.json();
+                        if (apiData.success && apiData.store) {
+                            store = apiData.store;
+                            resolvedProducts = Array.isArray(apiData.products) ? apiData.products : [];
+                        }
+                    }
+                } catch {}
+
+                // 2. Fallback to local / presets cache
+                if (!store) {
+                    const { getStoreAndCatalog } = await import('@/lib/storePresets');
+                    const fallbackData = await getStoreAndCatalog(rawUsername);
+                    store = fallbackData.store;
+                    resolvedProducts = fallbackData.products || [];
+                }
+
                 if (isMounted) {
                     if (store) {
                         setStoreInfo(store);
@@ -258,7 +279,6 @@ export default function CreatorBioPage({ params }) {
         if (typeof window !== 'undefined') {
             window.addEventListener('products_updated', handleSync);
             window.addEventListener('active_store_changed', handleSync);
-            window.addEventListener('storage', handleSync);
         }
 
         return () => {
@@ -267,7 +287,6 @@ export default function CreatorBioPage({ params }) {
             if (typeof window !== 'undefined') {
                 window.removeEventListener('products_updated', handleSync);
                 window.removeEventListener('active_store_changed', handleSync);
-                window.removeEventListener('storage', handleSync);
             }
         };
     }, [cleanUser, rawUsername]);

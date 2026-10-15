@@ -98,10 +98,10 @@ export default function StoreOrders() {
 
                 let store = null;
                 if (targetSlug) {
-                    const { getStoreAndCatalog } = await import('@/lib/storePresets');
-                    const resolved = await getStoreAndCatalog(targetSlug);
-                    if (resolved?.store) {
-                        store = resolved.store;
+                    const { resolveStoreFromSlug } = await import('@/lib/resolveStoreServer');
+                    const resolved = await resolveStoreFromSlug(targetSlug, user);
+                    if (resolved) {
+                        store = resolved;
                         const { setActiveStoreSlug } = await import('@/lib/activeStore');
                         setActiveStoreSlug(store);
                     }

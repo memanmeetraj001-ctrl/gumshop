@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStoreByUsername, getProductsByStore, createStore, createProduct } from '@/lib/firebaseDb';
-import { resolvePresetStore, resolvePresetProducts } from '@/lib/storePresets';
+import { resolvePresetStore } from '@/lib/storePresets';
 import { applyPriceSlash } from '@/lib/importer/priceNormalizer.js';
 
 /**
@@ -59,9 +59,6 @@ export async function POST(req) {
             } catch {}
             if ((!sourceProducts || sourceProducts.length === 0) && Array.isArray(sourceStore.products)) {
                 sourceProducts = sourceStore.products;
-            }
-            if (!sourceProducts || sourceProducts.length === 0) {
-                sourceProducts = resolvePresetProducts(sourceStoreSlug, sourceStore.id);
             }
         }
 

@@ -23,20 +23,27 @@ export default function ExitIntentModal({ onApplyCoupon }) {
             }
         };
 
-        // Mobile scroll-to-top exit intent
+        // Mobile scroll-to-top exit intent (RAF throttled for 60fps)
         let lastScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
         let lastScrollTime = Date.now();
+        let ticking = false;
         const handleScroll = () => {
-            const now = Date.now();
-            const currentScrollY = window.scrollY;
-            const scrollDelta = lastScrollY - currentScrollY;
-            const timeDelta = now - lastScrollTime;
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    const now = Date.now();
+                    const currentScrollY = window.scrollY;
+                    const scrollDelta = lastScrollY - currentScrollY;
+                    const timeDelta = now - lastScrollTime;
 
-            if (lastScrollY > 200 && currentScrollY < 40 && scrollDelta > 120 && timeDelta < 350) {
-                triggerModal();
+                    if (lastScrollY > 200 && currentScrollY < 40 && scrollDelta > 120 && timeDelta < 350) {
+                        triggerModal();
+                    }
+                    lastScrollY = currentScrollY;
+                    lastScrollTime = now;
+                    ticking = false;
+                });
+                ticking = true;
             }
-            lastScrollY = currentScrollY;
-            lastScrollTime = now;
         };
 
         document.addEventListener('mouseleave', handleMouseLeave);

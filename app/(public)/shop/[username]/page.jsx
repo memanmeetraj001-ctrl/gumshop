@@ -21,10 +21,6 @@ import {
 } from "lucide-react";
 
 import { 
-    STARTER_PRODUCTS, 
-    RC_DRIFT_STARTER_PRODUCTS, 
-    DEMO_PRESETS,
-    getStoreAndCatalog,
     getStoreAndCatalogSync
 } from "@/lib/storePresets";
 
@@ -50,6 +46,23 @@ export default function StoreShop({ params }) {
 
         const fetchStoreData = async () => {
             try {
+                // 1. Authoritative Supabase / serverDb fetch
+                const res = await fetch(`/api/store/data?slug=${encodeURIComponent(rawUsername)}`, { cache: 'no-store' });
+                if (res.ok) {
+                    const apiData = await res.json();
+                    if (apiData.success && apiData.store) {
+                        const s = apiData.store;
+                        if (!s.gumroadToken && typeof window !== 'undefined') {
+                            s.gumroadToken = localStorage.getItem('gumshop_gumroad_token') || '';
+                        }
+                        setStoreInfo(s);
+                        setProducts(Array.isArray(apiData.products) ? apiData.products : []);
+                        return;
+                    }
+                }
+
+                // 2. Fallback: local cached store
+                const { getStoreAndCatalog } = await import('@/lib/storePresets');
                 const { store, products: resolvedProducts } = await getStoreAndCatalog(rawUsername);
                 if (store) {
                     if (!store.gumroadToken && typeof window !== 'undefined') {
@@ -75,7 +88,6 @@ export default function StoreShop({ params }) {
         if (typeof window !== 'undefined') {
             window.addEventListener('products_updated', handleSync);
             window.addEventListener('active_store_changed', handleSync);
-            window.addEventListener('storage', handleSync);
         }
 
         return () => {
@@ -83,7 +95,6 @@ export default function StoreShop({ params }) {
             if (typeof window !== 'undefined') {
                 window.removeEventListener('products_updated', handleSync);
                 window.removeEventListener('active_store_changed', handleSync);
-                window.removeEventListener('storage', handleSync);
             }
         };
     }, [username, cleanUser, rawUsername]);

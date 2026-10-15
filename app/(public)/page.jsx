@@ -62,15 +62,17 @@ export default function SuperStorefront() {
                     } catch {}
                 }
 
-                // If targetSlug exists but store object not hydrated yet, resolve via getStoreAndCatalog
+                // If targetSlug exists but store object not hydrated yet, resolve via direct API
                 if (!store && targetSlug) {
                     try {
-                        const { getStoreAndCatalog } = await import('@/lib/storePresets');
-                        const loaded = await getStoreAndCatalog(targetSlug);
-                        if (loaded?.store) {
-                            store = loaded.store;
-                            if (loaded.products && loaded.products.length > 0) {
-                                setProducts(loaded.products);
+                        const sRes = await fetch(`/api/store/data?slug=${encodeURIComponent(targetSlug)}`, { cache: 'no-store' });
+                        if (sRes.ok) {
+                            const sData = await sRes.json();
+                            if (sData.success && sData.store) {
+                                store = sData.store;
+                                if (Array.isArray(sData.products) && sData.products.length > 0) {
+                                    setProducts(sData.products);
+                                }
                             }
                         }
                     } catch {}
