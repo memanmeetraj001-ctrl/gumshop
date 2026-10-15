@@ -391,7 +391,7 @@ export default function StoreManageProducts() {
                         <span>View Storefront</span>
                     </Link>
                     <Link
-                        href="/store/cloner"
+                        href="/store/import"
                         className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-xs font-bold text-emerald-800 transition"
                     >
                         <Sparkles size={15} className="text-emerald-600" />
@@ -561,7 +561,7 @@ export default function StoreManageProducts() {
                                         {products.length === 0 ? (
                                             <>
                                                 No products found in this store yet. <br />
-                                                <Link href="/store/cloner" className="text-emerald-600 font-bold hover:underline mt-2 inline-block">
+                                                <Link href="/store/import" className="text-emerald-600 font-bold hover:underline mt-2 inline-block">
                                                     Paste a URL to clone a catalog in 60s →
                                                 </Link>
                                             </>

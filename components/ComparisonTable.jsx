@@ -124,7 +124,7 @@ const ComparisonTable = () => {
                 {/* Bottom CTA Button */}
                 <div className="mt-12 text-center">
                     <Link 
-                        href="/store/cloner"
+                        href="/store/import"
                         className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-base shadow-lg shadow-emerald-600/30 transition-all hover:scale-105"
                     >
                         <Zap size={18} className="fill-white" />

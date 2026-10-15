@@ -71,7 +71,7 @@ const HowItWorks = () => {
                 {/* Callout */}
                 <div className="mt-12 text-center">
                     <Link 
-                        href="/store/cloner"
+                        href="/store/import"
                         className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-bold text-sm sm:text-base group"
                     >
                         <span>Try it now — clone your first store in 60s</span>

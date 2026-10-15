@@ -223,11 +223,11 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                         <Link href="/#catalog" className="hover:text-emerald-600 transition">
                             All Products
                         </Link>
-                        <Link href="/#flash-deals" className="hover:text-emerald-600 transition flex items-center gap-1 text-rose-600 font-extrabold">
-                            🔥 Flash Deals
+                        <Link href="/#special-deals" className="hover:text-emerald-600 transition flex items-center gap-1 text-rose-600 font-extrabold">
+                            🔥 Special Deals
                         </Link>
-                        <Link href="/#reviews" className="hover:text-emerald-600 transition">
-                            Reviews
+                        <Link href="/shop" className="hover:text-emerald-600 transition">
+                            Catalog
                         </Link>
                     </nav>
 
@@ -325,19 +325,19 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                                     Browse All Products
                                 </Link>
                                 <Link 
-                                    href="/#flash-deals" 
+                                    href="/#special-deals" 
                                     onClick={() => setMobileMenuOpen(false)}
                                     className="p-3 rounded-xl bg-rose-50 text-rose-700 font-extrabold transition flex items-center justify-between"
                                 >
-                                    <span>🔥 Flash Deals</span>
+                                    <span>🔥 Special Deals</span>
                                     <span className="text-[10px] bg-rose-200 px-2 py-0.5 rounded-full">Limited</span>
                                 </Link>
                                 <Link 
-                                    href="/#reviews" 
+                                    href="/shop" 
                                     onClick={() => setMobileMenuOpen(false)}
                                     className="p-3 rounded-xl hover:bg-slate-50 transition"
                                 >
-                                    Customer Reviews
+                                    Trending Collections
                                 </Link>
                                 <Link 
                                     href="/track" 

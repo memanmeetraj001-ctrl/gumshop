@@ -75,9 +75,9 @@ export default function Footer() {
                         <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3">Shop Collections</h4>
                         <ul className="space-y-2">
                             <li><a href="/#catalog" className="hover:text-emerald-400 transition">All Products</a></li>
-                            <li><a href="/#flash-deals" className="hover:text-emerald-400 transition text-rose-400 font-bold">🔥 Flash Deals</a></li>
+                            <li><a href="/#special-deals" className="hover:text-emerald-400 transition text-rose-400 font-bold">🔥 Special Deals</a></li>
                             <li><Link href="/shop" className="hover:text-emerald-400 transition">Trending Collections</Link></li>
-                            <li><a href="/#reviews" className="hover:text-emerald-400 transition">Customer Reviews</a></li>
+                            <li><Link href="/track" className="hover:text-emerald-400 transition">Track Your Order</Link></li>
                         </ul>
                     </div>
 
