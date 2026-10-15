@@ -1,8 +1,7 @@
 'use client'
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Zap, Sparkles, ArrowRight, ShieldCheck, CheckCircle2, Copy, Play, ShoppingBag, ExternalLink, Layers, Check } from 'lucide-react';
+import { Zap, Sparkles, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Hero() {

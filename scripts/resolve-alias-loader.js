@@ -5,6 +5,9 @@ import { pathToFileURL } from 'url';
 const rootDir = process.cwd();
 
 export async function resolve(specifier, context, nextResolve) {
+    if (specifier === 'next/server') {
+        return nextResolve('next/server.js', context);
+    }
     if (specifier.startsWith('@/')) {
         let relative = specifier.slice(2);
         let resolvedPath = path.join(rootDir, relative);
@@ -13,6 +16,9 @@ export async function resolve(specifier, context, nextResolve) {
             else if (fs.existsSync(resolvedPath + '.jsx')) resolvedPath += '.jsx';
         }
         return nextResolve(pathToFileURL(resolvedPath).href, context);
+    }
+    if (/^[a-zA-Z]:[/\\]/.test(specifier)) {
+        return nextResolve(pathToFileURL(specifier).href, context);
     }
     return nextResolve(specifier, context);
 }

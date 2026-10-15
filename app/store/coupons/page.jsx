@@ -1,6 +1,5 @@
 'use client'
 import React, { useEffect, useState, useMemo } from "react"
-import { format } from "date-fns"
 import toast from "react-hot-toast"
 import { 
     TicketPercent, 
@@ -8,14 +7,10 @@ import {
     Copy, 
     Check, 
     Plus, 
-    Sparkles, 
-    Clock, 
     DollarSign, 
     Percent, 
     Truck, 
     Tag, 
-    ShoppingBag, 
-    Calendar,
     AlertCircle
 } from "lucide-react"
 import { getAllCoupons, createCoupon as dbCreateCoupon, deleteCoupon as dbDeleteCoupon, getProductsByStore } from "@/lib/firebaseDb"
@@ -46,7 +41,19 @@ export default function StoreCoupons() {
 
     const fetchData = async () => {
         try {
-            let currentStore = await getActiveStore(user) || getActiveStoreSync();
+            let targetSlug = '';
+            if (typeof window !== 'undefined') {
+                const sp = new URLSearchParams(window.location.search);
+                targetSlug = sp.get('store') || '';
+            }
+            let currentStore = null;
+            if (targetSlug) {
+                const { resolveStoreFromSlug } = await import('@/lib/resolveStoreServer');
+                currentStore = await resolveStoreFromSlug(targetSlug, user);
+            }
+            if (!currentStore) {
+                currentStore = await getActiveStore(user) || getActiveStoreSync();
+            }
             if (!currentStore) {
                 setLoading(false);
                 return;
@@ -57,7 +64,7 @@ export default function StoreCoupons() {
             setProducts(storeProducts || [])
 
             const data = await getAllCoupons()
-            setCoupons((data || []).filter(c => !c.storeId || c.storeId === currentStore.id))
+            setCoupons((data || []).filter(c => c.storeId === currentStore.id))
         } catch (err) {
             console.error("Error fetching coupons:", err)
         } finally {
@@ -326,7 +333,7 @@ export default function StoreCoupons() {
                             </label>
                             <input 
                                 type="date"
-                                value={newCoupon.expiresAt instanceof Date ? format(newCoupon.expiresAt, 'yyyy-MM-dd') : String(newCoupon.expiresAt).slice(0, 10)}
+                                value={newCoupon.expiresAt instanceof Date ? new Date(newCoupon.expiresAt).toISOString().slice(0, 10) : String(newCoupon.expiresAt).slice(0, 10)}
                                 onChange={e => setNewCoupon(prev => ({ ...prev, expiresAt: new Date(e.target.value) }))}
                                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-emerald-500 focus:bg-white transition"
                             />
@@ -392,7 +399,7 @@ export default function StoreCoupons() {
                                                     {c.type === 'shipping' ? 'Free Shipping' : `${c.discount}${c.type === 'fixed' ? '$' : '%'} OFF`}
                                                 </span>
                                                 {c.minSpend > 0 && <span>• Min spend: ${c.minSpend}</span>}
-                                                {c.expiresAt && <span>• Expires: {format(new Date(c.expiresAt), 'MMM dd, yyyy')}</span>}
+                                                {c.expiresAt && <span>• Expires: {new Date(c.expiresAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}</span>}
                                             </div>
                                         </div>
 

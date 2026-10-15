@@ -1,8 +1,4 @@
 import { NextResponse } from 'next/server';
-import { database } from '@/lib/firebase';
-const ref = () => null;
-const get = () => Promise.resolve({ exists: () => false });
-const set = () => Promise.resolve();
 import { PaymentStatus, OrderStatus, FulfillmentStatus, ShipmentStatus } from '@/lib/paymentStatus';
 import { isSaleProcessed, markSaleProcessed, saveServerOrder } from '@/lib/serverOrderStore';
 

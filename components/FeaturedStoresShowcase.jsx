@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link';
-import { ExternalLink, Zap, Star, Sparkles, Store, ArrowRight } from 'lucide-react';
+import { ExternalLink, Zap, Star, Store, ArrowRight } from 'lucide-react';
 
 const FEATURED_STORES = [
     {

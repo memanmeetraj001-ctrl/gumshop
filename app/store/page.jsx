@@ -44,6 +44,11 @@ export default function StoreAnalyticsDashboard() {
     const [timeRange, setTimeRange] = useState('all'); // 'today' | '7d' | '30d' | 'all'
     const [products, setProducts] = useState([]);
     const [orders, setOrders] = useState([]);
+    const [mountedOrigin, setMountedOrigin] = useState('');
+
+    useEffect(() => {
+        setMountedOrigin(window.location.origin);
+    }, []);
 
     const fetchDashboardData = async () => {
         try {
@@ -239,7 +244,7 @@ export default function StoreAnalyticsDashboard() {
     if (loading) return <Loading />;
 
     const storeSlug = currentStore?.username || currentStore?.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '-') || 'store';
-    const origin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'https://www.gumshop.online';
+    const origin = mountedOrigin || 'https://www.gumshop.online';
     const bioUrl = `${origin}/creator/${storeSlug}`;
     const storeUrl = `${origin}/shop/${storeSlug}`;
 
@@ -327,6 +332,7 @@ export default function StoreAnalyticsDashboard() {
                     </button>
                     <a
                         href={bioUrl}
+                        suppressHydrationWarning
                         target="_blank"
                         rel="noreferrer"
                         className="px-3.5 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition"

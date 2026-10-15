@@ -27,7 +27,6 @@ import {
     Package,
     ShieldCheck
 } from 'lucide-react';
-import { getStoreByUsername, getProductsByStore, getAllStores, isProductDeleted, isJunkProductName } from '@/lib/firebaseDb';
 import GumroadIframeModal from '@/components/GumroadIframeModal';
 import ExitIntentModal from '@/components/ExitIntentModal';
 import AiShoppingAssistant from '@/components/AiShoppingAssistant';

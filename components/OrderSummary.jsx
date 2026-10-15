@@ -1,13 +1,12 @@
 'use client'
-import { PlusIcon, SquarePenIcon, XIcon, Zap, ShieldCheck, Lock, CreditCard } from 'lucide-react';
+import { XIcon, Zap, ShieldCheck, Lock, CreditCard } from 'lucide-react';
 import React, { useState, useEffect } from 'react'
 import AddressModal from './AddressModal';
 import { useSelector, useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
-import { createOrder, getCoupon } from '@/lib/firebaseDb';
-import { clearCart } from '@/lib/features/cart/cartSlice';
+import { getCoupon } from '@/lib/firebaseDb';
 import { fetchAddresses } from '@/lib/features/address/addressSlice';
 import { getActiveStoreSync } from '@/lib/activeStore';
 import GumroadIframeModal from './GumroadIframeModal';

@@ -10,6 +10,11 @@ export default function StoreMarketingLaunchKit() {
     const [storeInfo, setStoreInfo] = useState(null);
     const [copiedIndex, setCopiedIndex] = useState(null);
     const [copiedBio, setCopiedBio] = useState(false);
+    const [mountedOrigin, setMountedOrigin] = useState('');
+
+    useEffect(() => {
+        setMountedOrigin(window.location.origin);
+    }, []);
 
     useEffect(() => {
         const load = async () => {
@@ -21,8 +26,9 @@ export default function StoreMarketingLaunchKit() {
 
     const activeSyncStore = storeInfo || getActiveStoreSync();
     const storeSlug = activeSyncStore?.username || activeSyncStore?.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '') || (typeof window !== 'undefined' ? (localStorage.getItem('active_store_slug') || '') : '') || '';
-    const storeLink = typeof window !== 'undefined' ? (storeSlug ? `${window.location.origin}/shop/${storeSlug}` : `${window.location.origin}/dashboard`) : (storeSlug ? `https://gumshop.online/shop/${storeSlug}` : 'https://gumshop.online/dashboard');
-    const bioLink = typeof window !== 'undefined' ? (storeSlug ? `${window.location.origin}/creator/${storeSlug}` : `${window.location.origin}/dashboard`) : (storeSlug ? `https://gumshop.online/creator/${storeSlug}` : 'https://gumshop.online/dashboard');
+    const baseOrigin = mountedOrigin || 'https://gumshop.online';
+    const storeLink = storeSlug ? `${baseOrigin}/shop/${storeSlug}` : `${baseOrigin}/dashboard`;
+    const bioLink = storeSlug ? `${baseOrigin}/creator/${storeSlug}` : `${baseOrigin}/dashboard`;
 
     const captionTemplates = [
         {
@@ -64,7 +70,7 @@ export default function StoreMarketingLaunchKit() {
 
                 <div className="p-2.5 px-4 bg-emerald-50 rounded-2xl border border-emerald-200/60 text-xs font-semibold text-emerald-800 flex items-center gap-2">
                     <Share2 size={16} className="text-emerald-600 shrink-0" />
-                    <span className="truncate max-w-xs">{storeLink}</span>
+                    <span suppressHydrationWarning className="truncate max-w-xs">{storeLink}</span>
                 </div>
             </div>
 
@@ -90,7 +96,7 @@ export default function StoreMarketingLaunchKit() {
                         <div>
                             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Your Bio URL:</span>
                             <div className="mt-1 p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-2">
-                                <span className="font-mono text-xs font-bold text-slate-800 truncate select-all">{bioLink}</span>
+                                <span suppressHydrationWarning className="font-mono text-xs font-bold text-slate-800 truncate select-all">{bioLink}</span>
                             </div>
                         </div>
 
@@ -111,6 +117,7 @@ export default function StoreMarketingLaunchKit() {
 
                             <a
                                 href={bioLink}
+                                suppressHydrationWarning
                                 target="_blank"
                                 rel="noreferrer"
                                 className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition"

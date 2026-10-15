@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { addToCart } from "@/lib/features/cart/cartSlice";
 import { 
     Zap, 
@@ -14,9 +14,7 @@ import {
     ChevronDown, 
     ChevronUp, 
     Check, 
-    Sparkles, 
-    ShoppingBag,
-    Eye
+    ShoppingBag
 } from "lucide-react";
 import toast from "react-hot-toast";
 import GumroadIframeModal from "./GumroadIframeModal";
@@ -535,7 +533,6 @@ const ProductDetails = ({ product, storeInfo }) => {
                     {/* Shipping Protection & Skip The Line Add-on Checkbox */}
                     <div className="space-y-2 pt-2">
                         <label 
-                            onClick={() => setHasShippingProtection(!hasShippingProtection)}
                             className={`p-3 rounded-xl border-2 flex items-center justify-between cursor-pointer transition select-none ${
                                 hasShippingProtection ? 'border-amber-400 bg-amber-50/60 shadow-xs' : 'border-slate-200 bg-white hover:border-slate-300'
                             }`}

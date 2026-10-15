@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { database } from '@/lib/firebase';
-const ref = () => null;
-const set = () => Promise.resolve();
 import { getServerGumroadToken } from '@/lib/serverVault';
+import { saveServerOrder } from '@/lib/serverOrderStore';
 
 /**
  * ⚡ GumShop.online Instant Gumroad Sales Sync & Verification API
@@ -189,11 +187,19 @@ export async function POST(req) {
                 syncedOrders.push(orderPayload);
             }
 
-            // Persist into Firebase RTDB
-            if (database && storeId) {
+        }
+
+        // Persist orders into resilient server storage
+        for (const order of syncedOrders) {
+            const orderId = order.id || order.order_number;
+            if (orderId) {
                 try {
-                    const storeOrderRef = ref(database, `stores/${storeId}/orders/${orderId}`);
-                    await set(storeOrderRef, orderPayload);
+                    saveServerOrder(orderId, {
+                        id: orderId,
+                        ...order,
+                        source: 'gumroad_sync',
+                        syncedAt: new Date().toISOString()
+                    });
                 } catch (e) {
                     console.warn(`Sync write skipped for order ${orderId}:`, e.message);
                 }

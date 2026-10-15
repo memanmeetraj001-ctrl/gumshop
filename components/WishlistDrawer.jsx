@@ -3,8 +3,7 @@ import React from 'react';
 import { useWishlist } from '@/lib/wishlist';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '@/lib/features/cart/cartSlice';
-import { X, Heart, ShoppingBag, Trash2, ArrowRight } from 'lucide-react';
-import Link from 'next/link';
+import { X, Heart, ShoppingBag, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function WishlistDrawer({ isOpen, onClose, onOpenCart }) {

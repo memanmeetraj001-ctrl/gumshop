@@ -1,5 +1,5 @@
 'use client'
-import { Zap, Sparkles, ShoppingCart, Film, Layers, Truck, ShieldCheck, HeartHandshake } from 'lucide-react';
+import { Zap, Sparkles, ShoppingCart, Layers, Truck, HeartHandshake } from 'lucide-react';
 
 const FeaturesGrid = () => {
     const features = [

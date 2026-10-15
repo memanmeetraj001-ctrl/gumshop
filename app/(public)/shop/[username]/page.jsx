@@ -9,7 +9,6 @@ import ExitIntentModal from "@/components/ExitIntentModal";
 import AiShoppingAssistant from "@/components/AiShoppingAssistant";
 import LiveSalesToaster from "@/components/LiveSalesToaster";
 import CartDrawer from "@/components/CartDrawer";
-import { getStoreByUsername, getProductsByStore, getAllStores, isProductDeleted, isJunkProductName } from "@/lib/firebaseDb";
 import { useAuth } from "@/lib/AuthContext";
 import Link from "next/link";
 import { 

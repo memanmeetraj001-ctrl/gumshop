@@ -8,7 +8,6 @@ import {
     Plus, 
     ExternalLink, 
     ShoppingBag, 
-    Layers, 
     LogOut, 
     Sparkles, 
     Trash2, 
@@ -25,15 +24,11 @@ import {
     Globe, 
     ShieldCheck, 
     TrendingUp, 
-    MousePointerClick, 
-    Share2,
     LayoutDashboard,
     Package,
     BarChart3,
     History,
     CheckCircle2,
-    AlertCircle,
-    Clock,
     DollarSign,
     RefreshCw,
     Download,
@@ -44,7 +39,7 @@ import {
     Scissors
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { isProductDeleted, isStoreDeleted, markStoreDeleted, deleteStore, DEFAULT_CATALOG_PRODUCTS } from '@/lib/firebaseDb';
+import { isProductDeleted, isStoreDeleted, markStoreDeleted, deleteStore } from '@/lib/firebaseDb';
 import { setActiveStoreSlug, getActiveStoreSync, getAllLocalStores, getHomepageStoreSlug, setHomepageStoreSlug } from '@/lib/activeStore';
 
 const ADMIN_SESSION_TOKEN = 'gumshop_superadmin_session_meetminal_verified_2026';

@@ -1,7 +1,6 @@
 'use client'
 import { usePathname } from "next/navigation"
-import { HomeIcon, LayoutListIcon, SquarePenIcon, SquarePlusIcon, TicketPercentIcon, SettingsIcon, Sparkles, Film, ExternalLink, Smartphone, Package, Users, Tag, BarChart3 } from "lucide-react"
-import Image from "next/image"
+import { HomeIcon, SquarePenIcon, SquarePlusIcon, TicketPercentIcon, SettingsIcon, Sparkles, ExternalLink, Smartphone, Package, Users, Tag, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { getActiveStoreSync } from "@/lib/activeStore"
 

@@ -48,9 +48,24 @@ function getHomepageDomIds() {
 // 3. Match a path against App Router route list
 function routeMatches(targetPath, knownRoutes) {
     const cleanPath = targetPath.split('?')[0].split('#')[0];
-    if (cleanPath === '') return true;
+    if (cleanPath === '' || cleanPath === '/') {
+        const root = knownRoutes.find(r => r.route === '/');
+        return { matched: true, matchedRoute: '/', file: root ? root.file : 'app/(public)/page.jsx' };
+    }
 
-    for (const r of knownRoutes) {
+    // 1. Try exact static match first
+    const staticMatch = knownRoutes.find(r => r.route === cleanPath);
+    if (staticMatch) {
+        return { matched: true, matchedRoute: staticMatch.route, file: staticMatch.file };
+    }
+
+    // 2. Try dynamic route match
+    // Sort dynamic routes so more specific routes come before generic /[username]
+    const dynamicRoutes = knownRoutes
+        .filter(r => r.route.includes('['))
+        .sort((a, b) => b.route.split('/').length - a.route.split('/').length);
+
+    for (const r of dynamicRoutes) {
         const routePattern = r.route;
         // Convert route pattern like /shop/[username] to regex ^/shop/[^/]+$
         const regexStr = '^' + routePattern.replace(/\[([^\]]+)\]/g, '[^/]+') + '$';
@@ -69,84 +84,84 @@ function inspectLinksInFile(relFilePath, knownRoutes, homepageIds) {
         return [{ file: relFilePath, error: 'File does not exist' }];
     }
     const content = fs.readFileSync(fullPath, 'utf8');
-    const lines = content.split('\n');
 
-    const linkRegex = /<(?:Link|a)\b([^>]*?)>/g;
+    // Multiline regex for <Link ...> and <a ...>
+    const tagRegex = /<(Link|a)\b([\s\S]*?)>/g;
     const results = [];
+    let match;
 
-    lines.forEach((line, lineIndex) => {
-        let match;
-        while ((match = linkRegex.exec(line)) !== null) {
-            const tagAttrs = match[1];
-            // Extract href
-            const hrefMatch = /href=(?:\{`([^`]+)`\}|\{([^}]+)\}|"([^"]+)"|'([^']+)')/.exec(tagAttrs);
-            if (!hrefMatch) {
-                // Could be a Link or a with dynamic href across lines, check tag
-                continue;
-            }
-            const rawHref = hrefMatch[1] || hrefMatch[2] || hrefMatch[3] || hrefMatch[4];
-            const lineNumber = lineIndex + 1;
+    while ((match = tagRegex.exec(content)) !== null) {
+        const tagName = match[1];
+        const tagBody = match[2];
+        const matchIndex = match.index;
+        // Calculate line number
+        const lineNumber = content.substring(0, matchIndex).split('\n').length;
 
-            // Analyze href
-            let status = 'UNKNOWN';
-            let reason = '';
-
-            // Handle external links
-            if (rawHref.startsWith('http://') || rawHref.startsWith('https://') || rawHref.startsWith('mailto:') || rawHref.startsWith('tel:')) {
-                status = 'PASS';
-                reason = 'External link';
-            }
-            // Handle anchors on current or home page
-            else if (rawHref.startsWith('/#') || rawHref.startsWith('#')) {
-                const anchorId = rawHref.replace(/^\/?#/, '').split('?')[0];
-                if (homepageIds.has(anchorId)) {
-                    status = 'PASS';
-                    reason = `Valid DOM anchor id="#${anchorId}" in app/(public)/page.jsx`;
-                } else {
-                    status = 'FAIL';
-                    reason = `Dead anchor: id="#${anchorId}" NOT found in app/(public)/page.jsx`;
-                }
-            }
-            // Handle dynamic expressions
-            else if (rawHref.includes('${') || rawHref.startsWith('storeUrl') || rawHref.startsWith('`')) {
-                // Replace template variables like ${...} with mock 'demo-store'
-                const simulated = rawHref
-                    .replace(/\$\{[^}]+\}/g, 'demo-slug')
-                    .replace(/storeUrl/, '/shop/demo-slug')
-                    .replace(/`|'/g, '');
-
-                const matchResult = routeMatches(simulated, knownRoutes);
-                if (matchResult.matched) {
-                    status = 'PASS';
-                    reason = `Dynamic route resolves to ${matchResult.matchedRoute} (${matchResult.file})`;
-                } else {
-                    status = 'FAIL';
-                    reason = `Unresolved dynamic route target: ${simulated}`;
-                }
-            }
-            // Handle static internal routes
-            else {
-                const cleanHref = rawHref.split('?')[0].split('#')[0];
-                const matchResult = routeMatches(cleanHref, knownRoutes);
-                if (matchResult.matched) {
-                    status = 'PASS';
-                    reason = `Static route resolves to ${matchResult.matchedRoute} (${matchResult.file})`;
-                } else {
-                    status = 'FAIL';
-                    reason = `Dead internal route: ${cleanHref} does not match any App Router page`;
-                }
-            }
-
-            results.push({
-                file: relFilePath,
-                line: lineNumber,
-                rawHref,
-                status,
-                reason,
-                codeSnippet: line.trim()
-            });
+        // Extract href
+        const hrefMatch = /href=(?:\{`([\s\S]*?)`\}|\{([\s\S]*?)\}|"([^"]*)"|'([^']*)')/.exec(tagBody);
+        if (!hrefMatch) {
+            continue;
         }
-    });
+
+        const rawHref = (hrefMatch[1] || hrefMatch[2] || hrefMatch[3] || hrefMatch[4] || '').trim();
+        let status = 'UNKNOWN';
+        let reason = '';
+
+        // Handle external links
+        if (rawHref.startsWith('http://') || rawHref.startsWith('https://') || rawHref.startsWith('mailto:') || rawHref.startsWith('tel:')) {
+            status = 'PASS';
+            reason = 'External link';
+        }
+        // Handle anchors on current or home page
+        else if (rawHref.startsWith('/#') || rawHref.startsWith('#')) {
+            const anchorId = rawHref.replace(/^\/?#/, '').split('?')[0];
+            if (homepageIds.has(anchorId)) {
+                status = 'PASS';
+                reason = `Valid DOM anchor id="#${anchorId}" in app/(public)/page.jsx`;
+            } else {
+                status = 'FAIL';
+                reason = `Dead anchor: id="#${anchorId}" NOT found in app/(public)/page.jsx`;
+            }
+        }
+        // Handle dynamic expressions
+        else if (rawHref.includes('${') || rawHref.startsWith('storeUrl') || rawHref.startsWith('`')) {
+            // Replace template variables like ${...} with mock 'demo-store'
+            const simulated = rawHref
+                .replace(/\$\{[^}]+\}/g, 'demo-slug')
+                .replace(/storeUrl/, '/shop/demo-slug')
+                .replace(/`|'/g, '');
+
+            const matchResult = routeMatches(simulated, knownRoutes);
+            if (matchResult.matched) {
+                status = 'PASS';
+                reason = `Dynamic route resolves to ${matchResult.matchedRoute} (${matchResult.file})`;
+            } else {
+                status = 'FAIL';
+                reason = `Unresolved dynamic route target: ${simulated}`;
+            }
+        }
+        // Handle static internal routes
+        else {
+            const cleanHref = rawHref.split('?')[0].split('#')[0];
+            const matchResult = routeMatches(cleanHref, knownRoutes);
+            if (matchResult.matched) {
+                status = 'PASS';
+                reason = `Static route resolves to ${matchResult.matchedRoute} (${matchResult.file})`;
+            } else {
+                status = 'FAIL';
+                reason = `Dead internal route: ${cleanHref} does not match any App Router page`;
+            }
+        }
+
+        results.push({
+            file: relFilePath,
+            line: lineNumber,
+            tagName,
+            rawHref,
+            status,
+            reason
+        });
+    }
 
     return results;
 }
@@ -191,11 +206,47 @@ for (const targetFile of targetFiles) {
     }
 }
 
+// 5. Check for defunct/dead patterns across app, components, and lib
+console.log('\n----------------------------------------------------------------------');
+console.log('🔎 CODEBASE SCAN FOR DEFUNCT TOKENS in app/, components/, lib/:');
+const deadPatterns = [
+    { pattern: '/store/products', label: 'Defunct 404 Route /store/products' },
+    { pattern: 'flash-deals', label: 'Defunct Anchor #flash-deals' },
+    { pattern: '#reviews', label: 'Defunct Anchor #reviews' }
+];
+
+let defunctFound = false;
+
+function scanDir(dir) {
+    if (!fs.existsSync(dir)) return;
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            scanDir(full);
+        } else if (entry.isFile() && (entry.name.endsWith('.jsx') || entry.name.endsWith('.js'))) {
+            const text = fs.readFileSync(full, 'utf8');
+            for (const dp of deadPatterns) {
+                if (text.includes(dp.pattern)) {
+                    console.error(`  ❌ FOUND ${dp.label} in ${path.relative(projectRoot, full)}!`);
+                    defunctFound = true;
+                }
+            }
+        }
+    }
+}
+
+['app', 'components', 'lib'].forEach(d => scanDir(path.join(projectRoot, d)));
+
+if (!defunctFound) {
+    console.log('  ✅ Zero occurrences of /store/products, flash-deals, or #reviews found across app/, components/, and lib/!');
+}
+
 console.log('\n======================================================================');
 console.log(`📊 SUMMARY: ${passCount}/${totalLinks} links passed. Failures: ${failCount}`);
 console.log('======================================================================');
 
-if (failCount > 0) {
+if (failCount > 0 || defunctFound) {
     console.error('❌ LINK AUDIT FAILED! Details:', failureList);
     process.exit(1);
 } else {

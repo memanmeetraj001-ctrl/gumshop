@@ -113,10 +113,11 @@ export default function GumroadIframeModal({
     const activeStore = getActiveStoreSync();
     const storeName = activeStore?.name || product?.storeName || 'GumShop Store';
     const storeId = activeStore?.id || product?.storeId || 'store_default';
+    const cleanSlug = (activeStore?.username || activeStore?.id || storeId || '').toLowerCase().replace(/^store_/, '').trim();
 
     // Resolve base Gumroad URL
     const persistentUrl = typeof window !== 'undefined' 
-        ? (localStorage.getItem('gumshop_gumroad_url') || localStorage.getItem('gumroad_product_url') || '') 
+        ? ((cleanSlug ? localStorage.getItem(`gumroad_url_${cleanSlug}`) : '') || localStorage.getItem('gumshop_gumroad_url') || localStorage.getItem('gumroad_product_url') || '') 
         : '';
     const itemWithUrl = orderItems.find(i => i.gumroadUrl);
     
@@ -228,9 +229,11 @@ export default function GumroadIframeModal({
         try {
             const clean = customLinkInput.trim();
             if (typeof window !== 'undefined') {
+                const active = getActiveStoreSync();
+                const cleanSlug = (active?.username || active?.id || storeId || 'shop').toLowerCase().replace(/^store_/, '').trim();
+                localStorage.setItem(`gumroad_url_${cleanSlug}`, clean);
                 localStorage.setItem('gumshop_gumroad_url', clean);
                 localStorage.setItem('gumroad_product_url', clean);
-                const active = getActiveStoreSync();
                 if (active) {
                     active.gumroadProductUrl = clean;
                     active.gumroadUrl = clean;

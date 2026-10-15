@@ -1,12 +1,12 @@
 'use client'
 import React, { useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { addToCart, removeFromCart, deleteItemFromCart, clearCart } from '@/lib/features/cart/cartSlice';
-import { X, Trash2, ShoppingBag, Plus, Minus, ArrowRight, Zap, ShieldCheck, Tag } from 'lucide-react';
+import { addToCart, removeFromCart, deleteItemFromCart } from '@/lib/features/cart/cartSlice';
+import { X, Trash2, ShoppingBag, Plus, Minus, Zap, ShieldCheck, Tag } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { getActiveStoreSync } from '@/lib/activeStore';
-import { createOrder, getCoupon } from '@/lib/firebaseDb';
+import { getCoupon } from '@/lib/firebaseDb';
 import GumroadIframeModal from './GumroadIframeModal';
 import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 

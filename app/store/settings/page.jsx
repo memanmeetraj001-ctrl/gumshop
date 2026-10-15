@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/lib/AuthContext";
-import { getStoreByUserId, updateStore, updateUser } from "@/lib/firebaseDb";
+import { updateStore, updateUser } from "@/lib/firebaseDb";
 import { getActiveStore, setActiveStoreSlug } from "@/lib/activeStore";
 import { database } from "@/lib/firebase";
 const ref = () => null;
@@ -19,7 +19,6 @@ import {
     ExternalLink, 
     Copy,
     Instagram,
-    Youtube,
     Twitter,
     Globe,
     CheckCircle2,
@@ -27,9 +26,7 @@ import {
     AlertCircle,
     ArrowRight,
     Smartphone,
-    Zap,
-    Target,
-    BarChart3
+    Target
 } from "lucide-react";
 import Loading from "@/components/Loading";
 
@@ -360,8 +357,8 @@ export default function StoreSettings() {
                     const firstUrl = prods[0].short_url || prods[0].url;
                     setStoreInfo(prev => ({ ...prev, gumroadProductUrl: firstUrl }));
                     if (typeof window !== 'undefined') {
-                        localStorage.setItem('gumshop_gumroad_url', firstUrl);
-                        localStorage.setItem('gumroad_product_url', firstUrl);
+                        const cleanSlug = (storeInfo.username ? storeInfo.username.trim() : (storeInfo.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'shop';
+                        localStorage.setItem(`gumroad_url_${cleanSlug}`, firstUrl);
                     }
                     toast.success(`Auto-linked "${prods[0].name}" as your checkout product!`);
                 }
@@ -398,8 +395,8 @@ export default function StoreSettings() {
             const createdUrl = data.product.short_url || data.product.url;
             setStoreInfo(prev => ({ ...prev, gumroadProductUrl: createdUrl }));
             if (typeof window !== 'undefined') {
-                localStorage.setItem('gumshop_gumroad_url', createdUrl);
-                localStorage.setItem('gumroad_product_url', createdUrl);
+                const cleanSlug = (storeInfo.username ? storeInfo.username.trim() : (storeInfo.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'shop';
+                localStorage.setItem(`gumroad_url_${cleanSlug}`, createdUrl);
             }
             setGumroadProducts(prev => [data.product, ...prev]);
             toast.success("Created Gumroad checkout product! Save Settings to finalize.");
@@ -1019,8 +1016,8 @@ export default function StoreSettings() {
                                                         onClick={() => {
                                                             setStoreInfo(prev => ({ ...prev, gumroadProductUrl: url }));
                                                             if (typeof window !== 'undefined') {
-                                                                localStorage.setItem('gumshop_gumroad_url', url);
-                                                                localStorage.setItem('gumroad_product_url', url);
+                                                                const cleanSlug = (storeInfo.username ? storeInfo.username.trim() : (storeInfo.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'shop';
+                                                                localStorage.setItem(`gumroad_url_${cleanSlug}`, url);
                                                             }
                                                             toast.success(`Selected "${p.name}"! Click "Save Settings" below to apply.`);
                                                         }}
@@ -1063,7 +1060,7 @@ export default function StoreSettings() {
                                 Paste this Webhook URL into your Gumroad account so every completed payment automatically generates an order with customer details in your GumShop dashboard.
                             </p>
                             <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200">
-                                <code className="text-xs font-mono text-emerald-700 flex-1 px-2 select-all overflow-x-auto">
+                                <code suppressHydrationWarning className="text-xs font-mono text-emerald-700 flex-1 px-2 select-all overflow-x-auto">
                                     {typeof window !== 'undefined' ? `${window.location.origin}/api/gumroad/webhook` : 'https://gumshop.online/api/gumroad/webhook'}
                                 </code>
                                 <button

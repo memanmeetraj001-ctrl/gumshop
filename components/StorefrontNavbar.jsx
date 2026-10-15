@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShoppingCart, Truck, Search, Sparkles, Smartphone } from 'lucide-react';
+import { ShoppingCart, Truck, Smartphone } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 

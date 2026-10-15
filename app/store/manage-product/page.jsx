@@ -3,12 +3,11 @@ import { useEffect, useState, useMemo } from "react";
 import { toast } from "react-hot-toast";
 import Loading from "@/components/Loading";
 import { useAuth } from "@/lib/AuthContext";
-import { getStoreByUserId, getProductsByStore, updateProduct, deleteProduct, createProduct, isProductDeleted, isJunkProductName } from "@/lib/firebaseDb";
+import { getProductsByStore, updateProduct, deleteProduct, createProduct, isProductDeleted, isJunkProductName } from "@/lib/firebaseDb";
 import { getActiveStore, getActiveStoreSync } from "@/lib/activeStore";
 import { generateContextualBundles } from "@/lib/importer/productEnhancer";
 import { useRouter } from "next/navigation";
 import { 
-    Calculator, 
     Trash2, 
     Edit3, 
     ExternalLink, 
@@ -17,15 +16,10 @@ import {
     TrendingUp, 
     X, 
     Save, 
-    CheckCircle2, 
     Search, 
     Copy, 
     Eye, 
-    CheckSquare, 
-    Square, 
-    ArrowUpDown, 
     SlidersHorizontal,
-    Percent,
     Tag
 } from "lucide-react";
 import Link from "next/link";

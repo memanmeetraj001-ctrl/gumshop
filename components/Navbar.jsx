@@ -11,8 +11,6 @@ import {
     X, 
     ShieldCheck, 
     Truck, 
-    SlidersHorizontal,
-    UserCheck,
     Store,
     ChevronDown
 } from 'lucide-react';

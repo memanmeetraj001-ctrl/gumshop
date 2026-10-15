@@ -177,7 +177,7 @@ test('app/login/page.jsx uses <Link href="/dashboard"> and contains 0 raw <a> ta
 });
 
 // --- TEST 7: Store Settings relative URLs & dynamic origin ---
-test('app/store/settings/page.jsx uses relative URLs and dynamic window.location.origin for clipboard copy', () => {
+test('app/store/settings/page.jsx uses relative URLs for navigation and dynamic window.location.origin for clipboard copy', () => {
     const settingsContent = fs.readFileSync(path.join(ROOT_DIR, 'app/store/settings/page.jsx'), 'utf-8');
     
     // Check storeUrl definition
@@ -189,9 +189,16 @@ test('app/store/settings/page.jsx uses relative URLs and dynamic window.location
     // Check clipboard copy uses dynamic window.location.origin
     assert.ok(settingsContent.includes('window.location.origin'), 'Clipboard copy must dynamically use window.location.origin');
     
-    // Ensure no hardcoded https://gumshop.online in settings links
-    assert.ok(!settingsContent.includes('https://gumshop.online/shop/'), 'No hardcoded production url in shop link');
-    assert.ok(!settingsContent.includes('https://gumshop.online/creator/'), 'No hardcoded production url in creator link');
+    // Ensure all anchor hrefs in settings are relative, not hardcoded to https://gumshop.online
+    const hrefRegex = /href=\{?["'`]?([^"'` >}]+)["'`]?\}?/g;
+    let match;
+    const hardcodedHrefs = [];
+    while ((match = hrefRegex.exec(settingsContent)) !== null) {
+        if (match[1].startsWith('https://gumshop.online')) {
+            hardcodedHrefs.push(match[1]);
+        }
+    }
+    assert.strictEqual(hardcodedHrefs.length, 0, `Found hardcoded production hrefs: ${hardcodedHrefs.join(', ')}`);
 });
 
 // --- TEST 8: All App Router Route Targets from Navigation Components ---
