@@ -1312,7 +1312,7 @@ export default function MasterDashboardPage() {
                                         </div>
 
                                         <Link
-                                            href={`/store/products?store=${activeStore.username || activeStore.id}`}
+                                            href={`/store/manage-product?store=${activeStore.username || activeStore.id}`}
                                             className="w-full mt-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition flex items-center justify-center gap-1.5 border border-slate-200"
                                         >
                                             <span>Manage All {activeStoreProducts.length} Products in Store Catalog</span>
