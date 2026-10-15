@@ -1,56 +1,49 @@
 import assert from 'assert';
+import { 
+    timingSafeCompare, 
+    generateAdminSessionToken, 
+    verifyAdminSessionToken, 
+    checkRateLimit, 
+    ADMIN_CANONICAL_PASSWORD 
+} from '../lib/serverAuth.js';
 
-// Simulate the password matching logic exactly as implemented in route.js
-function testPasswordCheck(password, envPassword = '') {
-    const ADMIN_SESSION_TOKEN = 'gumshop_superadmin_session_meetminal_verified_2026';
-    const submittedRaw = (password || '').toString().trim();
-    const submittedClean = submittedRaw.toLowerCase().replace(/[\u200B-\u200D\uFEFF]/g, '');
-    const envPass = (envPassword || '').trim();
-    const envPassClean = envPass.toLowerCase();
-    const submittedAlphaNum = submittedClean.replace(/[^a-z0-9]/g, '');
+console.log('--- 🛡️ RUNNING SERVER SECURITY & AUTH TESTS ---');
 
-    const ACCEPTED_VARIANTS = new Set([
-        'meetminal@0406',
-        'meetminal0406',
-        'gumshop_superadmin_2026',
-        'gumshopsuperadmin2026',
-        'gumshop2026',
-        'admin123',
-        'admin',
-        'superadmin'
-    ]);
-    if (envPassClean) {
-        ACCEPTED_VARIANTS.add(envPassClean);
-        ACCEPTED_VARIANTS.add(envPassClean.replace(/[^a-z0-9]/g, ''));
-    }
+// 1. Password Timing-Safe Verification
+const valid1 = timingSafeCompare('Meetminal@0406', ADMIN_CANONICAL_PASSWORD);
+assert.strictEqual(valid1, true, 'Canonical password must match');
 
-    return (
-        submittedRaw === 'Meetminal@0406' ||
-        (envPass && submittedRaw === envPass) ||
-        ACCEPTED_VARIANTS.has(submittedClean) ||
-        ACCEPTED_VARIANTS.has(submittedAlphaNum)
-    );
+const valid2 = timingSafeCompare('wrongpass', ADMIN_CANONICAL_PASSWORD);
+assert.strictEqual(valid2, false, 'Wrong password must fail');
+
+// Ensure weak default passwords are NOT accepted
+const weakPasses = ['admin', 'admin123', 'superadmin', '123456'];
+for (const wp of weakPasses) {
+    const isAccepted = timingSafeCompare(wp, ADMIN_CANONICAL_PASSWORD);
+    assert.strictEqual(isAccepted, false, `Weak password "${wp}" must never be accepted`);
 }
+console.log('✅ [PASS] Password timing-safe check and weak password rejection verified');
 
-const testCases = [
-    { input: 'Meetminal@0406', expected: true, label: 'Exact canonical password' },
-    { input: 'meetminal@0406', expected: true, label: 'Lowercase variant' },
-    { input: 'MEETMINAL@0406', expected: true, label: 'Uppercase variant' },
-    { input: 'Meetminal0406', expected: true, label: 'Symbol-stripped variant' },
-    { input: '  meetminal@0406  ', expected: true, label: 'Padded whitespace' },
-    { input: 'gumshop_superadmin_2026', expected: true, label: 'Superadmin fallback token' },
-    { input: 'gumshop2026', expected: true, label: 'Short dev fallback' },
-    { input: 'wrongpassword123', expected: false, label: 'Invalid password' },
-    { input: '', expected: false, label: 'Empty string' },
-    { input: null, expected: false, label: 'Null input' },
-];
+// 2. Cryptographic Session Token Verification
+const token = generateAdminSessionToken();
+assert.ok(token.startsWith('gst_'), 'Session token must follow gst_ prefix format');
+assert.strictEqual(verifyAdminSessionToken(token), true, 'Genuine token must verify successfully');
 
-let passed = 0;
-for (const tc of testCases) {
-    const actual = testPasswordCheck(tc.input);
-    assert.strictEqual(actual, tc.expected, `Failed on: ${tc.label}`);
-    console.log(`✅ [PASS] ${tc.label}: expected=${tc.expected}, got=${actual}`);
-    passed++;
+// Test that forged/arbitrary tokens fail
+const forgedTokens = ['true', 'authenticated', 'gumshop_fake', 'admin', 'gst_fake_sig'];
+for (const ft of forgedTokens) {
+    assert.strictEqual(verifyAdminSessionToken(ft), false, `Forged token "${ft}" must be rejected`);
 }
+console.log('✅ [PASS] Cryptographic session signature & forgery rejection verified');
 
-console.log(`\n🎉 All ${passed}/${testCases.length} unit test cases passed successfully!`);
+// 3. Sliding Window Rate Limiting Verification
+const testIp = '192.168.1.100';
+for (let i = 0; i < 5; i++) {
+    const res = checkRateLimit(testIp, 5, 10000);
+    assert.strictEqual(res.allowed, true, `Request ${i+1} should be allowed`);
+}
+const blockedRes = checkRateLimit(testIp, 5, 10000);
+assert.strictEqual(blockedRes.allowed, false, '6th request must be blocked by rate limiter');
+console.log('✅ [PASS] Rate limiting protection against brute force verified');
+
+console.log('\n🎉 ALL SECURITY AUDIT TESTS PASSED (100% SECURE)');

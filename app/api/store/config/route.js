@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getServerGumroadToken, setServerGumroadToken } from '@/lib/serverVault';
+import { validateAdminRequest } from '@/lib/serverAuth';
 
 // Server-side in-memory cache for fast zero-latency access across API routes
 globalThis.__gumshop_server_configs = globalThis.__gumshop_server_configs || new Map();
@@ -47,6 +48,8 @@ export async function GET(req) {
 
             const vaultedToken = await getServerGumroadToken(cleanId);
             const effectiveToken = vaultedToken || tokenCookie?.value || storeMemConfig.gumroadToken || parsedConfig.gumroadToken || '';
+            const isAuth = await validateAdminRequest(req);
+            const safeToken = isAuth ? effectiveToken : (effectiveToken ? '••••••••' : '');
 
             return NextResponse.json({
                 success: true,
@@ -58,7 +61,8 @@ export async function GET(req) {
                     tracking: storeMemConfig.tracking || parsedConfig.tracking || {},
                     ...storeMemConfig,
                     ...parsedConfig,
-                    gumroadToken: effectiveToken
+                    gumroadConnected: Boolean(effectiveToken),
+                    gumroadToken: safeToken
                 }
             });
         }
@@ -75,13 +79,16 @@ export async function GET(req) {
         }
 
         const effectiveToken = tokenCookie?.value || parsedConfig.gumroadToken || serverStoreConfig.gumroadToken || '';
+        const isAuth = await validateAdminRequest(req);
+        const safeToken = isAuth ? effectiveToken : (effectiveToken ? '••••••••' : '');
 
         return NextResponse.json({
             success: true,
             config: {
                 ...serverStoreConfig,
                 ...parsedConfig,
-                gumroadToken: effectiveToken
+                gumroadConnected: Boolean(effectiveToken),
+                gumroadToken: safeToken
             }
         });
     } catch (error) {
@@ -121,7 +128,7 @@ export async function POST(req) {
             // Set store-scoped cookies
             if (gumroadToken && gumroadToken.trim()) {
                 cookieStore.set(`${TOKEN_COOKIE_NAME}_${cleanId}`, gumroadToken.trim(), {
-                    httpOnly: false,
+                    httpOnly: true,
                     secure: process.env.NODE_ENV === 'production',
                     sameSite: 'lax',
                     path: '/',
@@ -154,7 +161,7 @@ export async function POST(req) {
         if (gumroadToken && gumroadToken.trim()) {
             await setServerGumroadToken(gumroadToken.trim());
             cookieStore.set(TOKEN_COOKIE_NAME, gumroadToken.trim(), {
-                httpOnly: false,
+                httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
                 path: '/',

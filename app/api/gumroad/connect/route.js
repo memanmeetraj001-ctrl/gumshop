@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { setServerGumroadToken, clearServerGumroadToken } from '@/lib/serverVault';
+import { checkRateLimit } from '@/lib/serverAuth';
 
 /**
  * POST /api/gumroad/connect
@@ -8,6 +9,18 @@ import { setServerGumroadToken, clearServerGumroadToken } from '@/lib/serverVaul
  */
 export async function POST(req) {
     try {
+        const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                         req.headers.get('x-real-ip') || 
+                         'global_connect';
+
+        const rateLimit = checkRateLimit(`gumroad_connect_${clientIp}`, 10, 60000);
+        if (!rateLimit.allowed) {
+            return NextResponse.json({
+                success: false,
+                error: `Too many token verification requests. Please wait ${rateLimit.resetInSeconds} seconds.`
+            }, { status: 429 });
+        }
+
         const body = await req.json().catch(() => ({}));
         const { token, action, storeId = '', storeSlug = '', store = '' } = body;
         const targetStoreKey = (storeSlug || storeId || store || '').toLowerCase().replace(/^store_/, '').trim();

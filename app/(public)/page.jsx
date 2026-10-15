@@ -338,8 +338,9 @@ export default function SuperStorefront() {
             )}
 
             {/* 3. Featured Deals Strip */}
-            {discountedDeals.length > 0 ? (
-                <section id="special-deals" className="py-12 bg-emerald-50/50 border-b border-emerald-100/60">
+            <div id="special-deals" className="scroll-mt-24" />
+            {discountedDeals.length > 0 && (
+                <section className="py-12 bg-emerald-50/50 border-b border-emerald-100/60">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                             <div>
@@ -364,8 +365,6 @@ export default function SuperStorefront() {
                         </div>
                     </div>
                 </section>
-            ) : (
-                <div id="special-deals" aria-hidden="true" />
             )}
 
             {/* 4. Main Product Catalog & Faceted Filters */}

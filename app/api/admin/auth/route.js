@@ -1,23 +1,21 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { 
+    timingSafeCompare, 
+    generateAdminSessionToken, 
+    verifyAdminSessionToken, 
+    checkRateLimit, 
+    ADMIN_CANONICAL_PASSWORD 
+} from '@/lib/serverAuth';
 
 export const dynamic = 'force-dynamic';
 
-const ADMIN_SESSION_TOKEN = 'gumshop_superadmin_session_meetminal_verified_2026';
 const COOKIE_NAME = 'gumshop_admin_session';
 
 const NO_CACHE_HEADERS = {
     'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
     'Pragma': 'no-cache',
     'Expires': '0'
-};
-
-const COOKIE_OPTIONS = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 30 // 30 days
 };
 
 export async function OPTIONS() {
@@ -34,6 +32,26 @@ export async function OPTIONS() {
 
 export async function POST(req) {
     try {
+        const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                         req.headers.get('x-real-ip') || 
+                         'global_auth';
+
+        // 1. Rate Limiting: Max 8 login attempts per minute per IP to prevent brute-force attacks
+        const rateLimit = checkRateLimit(`auth_${clientIp}`, 8, 60000);
+        if (!rateLimit.allowed) {
+            return NextResponse.json({
+                success: false,
+                authenticated: false,
+                error: `Too many login attempts. Please wait ${rateLimit.resetInSeconds} seconds before trying again.`
+            }, { 
+                status: 429, 
+                headers: {
+                    ...NO_CACHE_HEADERS,
+                    'Retry-After': String(rateLimit.resetInSeconds)
+                } 
+            });
+        }
+
         const body = await req.json().catch(() => ({}));
         const { password, action } = body;
 
@@ -50,60 +68,52 @@ export async function POST(req) {
             return res;
         }
 
-        // Validate password against explicitly requested master key or env overrides
+        // Validate password using constant-time comparison
         const submittedRaw = (password || '').toString().trim();
-        const submittedClean = submittedRaw.toLowerCase().replace(/[\u200B-\u200D\uFEFF]/g, '');
-        const envPass = (process.env.ADMIN_PASSWORD || '').trim();
-        const envPassClean = envPass.toLowerCase();
-        const submittedAlphaNum = submittedClean.replace(/[^a-z0-9]/g, '');
+        const masterPass = ADMIN_CANONICAL_PASSWORD;
 
-        const ACCEPTED_VARIANTS = new Set([
-            'meetminal@0406',
-            'meetminal0406',
-            'gumshop_superadmin_2026',
-            'gumshopsuperadmin2026',
-            'gumshop2026',
-            'admin123',
-            'admin',
-            'superadmin'
-        ]);
-        if (envPassClean) {
-            ACCEPTED_VARIANTS.add(envPassClean);
-            ACCEPTED_VARIANTS.add(envPassClean.replace(/[^a-z0-9]/g, ''));
-        }
+        const isExactMatch = timingSafeCompare(submittedRaw, masterPass);
+        const isCaseInsensitiveMatch = !isExactMatch && timingSafeCompare(submittedRaw.toLowerCase(), masterPass.toLowerCase());
 
-        const isValid = 
-            submittedRaw === 'Meetminal@0406' ||
-            (envPass && submittedRaw === envPass) ||
-            ACCEPTED_VARIANTS.has(submittedClean) ||
-            ACCEPTED_VARIANTS.has(submittedAlphaNum);
+        const isValid = isExactMatch || isCaseInsensitiveMatch;
 
         if (isValid) {
+            const sessionToken = generateAdminSessionToken();
+
             const res = NextResponse.json({ 
                 success: true, 
                 authenticated: true,
-                token: ADMIN_SESSION_TOKEN,
+                token: sessionToken,
                 message: 'Super Admin authenticated successfully' 
             }, { headers: NO_CACHE_HEADERS });
 
             const proto = req?.headers?.get?.('x-forwarded-proto') || '';
             const isHttps = proto === 'https' || req?.url?.startsWith('https://');
-            const cookieOpts = {
+
+            // Secure httpOnly session cookie
+            res.cookies.set(COOKIE_NAME, sessionToken, {
+                httpOnly: true,
+                secure: isHttps,
+                sameSite: 'lax',
+                path: '/',
+                maxAge: 60 * 60 * 24 * 30 // 30 days
+            });
+
+            // Client-readable status cookie (boolean flag, no secrets)
+            res.cookies.set('gumshop_admin_authenticated', 'true', {
                 httpOnly: false,
                 secure: isHttps,
                 sameSite: 'lax',
                 path: '/',
-                maxAge: 60 * 60 * 24 * 60 // 60 days
-            };
+                maxAge: 60 * 60 * 24 * 30
+            });
 
-            res.cookies.set(COOKIE_NAME, ADMIN_SESSION_TOKEN, cookieOpts);
-            res.cookies.set('gumshop_admin_authenticated', 'true', cookieOpts);
             return res;
         }
 
         return NextResponse.json({ 
             success: false, 
-            authenticated: false,
+            authenticated: false, 
             error: 'Invalid master admin password. Access denied.' 
         }, { status: 401, headers: NO_CACHE_HEADERS });
 
@@ -118,58 +128,26 @@ export async function GET(req) {
         let sessionCookie = null;
         try {
             const cookieStore = await cookies();
-            sessionCookie = cookieStore.get(COOKIE_NAME)?.value || cookieStore.get('gumshop_admin_authenticated')?.value;
+            sessionCookie = cookieStore.get(COOKIE_NAME)?.value;
         } catch {}
 
-        // Fallback: check raw Cookie header
         if (!sessionCookie) {
             const rawCookieHeader = req?.headers?.get?.('cookie') || '';
             const match = rawCookieHeader.match(/gumshop_admin_session=([^;]+)/);
             if (match) sessionCookie = decodeURIComponent(match[1]);
         }
 
-        // Also check Authorization header or searchParams for fail-safe client token validation
         const authHeader = req?.headers?.get?.('authorization') || '';
         const bearerToken = authHeader.replace(/^Bearer\s+/i, '').trim();
-        const url = new URL(req.url);
-        const queryToken = url.searchParams.get('token');
 
-        const isValidToken = (t) => {
-            if (!t) return false;
-            const str = String(t).trim();
-            return (
-                str === ADMIN_SESSION_TOKEN || 
-                str === 'true' ||
-                str === 'authenticated' ||
-                str.startsWith('gumshop_') ||
-                str.includes('superadmin') ||
-                str.includes('meetminal')
-            );
-        };
-
-        const isAuthenticated = 
-            isValidToken(sessionCookie) ||
-            isValidToken(bearerToken) || 
-            isValidToken(queryToken);
+        const tokenToCheck = sessionCookie || bearerToken;
+        const isAuthenticated = verifyAdminSessionToken(tokenToCheck);
 
         if (isAuthenticated) {
-            const res = NextResponse.json({ 
+            return NextResponse.json({ 
                 authenticated: true, 
-                token: ADMIN_SESSION_TOKEN 
+                token: tokenToCheck 
             }, { headers: NO_CACHE_HEADERS });
-            
-            const proto = req?.headers?.get?.('x-forwarded-proto') || '';
-            const isHttps = proto === 'https' || req?.url?.startsWith('https://');
-            const cookieOpts = {
-                httpOnly: false,
-                secure: isHttps,
-                sameSite: 'lax',
-                path: '/',
-                maxAge: 60 * 60 * 24 * 365 // 1 year
-            };
-            res.cookies.set(COOKIE_NAME, ADMIN_SESSION_TOKEN, cookieOpts);
-            res.cookies.set('gumshop_admin_authenticated', 'true', cookieOpts);
-            return res;
         }
 
         return NextResponse.json({ 

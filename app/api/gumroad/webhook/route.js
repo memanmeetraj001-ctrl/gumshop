@@ -35,7 +35,19 @@ export async function POST(req) {
         }
 
         // Extract key sale details
-        const urlParams = payload.url_params || {};
+        // Webhook Secret Verification (if configured in environment)
+        const expectedSecret = process.env.GUMROAD_WEBHOOK_SECRET;
+        if (expectedSecret) {
+            const url = new URL(req.url);
+            const providedSecret = req.headers.get('x-gumroad-secret') || 
+                                   url.searchParams.get('secret') || 
+                                   payload.secret || 
+                                   urlParams.secret;
+            if (!providedSecret || providedSecret !== expectedSecret) {
+                return NextResponse.json({ error: 'Unauthorized webhook signature' }, { status: 401 });
+            }
+        }
+
         const saleId = payload.sale_id || payload.id || '';
         const email = payload.email || payload.purchaser_email || 'customer@example.com';
         const pricePaid = payload.price ? parseFloat(payload.price) / 100 : (payload.amount ? parseFloat(payload.amount) : 0);

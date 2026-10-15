@@ -98,15 +98,21 @@ export async function POST(req) {
             (item.name && (item.name.toLowerCase().includes('priority rush') || item.name.toLowerCase().includes('rush processing')))
         );
 
-        const parsedRushFee = parseFloat(rushFee || 0);
+        const parsedRushFee = Math.max(0, parseFloat(rushFee || 0));
         // If rush fee was passed in body AND not already represented as a line item, add it.
         // If rush fee was already in items, do not double-add it!
         const effectiveRushFee = hasRushItem ? 0 : parsedRushFee;
         const totalRushFee = hasRushItem 
-            ? (validatedItems.find(i => i.productId === 'addon_priority_rush_insurance' || i.id === 'addon_priority_rush_insurance')?.price || parsedRushFee || 3.99)
+            ? Math.max(0, validatedItems.find(i => i.productId === 'addon_priority_rush_insurance' || i.id === 'addon_priority_rush_insurance')?.price || parsedRushFee || 3.99)
             : parsedRushFee;
 
-        const finalTotal = Math.max(1.00, Math.round((subtotal + parseFloat(shippingFee || 0) + effectiveRushFee - parseFloat(discountAmount || 0)) * 100) / 100);
+        const validShippingFee = Math.max(0, parseFloat(shippingFee || 0));
+        const rawDiscount = Math.max(0, parseFloat(discountAmount || 0));
+        // Client-side discount protection: discount cannot exceed 50% of subtotal without valid server coupon
+        const validDiscount = couponCode ? Math.min(rawDiscount, subtotal) : Math.min(rawDiscount, subtotal * 0.50);
+
+        const calculatedTotal = subtotal + validShippingFee + effectiveRushFee - validDiscount;
+        const finalTotal = Math.max(1.00, Math.round(calculatedTotal * 100) / 100);
 
         // Prepare line items summary
         let itemsSummary = validatedItems

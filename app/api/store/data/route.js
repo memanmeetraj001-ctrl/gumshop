@@ -10,6 +10,7 @@ import {
     serverWipeAllData,
     isSupabaseConfigured 
 } from '@/lib/serverDb';
+import { validateAdminRequest } from '@/lib/serverAuth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -93,6 +94,13 @@ export async function DELETE(req) {
         const { searchParams } = new URL(req.url);
         const wipeAll = searchParams.get('wipeAll') === 'true' || searchParams.get('all') === 'true';
         if (wipeAll) {
+            const isAuthorized = await validateAdminRequest(req);
+            if (!isAuthorized) {
+                return NextResponse.json({
+                    success: false,
+                    error: 'Unauthorized. Admin credentials required to wipe database.'
+                }, { status: 401, headers: NO_CACHE_HEADERS });
+            }
             await serverWipeAllData();
             return NextResponse.json({
                 success: true,
