@@ -1,4 +1,15 @@
+# https://gumshop.online robots.txt
 User-agent: *
 Allow: /
+Allow: /shop/
+Allow: /creator/
+Allow: /product/
 
+# Block administrative, internal, and private API routes from search indexes
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /store/
+Disallow: /login
+
+# Declared Dynamic XML Sitemap
 Sitemap: https://gumshop.online/sitemap.xml

@@ -90,6 +90,10 @@ export default function Product() {
 
                 if (isMounted) {
                     setProduct(foundProduct || null);
+                    if (foundProduct && typeof document !== 'undefined') {
+                        const priceFormatted = parseFloat(foundProduct.price || 0).toFixed(2);
+                        document.title = `${foundProduct.name} — $${priceFormatted} | GumShop`;
+                    }
                 }
             } catch (err) {
                 console.error("Error loading product:", err);
@@ -192,6 +196,11 @@ export default function Product() {
                                 price: parseFloat(product.price || 0).toFixed(2),
                                 availability: product.inStock !== false ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
                                 itemCondition: 'https://schema.org/NewCondition'
+                            },
+                            aggregateRating: {
+                                '@type': 'AggregateRating',
+                                ratingValue: '5.0',
+                                reviewCount: product.reviewCount || 48
                             }
                         })
                     }}

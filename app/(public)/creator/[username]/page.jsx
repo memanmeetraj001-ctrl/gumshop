@@ -242,13 +242,21 @@ export default function CreatorBioPage({ params }) {
                 if (isMounted) {
                     if (store) {
                         setStoreInfo(store);
-                        setCreator(formatCreatorProfile(store, rawUsername));
+                        const prof = formatCreatorProfile(store, rawUsername);
+                        setCreator(prof);
                         setProducts(resolvedProducts || []);
+                        if (typeof document !== 'undefined') {
+                            document.title = `${prof.name} (@${cleanUser}) — Stan Store & Bio Catalog | GumShop`;
+                        }
                     } else if (cleanUser === 'demo') {
                         const demoData = getStoreAndCatalogSync('demo');
                         setStoreInfo(demoData.store);
-                        setCreator(formatCreatorProfile(demoData.store, 'demo'));
+                        const prof = formatCreatorProfile(demoData.store, 'demo');
+                        setCreator(prof);
                         setProducts(demoData.products || []);
+                        if (typeof document !== 'undefined') {
+                            document.title = `${prof.name} — Stan Store & Bio Catalog | GumShop`;
+                        }
                     } else {
                         // Only clear if store was never loaded, preventing transient flash
                         setStoreInfo(prev => prev || null);

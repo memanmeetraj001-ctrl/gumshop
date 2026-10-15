@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="gumBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="50%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <linearGradient id="boltGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#064E3B" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="128" fill="url(#gumBg)" />
+  <rect x="12" y="12" width="488" height="488" rx="116" fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="8" />
+
+  <g filter="url(#glow)">
+    <path d="M192 188 V140 C192 104.65 220.65 76 256 76 C291.35 76 320 104.65 320 140 V188" 
+          fill="none" stroke="#FFFFFF" stroke-width="32" stroke-linecap="round" />
+    <path d="M136 188 L160 416 C162.5 433.5 177.5 446 195 446 H317 C334.5 446 349.5 433.5 352 416 L376 188 Z" 
+          fill="#064E3B" fill-opacity="0.3" stroke="#FFFFFF" stroke-width="28" stroke-linejoin="round" />
+    <path d="M272 208 L196 320 H252 L240 408 L316 296 H260 Z" 
+          fill="url(#boltGrad)" stroke="#047857" stroke-width="4" stroke-linejoin="round" />
+  </g>
+</svg>

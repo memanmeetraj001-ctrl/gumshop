@@ -57,6 +57,9 @@ export default function StoreShop({ params }) {
                         }
                         setStoreInfo(s);
                         setProducts(Array.isArray(apiData.products) ? apiData.products : []);
+                        if (typeof document !== 'undefined') {
+                            document.title = `${s.name || rawUsername} — Official Storefront | GumShop`;
+                        }
                         return;
                     }
                 }
@@ -70,6 +73,9 @@ export default function StoreShop({ params }) {
                     }
                     setStoreInfo(store);
                     setProducts(resolvedProducts || []);
+                    if (typeof document !== 'undefined') {
+                        document.title = `${store.name || rawUsername} — Official Storefront | GumShop`;
+                    }
                 }
             } catch (err) {
                 console.error("Error fetching store data:", err);
