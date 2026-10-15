@@ -9,6 +9,7 @@ import ExitIntentModal from "@/components/ExitIntentModal";
 import AiShoppingAssistant from "@/components/AiShoppingAssistant";
 import LiveSalesToaster from "@/components/LiveSalesToaster";
 import CartDrawer from "@/components/CartDrawer";
+import StorefrontFooter from "@/components/StorefrontFooter";
 import { useAuth } from "@/lib/AuthContext";
 import Link from "next/link";
 import { 
@@ -161,7 +162,7 @@ export default function StoreShop({ params }) {
         : products.filter(p => getSafeCategory(p) === activeCategory);
 
     return (
-        <div className="min-h-screen bg-slate-50 pb-24 selection:bg-emerald-500 selection:text-white">
+        <div className="min-h-screen bg-slate-50 flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
             {/* 100% White-Labeled Merchant Header */}
             <StorefrontNavbar store={storeInfo} onOpenCart={() => setCartDrawerOpen(true)} />
 
@@ -299,6 +300,9 @@ export default function StoreShop({ params }) {
 
             {/* 🔥 Live Verified Sales Pop-Up (Social Proof) */}
             <LiveSalesToaster products={products} storeName={storeInfo?.name} />
+
+            {/* Merchant Storefront Footer with Policy Pages */}
+            <StorefrontFooter store={storeInfo} />
 
             {/* Slide-Over Shopping Bag Drawer */}
             <CartDrawer

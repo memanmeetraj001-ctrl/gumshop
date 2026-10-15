@@ -1523,6 +1523,25 @@ export default function CreatorBioPage({ params }) {
                                 </div>
                             )}
 
+                            {/* In-Bio Customer Legal & Policy Links */}
+                            <div className="pt-4 pb-2 border-t border-slate-100 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] text-slate-400">
+                                <Link href={`/policies/shipping?store=${cleanUser}`} className="hover:text-slate-600 transition">
+                                    Shipping
+                                </Link>
+                                <span>•</span>
+                                <Link href={`/policies/refund?store=${cleanUser}`} className="hover:text-slate-600 transition">
+                                    Refunds
+                                </Link>
+                                <span>•</span>
+                                <Link href={`/policies/privacy?store=${cleanUser}`} className="hover:text-slate-600 transition">
+                                    Privacy
+                                </Link>
+                                <span>•</span>
+                                <Link href={`/policies/terms?store=${cleanUser}`} className="hover:text-slate-600 transition">
+                                    Terms
+                                </Link>
+                            </div>
+
                         </div>
 
                     </div>
@@ -1532,6 +1551,29 @@ export default function CreatorBioPage({ params }) {
                         <div className="w-32 h-1 bg-slate-900/80 rounded-full"></div>
                     </div>
 
+                </div>
+
+                {/* Desktop Outer Footer Policy Links */}
+                <div className="mt-6 pb-6 text-center text-xs text-slate-400 flex flex-wrap items-center justify-center gap-4">
+                    <Link href={`/shop/${cleanUser}`} className="hover:text-slate-600 transition font-bold text-slate-600">
+                        View Full Storefront
+                    </Link>
+                    <span>•</span>
+                    <Link href={`/policies/shipping?store=${cleanUser}`} className="hover:text-slate-600 transition">
+                        Shipping Policy
+                    </Link>
+                    <span>•</span>
+                    <Link href={`/policies/refund?store=${cleanUser}`} className="hover:text-slate-600 transition">
+                        Refund & Return Policy
+                    </Link>
+                    <span>•</span>
+                    <Link href={`/policies/privacy?store=${cleanUser}`} className="hover:text-slate-600 transition">
+                        Privacy Policy
+                    </Link>
+                    <span>•</span>
+                    <Link href={`/policies/terms?store=${cleanUser}`} className="hover:text-slate-600 transition">
+                        Terms of Service
+                    </Link>
                 </div>
 
             </main>

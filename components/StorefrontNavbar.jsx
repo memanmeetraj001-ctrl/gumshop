@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShoppingCart, Truck, Smartphone } from 'lucide-react';
+import { ShoppingCart, Truck, Smartphone, ShieldCheck } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 
@@ -73,6 +73,10 @@ export default function StorefrontNavbar({ store, onOpenCart }) {
                         <Link href={`/shop/${storeSlug}/track`} className="hover:text-emerald-600 transition flex items-center gap-1.5">
                             <Truck size={15} className="text-slate-400" />
                             <span>Track Package</span>
+                        </Link>
+                        <Link href={`/policies/shipping?store=${storeSlug}`} className="hover:text-emerald-600 transition flex items-center gap-1.5">
+                            <ShieldCheck size={15} className="text-slate-400" />
+                            <span>Policies</span>
                         </Link>
                     </nav>
 

@@ -1,18 +1,46 @@
 'use client'
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Truck, CheckCircle2, Clock, Globe, ArrowLeft, Package, MapPin } from 'lucide-react';
 
 export default function ShippingPolicyPage() {
+    const [storeSlug, setStoreSlug] = useState('');
+    const [storeName, setStoreName] = useState('');
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const slug = params.get('store');
+            if (slug) {
+                setStoreSlug(slug);
+                fetch(`/api/store/data?slug=${encodeURIComponent(slug)}`)
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.success && d.store?.name) {
+                            setStoreName(d.store.name);
+                        } else {
+                            setStoreName(slug.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+                        }
+                    })
+                    .catch(() => {
+                        setStoreName(slug.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+                    });
+            }
+        }
+    }, []);
+
+    const backUrl = storeSlug ? `/shop/${storeSlug}` : '/';
+    const backText = storeName ? `Return to ${storeName}` : 'Return to Home';
+
     return (
         <div className="bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto">
                 <Link
-                    href="/"
+                    href={backUrl}
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-emerald-700 transition mb-6"
                 >
                     <ArrowLeft size={14} />
-                    <span>Return to Home</span>
+                    <span>{backText}</span>
                 </Link>
 
                 <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-12 shadow-sm">
@@ -23,7 +51,7 @@ export default function ShippingPolicyPage() {
                         </div>
                         <div>
                             <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
-                                Delivery Information
+                                {storeName ? `${storeName} • Delivery Information` : 'Delivery Information'}
                             </span>
                             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">
                                 Shipping & Delivery Policy
