@@ -5,7 +5,6 @@ import Loading from "@/components/Loading";
 import { useParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { getProduct } from "@/lib/firebaseDb";
 import { fetchProducts } from "@/lib/features/product/productSlice";
 import Link from "next/link";
 import { ArrowLeft, PackageX, Edit3 } from "lucide-react";
@@ -48,15 +47,27 @@ export default function Product() {
         const fetchProductData = async () => {
             setLoading(true);
             try {
-                // 1. Fetch fresh from database to reflect price updates immediately
-                let foundProduct = await getProduct(productId).catch(() => null);
+                let foundProduct = null;
 
-                // 2. Fallback to Redux store
+                // 1. Authoritative: query Supabase via /api/products (always fresh, never stale)
+                try {
+                    const apiRes = await fetch('/api/products');
+                    if (apiRes.ok) {
+                        const apiData = await apiRes.json();
+                        if (apiData.success && Array.isArray(apiData.products)) {
+                            foundProduct = apiData.products.find(
+                                p => p.id === productId || p.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '-') === productId
+                            );
+                        }
+                    }
+                } catch {}
+
+                // 2. Fallback to Redux store (already Supabase-sourced if loaded)
                 if (!foundProduct) {
-                    foundProduct = productsRef.current?.find((p) => p.id === productId);
+                    foundProduct = productsRef.current?.find(p => p.id === productId);
                 }
 
-                // 3. Fallback: check localStorage & sessionStorage cached stores
+                // 3. Fallback: scan localStorage for cached store data (offline / new session)
                 if (!foundProduct && typeof window !== 'undefined') {
                     const storagePool = [localStorage, sessionStorage];
                     for (const storage of storagePool) {
@@ -66,38 +77,16 @@ export default function Product() {
                                 try {
                                     const storeData = JSON.parse(storage.getItem(key) || '{}');
                                     const match = (storeData.products || []).find(p => p.id === productId || p.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === productId);
-                                    if (match) {
-                                        foundProduct = match;
-                                        break;
-                                    }
-                                } catch (e) {}
+                                    if (match) { foundProduct = match; break; }
+                                } catch {}
                             }
                         }
                         if (foundProduct) break;
                     }
                 }
 
-                // 4. Fallback: check server API /api/products
-                if (!foundProduct) {
-                    try {
-                        const apiRes = await fetch('/api/products');
-                        if (apiRes.ok) {
-                            const apiData = await apiRes.json();
-                            if (apiData.success && Array.isArray(apiData.products)) {
-                                foundProduct = apiData.products.find(p => p.id === productId || p.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '-') === productId);
-                            }
-                        }
-                    } catch {}
-                }
-
-                // 5. Fallback: check store presets
-                if (!foundProduct) {
-                    try {
-                        const { HIGHGEARTOYS_PRODUCTS, DEFAULT_STORE_STARTER_PRODUCTS, DEFAULT_DEMO_CREATOR } = await import('@/lib/storePresets');
-                        const allPresets = [...(HIGHGEARTOYS_PRODUCTS || []), ...(DEFAULT_STORE_STARTER_PRODUCTS || []), ...(DEFAULT_DEMO_CREATOR?.products || [])];
-                        foundProduct = allPresets.find(p => p.id === productId || p.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '-') === productId);
-                    } catch {}
-                }
+                // NOTE: storePresets intentionally NOT used here — they contain hardcoded prices
+                //       that conflict with live DB data. If DB returns nothing, show "not found".
 
                 if (isMounted) {
                     setProduct(foundProduct || null);
