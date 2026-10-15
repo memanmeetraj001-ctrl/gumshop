@@ -44,6 +44,18 @@ export default function MobileStickyBuyBar({
     const title = product.name || product.title || 'Product';
     const bundleLabel = selectedBundle?.label || `${selectedBundle?.qty || 1} Item`;
 
+    // Contrast calculation for Buy Now button text
+    const rawColor = (themeColor && typeof themeColor === 'string' && themeColor.trim()) ? themeColor.trim() : '#10B981';
+    let hex = rawColor.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+    const r = parseInt(hex.substring(0, 2), 16) || 0;
+    const g = parseInt(hex.substring(2, 4), 16) || 0;
+    const b = parseInt(hex.substring(4, 6), 16) || 0;
+    const lum = (r * 299 + g * 587 + b * 114) / 1000;
+    const isLight = lum >= 135;
+    const btnTextColor = isLight ? '#020617' : '#ffffff';
+    const btnFillClass = isLight ? 'fill-slate-950' : 'fill-white';
+
     return (
         <div
             className={`fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-in-out ${
@@ -88,10 +100,10 @@ export default function MobileStickyBuyBar({
                 {/* Instant Buy CTA */}
                 <button
                     onClick={() => onBuyNow && onBuyNow(selectedBundle)}
-                    className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-xs text-white shadow-md active:scale-95 transition-transform"
-                    style={{ backgroundColor: themeColor || '#10B981' }}
+                    className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform"
+                    style={{ backgroundColor: rawColor, color: btnTextColor }}
                 >
-                    <Zap className="w-4 h-4 fill-white" />
+                    <Zap className={`w-4 h-4 ${btnFillClass}`} style={{ fill: btnTextColor }} />
                     <span>Buy Now</span>
                 </button>
             </div>

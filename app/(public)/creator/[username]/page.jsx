@@ -106,6 +106,33 @@ const PRESET_STYLES = {
     }
 };
 
+function resolveCtaTheme(themeColor, isDarkSurface = false) {
+    const raw = (themeColor && typeof themeColor === 'string' && themeColor.trim()) ? themeColor.trim() : '#10B981';
+    let hex = raw.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+    const r = parseInt(hex.substring(0, 2), 16) || 0;
+    const g = parseInt(hex.substring(2, 4), 16) || 0;
+    const b = parseInt(hex.substring(4, 6), 16) || 0;
+    const lum = (r * 299 + g * 587 + b * 114) / 1000;
+
+    // If on a dark surface (e.g. dark sticky bar) and themeColor is too dark to pop (< 90 lum), fallback to high-contrast Emerald #10B981
+    const effectiveBg = (isDarkSurface && lum < 90) ? '#10B981' : raw;
+
+    let effHex = effectiveBg.replace('#', '');
+    if (effHex.length === 3) effHex = effHex.split('').map(c => c + c).join('');
+    const er = parseInt(effHex.substring(0, 2), 16) || 0;
+    const eg = parseInt(effHex.substring(2, 4), 16) || 0;
+    const eb = parseInt(effHex.substring(4, 6), 16) || 0;
+    const effLum = (er * 299 + eg * 587 + eb * 114) / 1000;
+
+    const isLightBg = effLum >= 130;
+    return {
+        backgroundColor: effectiveBg,
+        color: isLightBg ? '#020617' : '#ffffff',
+        fillClass: isLightBg ? 'fill-slate-950' : 'fill-white'
+    };
+}
+
 function formatCreatorProfile(store, rawUsername) {
     if (!store) return null;
     try {
@@ -1209,8 +1236,11 @@ export default function CreatorBioPage({ params }) {
                                                 />
                                                 <button
                                                     type="submit"
-                                                    className="px-3.5 py-1.5 rounded-xl font-black text-xs text-slate-950 transition active:scale-95 shrink-0"
-                                                    style={{ backgroundColor: creator.themeColor || '#10B981' }}
+                                                    className="px-3.5 py-1.5 rounded-xl font-black text-xs transition active:scale-95 shrink-0"
+                                                    style={{ 
+                                                        backgroundColor: resolveCtaTheme(creator.themeColor, true).backgroundColor, 
+                                                        color: resolveCtaTheme(creator.themeColor, true).color 
+                                                    }}
                                                 >
                                                     {creator.leadMagnet.buttonText || 'Claim Free'}
                                                 </button>
@@ -1607,10 +1637,13 @@ export default function CreatorBioPage({ params }) {
                                                         <div className="space-y-2">
                                                             <button
                                                                 onClick={() => handleInstantBuy(heroItem, activeBundle, couponDiscountVal, stanAppliedCoupon?.code)}
-                                                                className="w-full py-3.5 px-6 rounded-2xl text-white font-black text-base tracking-wider shadow-lg transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer hover:opacity-95 uppercase"
-                                                                style={{ backgroundColor: creator.themeColor || '#f97316' }}
+                                                                className="w-full py-3.5 px-6 rounded-2xl font-black text-base tracking-wider shadow-lg transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer hover:opacity-95 uppercase"
+                                                                style={{ 
+                                                                    backgroundColor: resolveCtaTheme(creator.themeColor || '#f97316', false).backgroundColor, 
+                                                                    color: resolveCtaTheme(creator.themeColor || '#f97316', false).color 
+                                                                }}
                                                             >
-                                                                <Zap size={18} className="fill-white" />
+                                                                <Zap size={18} className={resolveCtaTheme(creator.themeColor || '#f97316', false).fillClass} style={{ fill: resolveCtaTheme(creator.themeColor || '#f97316', false).color }} />
                                                                 <span>BUY NOW</span>
                                                             </button>
                                                             <button
@@ -1713,10 +1746,13 @@ export default function CreatorBioPage({ params }) {
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleInstantBuy(item)}
-                                                                    className="py-1.5 px-3 sm:px-3.5 rounded-xl text-white font-black text-xs transition active:scale-95 shadow-xs flex items-center gap-1 tracking-tight uppercase cursor-pointer"
-                                                                    style={{ backgroundColor: creator.themeColor || '#ef4444' }}
+                                                                    className="py-1.5 px-3 sm:px-3.5 rounded-xl font-black text-xs transition active:scale-95 shadow-xs flex items-center gap-1 tracking-tight uppercase cursor-pointer"
+                                                                    style={{ 
+                                                                        backgroundColor: resolveCtaTheme(creator.themeColor || '#ef4444', false).backgroundColor, 
+                                                                        color: resolveCtaTheme(creator.themeColor || '#ef4444', false).color 
+                                                                    }}
                                                                 >
-                                                                    <Zap size={13} className="fill-white" />
+                                                                    <Zap size={13} className={resolveCtaTheme(creator.themeColor || '#ef4444', false).fillClass} style={{ fill: resolveCtaTheme(creator.themeColor || '#ef4444', false).color }} />
                                                                     <span>BUY NOW</span>
                                                                 </button>
                                                             </div>
@@ -1927,10 +1963,13 @@ export default function CreatorBioPage({ params }) {
                                 </button>
                                 <button
                                     onClick={() => handleInstantBuy(displayedProducts[0], activeBundle, stickyDiscountVal, stanAppliedCoupon?.code)}
-                                    className="px-3.5 py-2 rounded-xl text-xs font-black text-slate-950 flex items-center gap-1 shrink-0 shadow-sm active:scale-95 transition cursor-pointer uppercase tracking-wider"
-                                    style={{ backgroundColor: creator.themeColor || '#10B981' }}
+                                    className="px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1 shrink-0 shadow-sm active:scale-95 transition cursor-pointer uppercase tracking-wider"
+                                    style={{ 
+                                        backgroundColor: resolveCtaTheme(creator.themeColor, true).backgroundColor, 
+                                        color: resolveCtaTheme(creator.themeColor, true).color 
+                                    }}
                                 >
-                                    <Zap size={13} className="fill-slate-950" />
+                                    <Zap size={13} className={resolveCtaTheme(creator.themeColor, true).fillClass} style={{ fill: resolveCtaTheme(creator.themeColor, true).color }} />
                                     <span>BUY NOW</span>
                                 </button>
                             </div>
