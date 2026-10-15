@@ -38,10 +38,9 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { setActiveStoreSlug, setHomepageStoreSlug, getAllLocalStores } from '@/lib/activeStore';
-import { isStoreDeleted } from '@/lib/firebaseDb';
 import { normalizeProductPrice, applyPriceSlash } from '@/lib/importer/priceNormalizer.js';
 import { parseCatalogFile } from '@/lib/importer/fileImporter.js';
-import { enhanceProduct, roundPriceStrategy } from '@/lib/importer/productEnhancer.js';
+import { enhanceProduct, roundPriceStrategy, generateContextualBundles } from '@/lib/importer/productEnhancer.js';
 
 export default function StoreImportPage() {
     const router = useRouter();
@@ -541,7 +540,7 @@ export default function StoreImportPage() {
         setStage('creating');
 
         try {
-            // Merge original products with user edits
+            // Merge original products with user edits and keep bundles synchronized
             const finalProducts = (importData.products || [])
                 .filter(p => selectedProductIds.has(p.id))
                 .map(p => {
@@ -550,6 +549,7 @@ export default function StoreImportPage() {
                     const compareAtPrice = overrides.compareAtPrice !== undefined ? overrides.compareAtPrice : p.compareAtPrice;
                     const category = overrides.category !== undefined ? overrides.category : p.category;
                     const name = overrides.name !== undefined ? overrides.name : p.name;
+                    const syncedBundles = generateContextualBundles(name, price, priceRounding);
 
                     return {
                         ...p,
@@ -557,7 +557,8 @@ export default function StoreImportPage() {
                         price,
                         compareAtPrice,
                         category: typeof category === 'string' ? category : (category?.name || 'Featured'),
-                        image: p.image || p.images?.[0] || ''
+                        image: p.image || p.images?.[0] || '',
+                        customBundles: syncedBundles
                     };
                 });
 
@@ -619,13 +620,10 @@ export default function StoreImportPage() {
                 throw new Error(data.error || 'Failed to complete store import');
             }
 
-            // Sync with local active store and homepage store
+            // Sync with active store and homepage store (pure live state)
             if (typeof window !== 'undefined') {
                 const effectiveSlug = data.slug;
                 try {
-                    localStorage.setItem(`store_${effectiveSlug}`, JSON.stringify(data.store));
-                    localStorage.setItem(`cloned_store_${effectiveSlug}`, JSON.stringify(data.store));
-                    localStorage.setItem(`gumshop_db_stores/store_${effectiveSlug}`, JSON.stringify(data.store));
                     localStorage.removeItem('gumshop_stores_cleared');
                     localStorage.removeItem('gumshop_empty_dashboard_ack');
                     setActiveStoreSlug(data.store);
@@ -634,7 +632,7 @@ export default function StoreImportPage() {
                         await setHomepageStoreSlug(effectiveSlug);
                     }
                 } catch (e) {
-                    console.warn('Storage quota notice:', e.message);
+                    console.warn('Storage notice:', e.message);
                 }
             }
 
@@ -1419,12 +1417,14 @@ export default function StoreImportPage() {
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => {
+                                                                                const syncedBundles = generateContextualBundles(displayName, displayPrice, priceRounding);
                                                                                 setPreviewProduct({
                                                                                     ...prod,
                                                                                     name: displayName,
                                                                                     price: displayPrice,
                                                                                     compareAtPrice: displayCompare,
-                                                                                    category: displayCategory
+                                                                                    category: displayCategory,
+                                                                                    customBundles: syncedBundles
                                                                                 });
                                                                                 setPreviewSelectedImage(prodImg);
                                                                             }}
@@ -1540,12 +1540,14 @@ export default function StoreImportPage() {
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => {
+                                                                                const syncedBundles = generateContextualBundles(displayName, displayPrice, priceRounding);
                                                                                 setPreviewProduct({
                                                                                     ...prod,
                                                                                     name: displayName,
                                                                                     price: displayPrice,
                                                                                     compareAtPrice: displayCompare,
-                                                                                    category: displayCategory
+                                                                                    category: displayCategory,
+                                                                                    customBundles: syncedBundles
                                                                                 });
                                                                                 setPreviewSelectedImage(prodImg);
                                                                             }}

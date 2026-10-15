@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createStore, createProduct, recordImportHistory, getStore, getStoreByUsername } from '@/lib/firebaseDb';
 import { serverSaveStore, serverSaveProducts } from '@/lib/serverDb';
 import { normalizeProductPrice, applyPriceSlash } from '@/lib/importer/priceNormalizer.js';
+import { generateContextualBundles } from '@/lib/importer/productEnhancer.js';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -118,6 +119,15 @@ export async function POST(req) {
                 ? applyPriceSlash(rawPrice, numSlash, rawCompareAt)
                 : { price: rawPrice, compareAtPrice: rawCompareAt };
 
+            // Ensure volume bundle tiers always match the final calculated retail price
+            const existingBundles = Array.isArray(p.customBundles) ? p.customBundles : [];
+            const hasMismatchedPrice = existingBundles.length > 0 &&
+                Math.abs((parseFloat(existingBundles[0]?.totalPrice) || 0) - price) > 0.05;
+
+            const customBundles = (existingBundles.length === 0 || hasMismatchedPrice || existingBundles[0]?.subtitle?.includes('rider'))
+                ? generateContextualBundles(p.name || 'Featured Product', price, 'exact')
+                : existingBundles;
+
             return {
                 id: prodId,
                 storeId,
@@ -129,7 +139,7 @@ export async function POST(req) {
                 bulletPoints: Array.isArray(p.bulletPoints) ? p.bulletPoints : (Array.isArray(p.bullets) ? p.bullets : []),
                 kicker: p.kicker || '',
                 subtitle: p.subtitle || '',
-                customBundles: Array.isArray(p.customBundles) ? p.customBundles : [],
+                customBundles,
                 variants: Array.isArray(p.variants) ? p.variants : [],
                 options: Array.isArray(p.options) ? p.options : [],
                 faqs: Array.isArray(p.faqs) ? p.faqs : [],
