@@ -1,10 +1,18 @@
 import Script from "next/script";
+import { Outfit } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import StoreProvider from "@/app/StoreProvider";
 import { AuthProvider } from "@/lib/AuthContext";
 import { Analytics } from "@vercel/analytics/next";
 import CartSync from "@/components/CartSync";
 import "./globals.css";
+
+const outfit = Outfit({
+    subsets: ["latin"],
+    weight: ["300", "400", "500", "600", "700", "800"],
+    display: "swap",
+    variable: "--font-outfit"
+});
 
 export const metadata = {
     metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online'),
@@ -109,11 +117,8 @@ const jsonLdWebsite = {
 
 export default function RootLayout({ children }) {
     return (
-        <html lang="en">
+        <html lang="en" className={outfit.variable}>
             <head>
-                {/* Google Fonts Preconnect */}
-                <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
                 {/* Favicons & PWA Manifest */}
                 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
                 <link rel="alternate icon" href="/favicon.ico" />
@@ -132,7 +137,7 @@ export default function RootLayout({ children }) {
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebsite) }}
                 />
                 {/* Gumroad In-Page Iframe Overlay Script */}
-                <Script src="https://gumroad.com/js/gumroad.js" strategy="afterInteractive" />
+                <Script src="https://gumroad.com/js/gumroad.js" strategy="lazyOnload" />
             </head>
             <body className="antialiased bg-slate-50 text-slate-900 selection:bg-emerald-500 selection:text-white">
                 <StoreProvider>
