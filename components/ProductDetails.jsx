@@ -565,10 +565,10 @@ const ProductDetails = ({ product, storeInfo }) => {
                         <button
                             onClick={handleInstantBuyNow}
                             disabled={isCheckingOut || isOutOfStock}
-                            className={`w-full py-4 px-8 rounded-2xl font-black text-base flex items-center justify-center gap-2 transition ${
+                            className={`w-full py-4 px-8 rounded-2xl font-black text-base flex items-center justify-center gap-2 transition focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
                                 isOutOfStock
                                     ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
-                                    : 'bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white shadow-xl shadow-emerald-600/30 hover:scale-[1.01]'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white shadow-xl shadow-emerald-600/30 hover:scale-[1.01] cursor-pointer'
                             }`}
                         >
                             <Zap size={20} className={isOutOfStock ? "fill-slate-400 text-slate-400" : "fill-white"} />
@@ -585,10 +585,10 @@ const ProductDetails = ({ product, storeInfo }) => {
                         <button
                             onClick={handleAddToCart}
                             disabled={isOutOfStock}
-                            className={`w-full py-3 px-6 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition ${
+                            className={`w-full py-3 px-6 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 ${
                                 isOutOfStock
                                     ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                    : 'bg-slate-100 hover:bg-slate-200 active:scale-98 text-slate-800'
+                                    : 'bg-slate-100 hover:bg-slate-200 active:scale-98 text-slate-800 cursor-pointer'
                             }`}
                         >
                             <ShoppingBag size={16} />

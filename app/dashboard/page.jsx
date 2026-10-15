@@ -1558,7 +1558,7 @@ export default function MasterDashboardPage() {
                             {/* Quick Create Card */}
                             <button
                                 onClick={() => setIsCreateModalOpen(true)}
-                                className="bg-white/60 border-2 border-dashed border-slate-200 hover:border-emerald-500 rounded-3xl p-8 flex flex-col items-center justify-center text-center transition group min-h-[300px]" font-bold
+                                className="bg-white/60 border-2 border-dashed border-slate-200 hover:border-emerald-500 rounded-3xl p-8 flex flex-col items-center justify-center text-center transition group min-h-[300px] font-bold cursor-pointer"
                             >
                                 <div className="size-12 rounded-2xl bg-slate-100 group-hover:bg-emerald-50 flex items-center justify-center text-slate-600 group-hover:text-emerald-600 transition mb-3">
                                     <Plus size={22} />
@@ -2019,18 +2019,10 @@ function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onS
                                 Set Active
                             </button>
                         )}
-                        {isHomepage ? (
+                        {isHomepage && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1 shadow-xs">
                                 ⭐ Homepage
                             </span>
-                        ) : (
-                            <button
-                                onClick={() => onSetHomepage?.(shop)}
-                                className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-800 border border-slate-200 hover:border-amber-200 transition flex items-center gap-1"
-                                title="Set as default root homepage (/)"
-                            >
-                                ⭐ Make Homepage
-                            </button>
                         )}
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
                             {shop.theme?.replace('_', ' ')}

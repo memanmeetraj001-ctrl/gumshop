@@ -259,19 +259,21 @@ export default function CartDrawer({ isOpen, onClose }) {
                                             <span className="text-sm font-extrabold text-slate-900">
                                                 {currency}{(item.price * item.quantity).toFixed(2)}
                                             </span>
-                                            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg p-0.5">
+                                            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
                                                 <button
                                                     onClick={() => dispatch(removeFromCart({ productId: item.id, itemKey: item.id }))}
-                                                    className="size-5 rounded flex items-center justify-center text-slate-500 hover:bg-slate-100 transition"
+                                                    className="w-7 h-7 rounded flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 active:scale-95 transition cursor-pointer"
+                                                    title="Decrease quantity"
                                                 >
-                                                    <Minus size={11} />
+                                                    <Minus size={13} />
                                                 </button>
-                                                <span className="text-xs font-bold px-1 min-w-4 text-center">{item.quantity}</span>
+                                                <span className="text-xs font-bold px-1.5 min-w-5 text-center">{item.quantity}</span>
                                                 <button
                                                     onClick={() => dispatch(addToCart({ productId: item.id, itemKey: item.id, product: item }))}
-                                                    className="size-5 rounded flex items-center justify-center text-slate-500 hover:bg-slate-100 transition"
+                                                    className="w-7 h-7 rounded flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 active:scale-95 transition cursor-pointer"
+                                                    title="Increase quantity"
                                                 >
-                                                    <Plus size={11} />
+                                                    <Plus size={13} />
                                                 </button>
                                             </div>
                                         </div>
@@ -355,7 +357,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                                 <button
                                     onClick={handleCheckout}
                                     disabled={isCheckingOut}
-                                    className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50"
+                                    className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-98 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer"
                                 >
                                     <Zap size={18} className="fill-white" />
                                     <span>{isCheckingOut ? 'Opening Secure Checkout...' : '⚡ Buy Now — Instant Checkout'}</span>

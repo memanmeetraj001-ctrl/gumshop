@@ -638,7 +638,7 @@ export default function StoreManageProducts() {
                                                                 e.target.blur();
                                                             }
                                                         }}
-                                                        className="w-20 px-2 py-1 bg-slate-50 hover:bg-white border border-slate-200 rounded-lg text-xs font-extrabold text-slate-900 outline-none focus:border-emerald-500 focus:bg-white transition"
+                                                        className="w-20 px-2.5 py-1 bg-slate-50 hover:bg-white border border-slate-200 rounded-lg text-xs font-extrabold text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition"
                                                         title="Click to edit retail price, press Enter or click away to save"
                                                     />
                                                 </div>
@@ -659,7 +659,7 @@ export default function StoreManageProducts() {
                                                                 e.target.blur();
                                                             }
                                                         }}
-                                                        className="w-20 px-2 py-1 bg-slate-50 hover:bg-white border border-slate-200 rounded-lg text-xs font-semibold outline-none focus:border-emerald-500 focus:bg-white transition"
+                                                        className="w-20 px-2.5 py-1 bg-slate-50 hover:bg-white border border-slate-200 rounded-lg text-xs font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition"
                                                         title="Click to edit supplier cost"
                                                     />
                                                 </div>
@@ -703,7 +703,7 @@ export default function StoreManageProducts() {
                                                     <Link
                                                         href={`/product/${product.id}`}
                                                         target="_blank"
-                                                        className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition"
+                                                        className="min-w-[32px] min-h-[32px] flex items-center justify-center p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition cursor-pointer"
                                                         title="View Live on Storefront"
                                                     >
                                                         <Eye size={15} />
@@ -712,7 +712,7 @@ export default function StoreManageProducts() {
                                                     {/* 1-Click Duplicate Product */}
                                                     <button
                                                         onClick={() => handleDuplicateProduct(product)}
-                                                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition"
+                                                        className="min-w-[32px] min-h-[32px] flex items-center justify-center p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer"
                                                         title="Duplicate Product (1-Click Copy)"
                                                     >
                                                         <Copy size={15} />
@@ -721,7 +721,7 @@ export default function StoreManageProducts() {
                                                     {/* Edit Modal */}
                                                     <button
                                                         onClick={() => handleOpenEditModal(product)}
-                                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:text-emerald-700 bg-slate-100 hover:bg-emerald-50 rounded-xl transition"
+                                                        className="inline-flex items-center gap-1 px-3 py-1.5 min-h-[32px] text-xs font-bold text-slate-700 hover:text-emerald-700 bg-slate-100 hover:bg-emerald-50 rounded-xl transition cursor-pointer"
                                                         title="Full Quick Edit"
                                                     >
                                                         <Edit3 size={13} className="text-emerald-600" />
@@ -731,7 +731,7 @@ export default function StoreManageProducts() {
                                                     {/* Delete */}
                                                     <button
                                                         onClick={() => handleDelete(product.id)}
-                                                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition"
+                                                        className="min-w-[32px] min-h-[32px] flex items-center justify-center p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
                                                         title="Delete Product"
                                                     >
                                                         <Trash2 size={15} />
