@@ -209,15 +209,10 @@ export default function StoreSettings() {
                     updatedAt: new Date().toISOString()
                 };
 
-                // Sync local caches
+                // Sync active store session without bloated duplicate database copies
                 if (typeof window !== 'undefined') {
-                    localStorage.setItem(`store_${cleanSlug}`, JSON.stringify(payload));
-                    localStorage.setItem(`cloned_store_${cleanSlug}`, JSON.stringify(payload));
-                    localStorage.setItem(targetStoreId, JSON.stringify(payload));
                     localStorage.setItem('gumshop_active_store', JSON.stringify(payload));
                     localStorage.setItem('active_store_slug', cleanSlug);
-                    localStorage.setItem(`gumshop_db_stores/${targetStoreId}`, JSON.stringify(payload));
-                    localStorage.setItem(`gumshop_db_stores/store_${cleanSlug}`, JSON.stringify(payload));
                     if (storeInfo.gumroadProductUrl) localStorage.setItem(`gumroad_url_${cleanSlug}`, storeInfo.gumroadProductUrl);
                     if (storeInfo.gumroadToken) localStorage.setItem(`gumroad_token_${cleanSlug}`, storeInfo.gumroadToken);
                     if (storeInfo.socials) localStorage.setItem(`gumshop_socials_${cleanSlug}`, JSON.stringify(storeInfo.socials));
@@ -529,11 +524,6 @@ export default function StoreSettings() {
                 if (payloadToSave.socials) {
                     localStorage.setItem(`gumshop_socials_${cleanSlug}`, JSON.stringify(payloadToSave.socials));
                 }
-                localStorage.setItem(targetStoreId, JSON.stringify(payloadToSave));
-                localStorage.setItem(`store_${cleanSlug}`, JSON.stringify(payloadToSave));
-                localStorage.setItem(`cloned_store_${cleanSlug}`, JSON.stringify(payloadToSave));
-                localStorage.setItem(`gumshop_db_stores/${targetStoreId}`, JSON.stringify(payloadToSave));
-                localStorage.setItem(`gumshop_db_stores/store_${cleanSlug}`, JSON.stringify(payloadToSave));
                 localStorage.setItem('gumshop_active_store', JSON.stringify(payloadToSave));
                 localStorage.setItem('active_store_slug', cleanSlug);
                 window.dispatchEvent(new Event('active_store_changed'));

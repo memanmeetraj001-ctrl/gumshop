@@ -52,7 +52,7 @@ const StoreSidebar = ({ storeInfo }) => {
                             <ExternalLink size={12} />
                         </Link>
                         <Link 
-                            href="/store/bio-editor"
+                            href={`/store/bio-editor?store=${storeSlug}`}
                             className="inline-flex items-center justify-center gap-1.5 text-[11px] font-bold text-rose-700 hover:text-rose-800 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200/60 transition"
                         >
                             <Smartphone size={12} />

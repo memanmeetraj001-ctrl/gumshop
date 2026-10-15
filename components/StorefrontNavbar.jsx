@@ -5,7 +5,7 @@ import { ShoppingCart, Truck, Search, Sparkles, Smartphone } from 'lucide-react'
 import { useSelector } from 'react-redux';
 import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 
-export default function StorefrontNavbar({ store }) {
+export default function StorefrontNavbar({ store, onOpenCart }) {
     const reduxCartCount = useSelector(state => state.cart?.total || 0);
     const [localCount, setLocalCount] = useState(0);
 
@@ -78,19 +78,36 @@ export default function StorefrontNavbar({ store }) {
 
                     {/* Right Action: Shopping Cart Button */}
                     <div className="flex items-center gap-3">
-                        <Link 
-                            href="/cart" 
-                            className="relative flex items-center gap-2 px-4 py-2 sm:py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold shadow-sm transition active:scale-95"
-                            aria-label="View Shopping Cart"
-                        >
-                            <ShoppingCart size={16} />
-                            <span className="hidden sm:inline">Cart</span>
-                            {cartCount > 0 && (
-                                <span className="bg-emerald-500 text-white text-[11px] font-black px-1.5 py-0.2 rounded-full min-w-4 text-center">
-                                    {cartCount}
-                                </span>
-                            )}
-                        </Link>
+                        {onOpenCart ? (
+                            <button 
+                                type="button"
+                                onClick={onOpenCart} 
+                                className="relative flex items-center gap-2 px-4 py-2 sm:py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold shadow-sm transition active:scale-95 cursor-pointer"
+                                aria-label="Open Shopping Cart"
+                            >
+                                <ShoppingCart size={16} />
+                                <span className="hidden sm:inline">Cart</span>
+                                {cartCount > 0 && (
+                                    <span className="bg-emerald-500 text-white text-[11px] font-black px-1.5 py-0.2 rounded-full min-w-4 text-center">
+                                        {cartCount}
+                                    </span>
+                                )}
+                            </button>
+                        ) : (
+                            <Link 
+                                href="/cart" 
+                                className="relative flex items-center gap-2 px-4 py-2 sm:py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold shadow-sm transition active:scale-95"
+                                aria-label="View Shopping Cart"
+                            >
+                                <ShoppingCart size={16} />
+                                <span className="hidden sm:inline">Cart</span>
+                                {cartCount > 0 && (
+                                    <span className="bg-emerald-500 text-white text-[11px] font-black px-1.5 py-0.2 rounded-full min-w-4 text-center">
+                                        {cartCount}
+                                    </span>
+                                )}
+                            </Link>
+                        )}
                     </div>
 
                 </div>

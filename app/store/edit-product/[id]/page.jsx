@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { generateContextualBundles } from '@/lib/importer/productEnhancer';
 import { 
     ArrowLeft, 
     Save, 
@@ -149,6 +150,8 @@ export default function EditProductPage() {
             const supplier = parseFloat(formData.supplierCost) || 0;
             const cleanedImages = (formData.images || []).filter(img => typeof img === 'string' && img.trim());
 
+            const customBundles = generateContextualBundles(formData.name.trim(), retail, 'exact');
+
             const updatedData = {
                 name: formData.name.trim(),
                 price: retail,
@@ -160,6 +163,7 @@ export default function EditProductPage() {
                 images: cleanedImages.length > 0 ? cleanedImages : (formData.image ? [formData.image] : []),
                 description: formData.description.trim(),
                 inStock: formData.inStock,
+                customBundles,
                 sku: sku.trim(),
                 stockQuantity: Number(stockQuantity) || 0,
                 colors: colorVariants,

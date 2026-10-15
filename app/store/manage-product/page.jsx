@@ -5,6 +5,7 @@ import Loading from "@/components/Loading";
 import { useAuth } from "@/lib/AuthContext";
 import { getStoreByUserId, getProductsByStore, updateProduct, deleteProduct, createProduct, isProductDeleted, isJunkProductName } from "@/lib/firebaseDb";
 import { getActiveStore, getActiveStoreSync } from "@/lib/activeStore";
+import { generateContextualBundles } from "@/lib/importer/productEnhancer";
 import { useRouter } from "next/navigation";
 import { 
     Calculator, 
@@ -221,13 +222,14 @@ export default function StoreManageProducts() {
                 const newPrice = Math.round((parseFloat(p.price || 0) * (1 + percentMultiplier)) * 100) / 100;
                 const currentCompare = parseFloat(p.compareAtPrice || p.mrp || 0);
                 const updatedCompare = currentCompare > newPrice ? currentCompare : Math.round(newPrice * 1.3 * 100) / 100;
-                await updateProduct(id, { price: newPrice, compareAtPrice: updatedCompare, mrp: updatedCompare });
-                return { id, newPrice, compareAtPrice: updatedCompare };
+                const customBundles = generateContextualBundles(p.name || 'Product', newPrice, 'exact');
+                await updateProduct(id, { price: newPrice, compareAtPrice: updatedCompare, mrp: updatedCompare, customBundles });
+                return { id, newPrice, compareAtPrice: updatedCompare, customBundles };
             });
             const results = await Promise.all(updates);
             setProducts(prev => prev.map(p => {
                 const match = results.find(r => r?.id === p.id);
-                return match ? { ...p, price: match.newPrice, compareAtPrice: match.compareAtPrice, mrp: match.compareAtPrice } : p;
+                return match ? { ...p, price: match.newPrice, compareAtPrice: match.compareAtPrice, mrp: match.compareAtPrice, customBundles: match.customBundles } : p;
             }));
             toast.success(`Applied +${Math.round(percentMultiplier * 100)}% markup to ${selectedIds.length} products! 🚀`);
             setSelectedIds([]);
@@ -281,9 +283,11 @@ export default function StoreManageProducts() {
         setIsSavingEdit(true);
 
         try {
+            const newPrice = parseFloat(editForm.price) || 0;
+            const updatedBundles = generateContextualBundles(editForm.name, newPrice, 'exact');
             const updatedData = {
                 name: editForm.name,
-                price: parseFloat(editForm.price) || 0,
+                price: newPrice,
                 compareAtPrice: parseFloat(editForm.compareAtPrice) || 0,
                 mrp: parseFloat(editForm.compareAtPrice) || 0,
                 supplierCost: parseFloat(editForm.supplierCost) || 0,
@@ -292,6 +296,7 @@ export default function StoreManageProducts() {
                 images: editForm.image ? [editForm.image] : (editingProduct.images || []),
                 description: editForm.description,
                 inStock: editForm.inStock,
+                customBundles: updatedBundles,
             };
 
             await updateProduct(editingProduct.id, updatedData);

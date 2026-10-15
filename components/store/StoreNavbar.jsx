@@ -147,7 +147,14 @@ const StoreNavbar = ({ storeInfo }) => {
                                             onClick={() => {
                                                 setActiveStoreSlug(s);
                                                 setIsDropdownOpen(false);
-                                                window.location.reload();
+                                                if (typeof window !== 'undefined') {
+                                                    const url = new URL(window.location.href);
+                                                    const targetSlug = s.username || (s.id ? String(s.id).replace(/^store_/, '') : '');
+                                                    if (targetSlug) {
+                                                        url.searchParams.set('store', targetSlug);
+                                                    }
+                                                    window.location.href = url.toString();
+                                                }
                                             }}
                                             className="min-w-0 pr-2 flex-1 text-left"
                                         >

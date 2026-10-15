@@ -7,6 +7,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { useAuth } from "@/lib/AuthContext"
 import { getStoreByUserId, createProduct, getProduct, updateProduct, getAllStores } from "@/lib/firebaseDb"
 import { getActiveStore, getActiveStoreSync, getAllLocalStores, setActiveStoreSlug } from "@/lib/activeStore"
+import { generateContextualBundles } from "@/lib/importer/productEnhancer"
 import Loading from "@/components/Loading"
 import { 
     Plus, 
@@ -274,9 +275,12 @@ function AddProductContent() {
                 imageFiles.map(file => typeof file === 'string' ? Promise.resolve(file) : convertToBase64(file))
             );
 
+            const productPrice = Number(productInfo.price) || 0;
+            const customBundles = generateContextualBundles(productInfo.name, productPrice, 'exact');
+
             const payload = {
                 ...productInfo,
-                price: Number(productInfo.price),
+                price: productPrice,
                 mrp: Number(productInfo.mrp),
                 compareAtPrice: Number(productInfo.mrp),
                 supplierCost: Number(productInfo.supplierCost),
@@ -287,6 +291,7 @@ function AddProductContent() {
                 colors: colorVariants,
                 sizes: sizeVariants,
                 features: features,
+                customBundles,
                 updatedAt: new Date().toISOString(),
             }
 

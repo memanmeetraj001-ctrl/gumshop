@@ -411,24 +411,49 @@ export default function CreatorBioPage({ params }) {
 
     const handleBioLeadSubmit = (e) => {
         e.preventDefault();
-        if (!bioLeadEmail || !bioLeadEmail.includes('@')) {
+        const email = bioLeadEmail.trim().toLowerCase();
+        if (!email || !email.includes('@')) {
             toast.error("Please enter a valid email address.");
             return;
         }
 
+        const leadName = email.split('@')[0];
+        const newLead = {
+            id: `lead_${Date.now()}`,
+            name: leadName,
+            email: email,
+            totalSpent: 0,
+            orderCount: 0,
+            source: 'Stan Bio Lead Magnet',
+            lastOrderDate: new Date().toISOString()
+        };
+
+        // 1. Dispatch to server-side order/lead store
+        fetch('/api/store/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                storeId: storeInfo?.id || `store_${cleanUser}`,
+                customer: {
+                    name: leadName,
+                    email: email,
+                },
+                items: [{
+                    name: creator.leadMagnet?.title || 'Free Creator Playbook',
+                    price: 0,
+                    quantity: 1
+                }],
+                total: 0,
+                source: 'Stan Bio Lead Magnet',
+                status: 'lead'
+            })
+        }).catch(() => {});
+
+        // 2. Persist in local storage for instant offline resilience
         try {
             const crmKey = `gumshop_customers_${cleanUser}`;
             const existing = JSON.parse(localStorage.getItem(crmKey) || '[]');
-            const newLead = {
-                id: `lead_${Date.now()}`,
-                name: bioLeadEmail.split('@')[0],
-                email: bioLeadEmail.trim().toLowerCase(),
-                totalSpent: 0,
-                orderCount: 0,
-                source: 'Stan Bio Lead Magnet',
-                lastOrderDate: new Date().toISOString()
-            };
-            if (!existing.some(c => c.email === newLead.email)) {
+            if (!existing.some(c => c.email === email)) {
                 existing.unshift(newLead);
                 localStorage.setItem(crmKey, JSON.stringify(existing));
             }

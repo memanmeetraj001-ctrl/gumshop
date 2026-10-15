@@ -8,6 +8,7 @@ import StoreHeroBanner from "@/components/StoreHeroBanner";
 import ExitIntentModal from "@/components/ExitIntentModal";
 import AiShoppingAssistant from "@/components/AiShoppingAssistant";
 import LiveSalesToaster from "@/components/LiveSalesToaster";
+import CartDrawer from "@/components/CartDrawer";
 import { getStoreByUsername, getProductsByStore, getAllStores, isProductDeleted, isJunkProductName } from "@/lib/firebaseDb";
 import { useAuth } from "@/lib/AuthContext";
 import Link from "next/link";
@@ -37,6 +38,7 @@ export default function StoreShop({ params }) {
     const [storeInfo, setStoreInfo] = useState(initialData.store || null);
     const [loading, setLoading] = useState(!initialData.store);
     const [activeCategory, setActiveCategory] = useState('All');
+    const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
 
     useEffect(() => {
         // Safety timeout so merchant stores NEVER get stuck on loading screen (generous to allow network fetch)
@@ -157,7 +159,7 @@ export default function StoreShop({ params }) {
     return (
         <div className="min-h-screen bg-slate-50 pb-24 selection:bg-emerald-500 selection:text-white">
             {/* 100% White-Labeled Merchant Header */}
-            <StorefrontNavbar store={storeInfo} />
+            <StorefrontNavbar store={storeInfo} onOpenCart={() => setCartDrawerOpen(true)} />
 
             {/* Merchant High-Converting Hero Store Banner */}
             <StoreHeroBanner store={storeInfo} totalProducts={products.length} />
@@ -206,7 +208,11 @@ export default function StoreShop({ params }) {
                     ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
                             {filteredProducts.map(product => (
-                                <ProductCard key={product.id} product={product} />
+                                <ProductCard 
+                                    key={product.id} 
+                                    product={product} 
+                                    onOpenCart={() => setCartDrawerOpen(true)} 
+                                />
                             ))}
                         </div>
                     )}
@@ -270,6 +276,12 @@ export default function StoreShop({ params }) {
 
             {/* 🔥 Live Verified Sales Pop-Up (Social Proof) */}
             <LiveSalesToaster products={products} storeName={storeInfo?.name} />
+
+            {/* Slide-Over Shopping Bag Drawer */}
+            <CartDrawer
+                isOpen={cartDrawerOpen}
+                onClose={() => setCartDrawerOpen(false)}
+            />
         </div>
     );
 }

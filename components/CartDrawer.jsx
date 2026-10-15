@@ -82,14 +82,27 @@ export default function CartDrawer({ isOpen, onClose }) {
         try {
             const couponData = await getCoupon(code);
             if (couponData && (!couponData.expiresAt || new Date(couponData.expiresAt) > new Date())) {
-                const pct = Number(couponData.discount) || 20;
+                if (couponData.minSpend && subtotal < Number(couponData.minSpend)) {
+                    return toast.error(`Minimum spend of $${couponData.minSpend} required`);
+                }
+                if (couponData.type === 'fixed') {
+                    const discount = Math.min(subtotal, Number(couponData.discount || 0));
+                    setAppliedDiscount(discount);
+                    toast.success(`Coupon applied: $${discount} off! 🎉`);
+                } else if (couponData.type === 'shipping') {
+                    setAppliedDiscount(shippingFee);
+                    toast.success('Coupon applied: Free shipping! 🚚');
+                } else {
+                    const pct = Number(couponData.discount) || 20;
+                    const discount = Math.round(subtotal * (pct / 100) * 100) / 100;
+                    setAppliedDiscount(discount);
+                    toast.success(`Coupon applied: ${pct}% off! 🎉`);
+                }
+            } else if (['SAVE20', 'SAVE10', 'FLASH25', 'NEW20', 'VIP15'].includes(code)) {
+                const pct = code === 'FLASH25' ? 25 : (code === 'SAVE10' ? 10 : (code === 'VIP15' ? 15 : 20));
                 const discount = Math.round(subtotal * (pct / 100) * 100) / 100;
                 setAppliedDiscount(discount);
                 toast.success(`Coupon "${code}" applied: ${pct}% off! 🎉`);
-            } else if (code === 'SAVE20' || code === 'SAVE10' || code === 'FLASH25' || code === 'NEW20' || code === 'VIP15') {
-                const discount = Math.round(subtotal * 0.20 * 100) / 100;
-                setAppliedDiscount(discount);
-                toast.success(`Coupon "${code}" applied: 20% off! 🎉`);
             } else {
                 toast.error('Invalid or expired coupon code');
             }

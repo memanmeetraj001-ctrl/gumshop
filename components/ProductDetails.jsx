@@ -68,36 +68,50 @@ const ProductDetails = ({ product, storeInfo }) => {
 
     const activeVariantLabel = `${selectedColor ? selectedColor.name : ''}${selectedSize ? (selectedColor ? ' • ' : '') + selectedSize.name : ''}` || 'Standard Edition';
 
-    // Quantity Tier Breaks: Prefer authentic product-specific customBundles if available
+    // Quantity Tier Breaks: Prefer authentic product-specific customBundles if available, scaling if size variant has priceDelta
     const baseItemName = product.name ? product.name.split(' ')[0] : 'Item';
-    const quantityTiers = (Array.isArray(product.customBundles) && product.customBundles.length > 0)
+    const rawTiers = (Array.isArray(product.customBundles) && product.customBundles.length > 0)
         ? product.customBundles
         : [
             {
                 qty: 1,
                 label: `1 ${baseItemName}`,
                 subtitle: "One legendary rider",
-                pricePerUnit: effectiveUnitPrice,
-                totalPrice: effectiveUnitPrice,
+                pricePerUnit: unitPrice,
+                totalPrice: unitPrice,
                 badge: null
             },
             {
                 qty: 2,
                 label: `2 ${baseItemName}s`,
                 subtitle: "Two-Pet Household / matching Halloween photos",
-                pricePerUnit: Math.round((Math.round(effectiveUnitPrice * 1.4082075 * 100) / 100 / 2) * 100) / 100,
-                totalPrice: Math.round(effectiveUnitPrice * 1.4082075 * 100) / 100,
+                pricePerUnit: Math.round((Math.round(unitPrice * 1.4082075 * 100) / 100 / 2) * 100) / 100,
+                totalPrice: Math.round(unitPrice * 1.4082075 * 100) / 100,
                 badge: "Two-Pet Household ⭐"
             },
             {
                 qty: 3,
                 label: `3 ${baseItemName}s`,
                 subtitle: "Costume Party Pack",
-                pricePerUnit: Math.round((Math.round(effectiveUnitPrice * 1.81623 * 100) / 100 / 3) * 100) / 100,
-                totalPrice: Math.round(effectiveUnitPrice * 1.81623 * 100) / 100,
+                pricePerUnit: Math.round((Math.round(unitPrice * 1.81623 * 100) / 100 / 3) * 100) / 100,
+                totalPrice: Math.round(unitPrice * 1.81623 * 100) / 100,
                 badge: "Costume Party Pack 🔥"
             }
         ];
+
+    const quantityTiers = useMemo(() => {
+        if (sizeDelta === 0) return rawTiers;
+        return rawTiers.map(t => {
+            const addedTotal = Math.round(sizeDelta * t.qty * 100) / 100;
+            const newTotal = Math.round((t.totalPrice + addedTotal) * 100) / 100;
+            const newUnit = Math.round((newTotal / t.qty) * 100) / 100;
+            return {
+                ...t,
+                totalPrice: newTotal,
+                pricePerUnit: newUnit
+            };
+        });
+    }, [rawTiers, sizeDelta]);
 
     const currentTier = quantityTiers.find(t => t.qty === selectedQuantity) || quantityTiers[0];
 
