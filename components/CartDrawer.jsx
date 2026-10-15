@@ -64,9 +64,10 @@ export default function CartDrawer({ isOpen, onClose, products: propProducts }) 
     if (!isOpen) return null;
 
     // Multi-Tier Milestones: $50 (Free Standard Shipping), $75 (Free Mystery Gift), $100 (Priority VIP Dispatch)
+    const freeShippingThreshold = 50;
     const maxTierThreshold = 100;
     const overallTierProgress = Math.min(100, Math.round((subtotal / maxTierThreshold) * 100));
-    const shippingFee = subtotal >= 50 || subtotal === 0 ? 0 : 4.99;
+    const shippingFee = subtotal >= freeShippingThreshold || subtotal === 0 ? 0 : 4.99;
 
     let tierMessage = '';
     if (subtotal === 0) {
@@ -140,11 +141,15 @@ export default function CartDrawer({ isOpen, onClose, products: propProducts }) 
                 } catch {}
             }
 
+            const resolvedStoreSlug = items[0]?.storeSlug || (items[0]?.storeId ? String(items[0].storeId).replace(/^store_/, '') : (activeStore?.username || ''));
+            const resolvedStoreId = items[0]?.storeId || activeStore?.id || (resolvedStoreSlug ? `store_${resolvedStoreSlug}` : 'store_default');
+
             const res = await fetch('/api/gumroad/dynamic-checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    storeId: activeStore?.id || items[0]?.storeId || 'store_default',
+                    storeId: resolvedStoreId,
+                    storeSlug: resolvedStoreSlug,
                     storeName: activeStore?.name || 'GumShop Super Store',
                     gumroadProductUrl: effectiveGumroadUrl,
                     accessToken: activeStore?.gumroadToken || persistentToken || '',
@@ -152,8 +157,9 @@ export default function CartDrawer({ isOpen, onClose, products: propProducts }) 
                     items: items.map(i => ({
                         productId: i.id,
                         name: i.name,
-                        price: i.price,
+                        price: parseFloat(i.price || 0),
                         quantity: i.quantity,
+                        variant: i.variant || '',
                         gumroadUrl: i.gumroadUrl || ''
                     })),
                     discountAmount: appliedDiscount,
@@ -162,6 +168,9 @@ export default function CartDrawer({ isOpen, onClose, products: propProducts }) 
             });
 
             const data = await res.json().catch(() => ({}));
+            if (!res.ok && data.error) {
+                toast.error(data.error);
+            }
             setCheckoutModal({
                 isOpen: true,
                 gumroadUrl: data.checkoutUrl || effectiveGumroadUrl,

@@ -250,7 +250,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                     <div className="flex items-center gap-2 sm:gap-3">
                         {/* Wishlist Button */}
                         <button
-                            onClick={onOpenWishlist}
+                            onClick={onOpenWishlist || (() => router.push('/shop'))}
                             className="relative p-2.5 text-slate-600 hover:text-rose-600 hover:bg-slate-100 rounded-full transition"
                             title="View Wishlist"
                         >
@@ -264,7 +264,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
 
                         {/* Cart Drawer Trigger Button */}
                         <button
-                            onClick={onOpenCart}
+                            onClick={onOpenCart || (() => router.push('/cart'))}
                             className="relative p-2.5 sm:px-4 sm:py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-full flex items-center gap-2 shadow-sm transition active:scale-98"
                             title="Open Cart"
                         >
@@ -378,6 +378,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                                     onClick={() => {
                                         setMobileMenuOpen(false);
                                         if (onOpenCart) onOpenCart();
+                                        else router.push('/cart');
                                     }}
                                     className="p-3 rounded-xl hover:bg-slate-50 text-slate-800 transition flex items-center justify-between w-full text-left font-bold"
                                 >

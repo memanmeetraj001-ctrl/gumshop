@@ -567,30 +567,37 @@ export default function CreatorBioPage({ params }) {
 
     // 🛒 Add to Cart Redux Trigger
     const handleAddToCart = (product, bundle = null) => {
-        const qty = bundle ? (bundle.qty || 1) : 1;
-        const baseBundlePrice = bundle 
-            ? parseFloat(bundle.totalPrice || bundle.price || product.price) 
-            : parseFloat(product.price || 0);
-        const unitPrice = bundle
-            ? (bundle.pricePerUnit ? parseFloat(bundle.pricePerUnit) : Number((baseBundlePrice / qty).toFixed(2)))
-            : baseBundlePrice;
-        const sizeName = hasWearableSizes ? (typeof selectedSize === 'object' ? (selectedSize?.name || selectedSize?.label) : selectedSize) : null;
-        const variantStr = [sizeName, bundle?.label].filter(Boolean).join(' • ');
+        if (!product) return;
+        try {
+            const qty = bundle ? (parseInt(bundle.qty, 10) || 1) : 1;
+            const baseBundlePrice = bundle 
+                ? parseFloat(bundle.totalPrice || bundle.price || product.price) 
+                : parseFloat(product.price || 0);
+            const unitPrice = bundle
+                ? (bundle.pricePerUnit ? parseFloat(bundle.pricePerUnit) : Number((baseBundlePrice / qty).toFixed(2)))
+                : baseBundlePrice;
+            const sizeName = hasWearableSizes ? (typeof selectedSize === 'object' ? (selectedSize?.name || selectedSize?.label) : selectedSize) : null;
+            const variantStr = [sizeName, bundle?.label].filter(Boolean).join(' • ');
 
-        dispatch(addToCart({
-            productId: product.id,
-            product: {
-                ...product,
-                name: product.name,
-                price: unitPrice,
-                variant: variantStr || '',
-                storeId: creator?.id || `store_${cleanUser}`,
-                storeSlug: cleanUser,
-                image: product.image || product.images?.[0]
-            }
-        }));
-        toast.success(`Added ${product.name} to cart! 🛒`);
-        setIsCartOpen(true);
+            dispatch(addToCart({
+                productId: product.id,
+                quantity: qty,
+                product: {
+                    ...product,
+                    name: product.name,
+                    price: unitPrice,
+                    variant: variantStr || '',
+                    storeId: creator?.id || `store_${cleanUser}`,
+                    storeSlug: cleanUser,
+                    image: product.image || (Array.isArray(product.images) && product.images[0]) || ''
+                }
+            }));
+            toast.success(`Added ${product.name} to cart! 🛒`);
+            setIsCartOpen(true);
+        } catch (err) {
+            console.error('Error adding to cart:', err);
+            toast.error('Could not add item to cart. Please try again.');
+        }
     };
 
     // ⚡ Instant Buy via Gumroad Trigger (Supports Selected Bundle, Quantity, and Coupon)
@@ -1702,7 +1709,7 @@ export default function CreatorBioPage({ params }) {
                                                                     title="Add to Cart"
                                                                 >
                                                                     <ShoppingBag size={12} className="text-slate-600" />
-                                                                    <span className="hidden sm:inline">+ Cart</span>
+                                                                    <span>+ Cart</span>
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleInstantBuy(item)}
@@ -1916,7 +1923,7 @@ export default function CreatorBioPage({ params }) {
                                     title="Add to cart"
                                 >
                                     <ShoppingBag size={12} className="text-slate-300" />
-                                    <span className="hidden sm:inline">+ Cart</span>
+                                    <span>+ Cart</span>
                                 </button>
                                 <button
                                     onClick={() => handleInstantBuy(displayedProducts[0], activeBundle, stickyDiscountVal, stanAppliedCoupon?.code)}
