@@ -187,6 +187,7 @@ export default function CreatorBioPage({ params }) {
     // High-Conversion Sales States
     const [showStickyBar, setShowStickyBar] = useState(false);
     const [selectedPackIndex, setSelectedPackIndex] = useState(0);
+    const [selectedSize, setSelectedSize] = useState('Medium (M)');
 
     // Scroll listener for sticky floating buy bar (throttled with RAF & boolean gating for 60fps smooth scrolling)
     useEffect(() => {
@@ -537,7 +538,10 @@ export default function CreatorBioPage({ params }) {
             ? (bundle.pricePerUnit ? parseFloat(bundle.pricePerUnit) : Number((baseBundlePrice / qty).toFixed(2)))
             : baseBundlePrice;
         const bundleLabel = bundle?.label;
-        const itemName = bundleLabel ? `${product.name} (${bundleLabel})` : product.name;
+        const sizeName = typeof selectedSize === 'object' ? (selectedSize?.name || selectedSize?.label) : selectedSize;
+        const sizePrefix = sizeName ? `Size: ${sizeName}` : '';
+        const variantDesc = [sizePrefix, bundleLabel].filter(Boolean).join(' • ');
+        const itemName = variantDesc ? `${product.name} (${variantDesc})` : product.name;
 
         const orderSessionId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         firePixelEvent('InitiateCheckout', {
@@ -567,6 +571,8 @@ export default function CreatorBioPage({ params }) {
                         name: itemName,
                         price: unitPrice,
                         quantity: qty,
+                        selectedSize: sizeName || '',
+                        variant: sizeName || '',
                         image: product.image || product.images?.[0]
                     }],
                     discountAmount: effectiveDiscount,
@@ -1294,6 +1300,26 @@ export default function CreatorBioPage({ params }) {
                                                     : 0;
                                                 const finalDiscountedPrice = Math.max(1.00, Math.round((activeBundlePrice - couponDiscountVal) * 100) / 100);
 
+                                                const rawSizes = (Array.isArray(heroItem.sizes) && heroItem.sizes.length > 0)
+                                                    ? heroItem.sizes
+                                                    : ((Array.isArray(heroItem.variants) && heroItem.variants.length > 0)
+                                                        ? heroItem.variants
+                                                        : [
+                                                            { name: 'Small (S)', label: 'Small (S)' },
+                                                            { name: 'Medium (M)', label: 'Medium (M)', popular: true },
+                                                            { name: 'Large (L)', label: 'Large (L)' },
+                                                            { name: 'X-Large (XL)', label: 'X-Large (XL)' }
+                                                        ]);
+
+                                                const heroSizes = rawSizes.map(s => {
+                                                    if (typeof s === 'string') return { name: s, label: s };
+                                                    return {
+                                                        name: s.name || s.title || s.label || String(s),
+                                                        label: s.label || s.name || s.title || String(s),
+                                                        popular: Boolean(s.popular)
+                                                    };
+                                                });
+
                                                 return (
                                                     <div className="space-y-3 pt-2 border-t border-slate-100">
                                                         {/* Price Banner & Stock Urgency */}
@@ -1322,6 +1348,59 @@ export default function CreatorBioPage({ params }) {
                                                                 Ships in 24-48h
                                                             </span>
                                                         </div>
+
+                                                        {/* Interactive Size Selector */}
+                                                        {heroSizes.length > 0 && (
+                                                            <div className="space-y-1.5 pt-1">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                                                        <span>Select Size:</span>
+                                                                        <span className="text-amber-700 font-black">{selectedSize || heroSizes[1]?.name || heroSizes[0]?.name}</span>
+                                                                    </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setActiveStoryHighlight('sizing')}
+                                                                        className="text-[11px] font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1 cursor-pointer transition underline underline-offset-2"
+                                                                    >
+                                                                        <span>📏 Fit Guide</span>
+                                                                    </button>
+                                                                </div>
+                                                                <div className={`grid gap-1.5 ${heroSizes.length === 4 ? 'grid-cols-4' : (heroSizes.length <= 3 ? 'grid-cols-3' : 'grid-cols-4')}`}>
+                                                                    {heroSizes.map((sz, sIdx) => {
+                                                                        const sName = sz.name || sz.label;
+                                                                        const isSelected = selectedSize === sName || (!selectedSize && (sz.popular || sIdx === 1));
+                                                                        const matchParen = sName.match(/\(([^)]+)\)/);
+                                                                        const shortLabel = sz.short || (matchParen ? matchParen[1] : (sName.length <= 4 ? sName : sName.slice(0, 3)));
+                                                                        const subLabel = sName.split('(')[0].trim();
+                                                                        const isPopular = sz.popular || sName.includes('(M)') || sName.toLowerCase().startsWith('med');
+                                                                        return (
+                                                                            <button
+                                                                                key={sName}
+                                                                                type="button"
+                                                                                onClick={() => setSelectedSize(sName)}
+                                                                                className={`relative py-2 px-1.5 rounded-xl text-center cursor-pointer transition-all border-2 ${
+                                                                                    isSelected
+                                                                                        ? 'border-slate-950 bg-slate-950 text-white shadow-sm ring-1 ring-slate-950'
+                                                                                        : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50'
+                                                                                }`}
+                                                                            >
+                                                                                {isPopular && (
+                                                                                    <span className={`absolute -top-2 left-1/2 -translate-x-1/2 text-[7.5px] font-black uppercase px-1.5 py-0.2 rounded-full tracking-wider whitespace-nowrap shadow-2xs ${
+                                                                                        isSelected ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-amber-300'
+                                                                                    }`}>
+                                                                                        Popular
+                                                                                    </span>
+                                                                                )}
+                                                                                <span className="block text-xs font-black leading-none">{shortLabel}</span>
+                                                                                <span className={`block text-[8.5px] font-medium leading-none mt-1 truncate ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}>
+                                                                                    {subLabel}
+                                                                                </span>
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        )}
 
                                                         {/* Interactive Multi-Pack Cards */}
                                                         <div className={`grid gap-2 ${bundles.length >= 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
@@ -1716,6 +1795,7 @@ export default function CreatorBioPage({ params }) {
                                     <p className="text-xs font-bold text-white truncate">{decodeHtmlEntities(displayedProducts[0].name)}</p>
                                     <p className="text-[11px] font-black text-emerald-400">
                                         ${displayPrice.toFixed(2)}
+                                        {selectedSize && <span className="text-[10px] text-amber-300 font-bold ml-1.5">• {selectedSize}</span>}
                                         {activeBundle && <span className="text-[10px] text-slate-400 font-normal ml-1">({activeBundle.label})</span>}
                                         {stickyDiscountVal > 0 && <span className="text-[9px] text-emerald-300 font-bold ml-1">({stanAppliedCoupon.label})</span>}
                                     </p>
@@ -2004,13 +2084,27 @@ export default function CreatorBioPage({ params }) {
                                         { size: 'Medium (M)', chest: '16 - 22"', weight: '15 - 35 lbs' },
                                         { size: 'Large (L)', chest: '22 - 28"', weight: '35 - 65 lbs' },
                                         { size: 'X-Large (XL)', chest: '28 - 36"', weight: '65+ lbs' }
-                                    ].map(r => (
-                                        <div key={r.size} className="grid grid-cols-3 gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-100 text-[11px]">
-                                            <span className="font-bold text-slate-900">{r.size}</span>
-                                            <span className="text-slate-600">{r.chest}</span>
-                                            <span className="text-slate-600">{r.weight}</span>
-                                        </div>
-                                    ))}
+                                    ].map(r => {
+                                        const isSelected = selectedSize === r.size;
+                                        return (
+                                            <div 
+                                                key={r.size} 
+                                                onClick={() => {
+                                                    setSelectedSize(r.size);
+                                                    toast.success(`Selected size: ${r.size}`);
+                                                }}
+                                                className={`grid grid-cols-3 gap-1.5 p-2 rounded-xl text-[11px] cursor-pointer transition ${
+                                                    isSelected 
+                                                        ? 'bg-slate-900 text-white font-bold ring-1 ring-slate-900 shadow-xs' 
+                                                        : 'bg-slate-50 border border-slate-100 hover:bg-slate-100 text-slate-900'
+                                                }`}
+                                            >
+                                                <span className={isSelected ? "font-bold text-amber-300" : "font-bold text-slate-900"}>{r.size}</span>
+                                                <span className={isSelected ? "text-slate-200" : "text-slate-600"}>{r.chest}</span>
+                                                <span className={isSelected ? "text-slate-200" : "text-slate-600"}>{r.weight}</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                                 <p className="text-[11px] text-slate-500 mb-3 text-center">
                                     Between sizes? We recommend choosing the larger size for maximum pet comfort.
@@ -2019,7 +2113,7 @@ export default function CreatorBioPage({ params }) {
                                     onClick={() => setActiveStoryHighlight(null)}
                                     className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition cursor-pointer"
                                 >
-                                    Got It — Ready To Order →
+                                    Got It — Apply & Select Size →
                                 </button>
                             </div>
                         )}

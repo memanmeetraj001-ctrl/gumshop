@@ -34,10 +34,17 @@ const ProductDetails = ({ product, storeInfo }) => {
     const availableColors = hasExplicitColors ? product.colors : [];
     const availableSizes = hasExplicitSizes 
         ? product.sizes 
-        : (hasVariantsArray ? product.variants.map(v => ({ name: v.name, priceDelta: v.priceDelta || 0 })) : []);
+        : (hasVariantsArray && product.variants.length > 0
+            ? product.variants.map(v => ({ name: v.name, priceDelta: v.priceDelta || 0 })) 
+            : [
+                { name: "Small (S)", priceDelta: 0 },
+                { name: "Medium (M)", priceDelta: 0 },
+                { name: "Large (L)", priceDelta: 0 },
+                { name: "X-Large (XL)", priceDelta: 0 }
+            ]);
 
     const [selectedColor, setSelectedColor] = useState(availableColors[0] || null);
-    const [selectedSize, setSelectedSize] = useState(availableSizes[0] || null);
+    const [selectedSize, setSelectedSize] = useState(availableSizes[1] || availableSizes[0] || null);
     const [selectedQuantity, setSelectedQuantity] = useState(1);
     const [openFaq, setOpenFaq] = useState(0);
     const [checkoutModal, setCheckoutModal] = useState({ isOpen: false, gumroadUrl: '', orderSessionId: '' });
