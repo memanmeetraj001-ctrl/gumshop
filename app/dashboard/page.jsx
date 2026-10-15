@@ -171,132 +171,142 @@ export default function MasterDashboardPage() {
         }
     };
 
-    // Load Stores from Edge Cache & Firebase with Strict Product Isolation
+    // Load Stores from Dedicated Server APIs (/api/store/data & /api/stores)
     const loadShops = async () => {
-        const found = [];
-        const seenSlugs = new Set();
-        const { getProductsByStore } = await import('@/lib/firebaseDb');
-
-        // 1. Scan local edge stores
-        if (typeof window !== 'undefined') {
-            const localStores = getAllLocalStores();
-            for (const ls of localStores) {
-                if (ls && ls.username && !isStoreDeleted(ls.id) && !isStoreDeleted(ls.username) && !seenSlugs.has(ls.username)) {
-                    seenSlugs.add(ls.username);
-                    const prods = await getProductsByStore(ls.id || ls.username);
-                    const hasGumroad = Boolean(ls.gumroadToken || ls.gumroadProductUrl || (typeof window !== 'undefined' && (localStorage.getItem(`gumroad_token_${ls.username}`) || localStorage.getItem(`gumroad_url_${ls.username}`))));
-                    found.push({
-                        ...ls,
-                        hasGumroad,
-                        products: prods,
-                        productsCount: prods.length
-                    });
-                }
-            }
-        }
-
-        // 2. Fetch remote stores from dedicated Server Database (/api/store/data) & Firebase
         try {
-            const apiRes = await fetch('/api/store/data').catch(() => null);
-            if (apiRes && apiRes.ok) {
-                const apiData = await apiRes.json().catch(() => ({}));
-                if (Array.isArray(apiData.stores)) {
-                    for (const sStore of apiData.stores) {
-                        if (!sStore) continue;
-                        const slug = (sStore.username || sStore.name || sStore.id || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
-                        if (slug && !isStoreDeleted(sStore.id) && !isStoreDeleted(sStore.username) && !isStoreDeleted(slug) && !seenSlugs.has(slug)) {
-                            seenSlugs.add(slug);
-                            const prods = await getProductsByStore(sStore.id || slug);
-                            const hasGumroad = Boolean(sStore.gumroadToken || sStore.gumroadProductUrl || (typeof window !== 'undefined' && (localStorage.getItem(`gumroad_token_${slug}`) || localStorage.getItem(`gumroad_url_${slug}`))));
-                            found.push({
-                                id: sStore.id || `store_${slug}`,
-                                name: sStore.name || slug,
-                                username: slug,
-                                description: sStore.description || '',
-                                theme: sStore.theme || 'tech_hardware',
-                                themeColor: sStore.themeColor || '#10B981',
-                                logo: sStore.logo || '',
-                                status: sStore.status || 'active',
-                                hasGumroad,
-                                gumroadToken: sStore.gumroadToken || '',
-                                gumroadProductUrl: sStore.gumroadProductUrl || '',
-                                productsCount: prods.length,
-                                products: prods,
-                                createdAt: sStore.createdAt || new Date().toISOString()
-                            });
+            const found = [];
+            const seenSlugs = new Set();
+
+            // 1. Fetch remote stores from Server Database (/api/store/data)
+            let rawStores = [];
+            try {
+                const apiRes = await fetch('/api/store/data').catch(() => null);
+                if (apiRes && apiRes.ok) {
+                    const apiData = await apiRes.json().catch(() => ({}));
+                    if (Array.isArray(apiData.stores) && apiData.stores.length > 0) {
+                        rawStores = apiData.stores;
+                    }
+                }
+            } catch (err) {
+                console.warn("Server store/data fetch warning:", err);
+            }
+
+            // 2. Fallback to /api/stores if store/data returned empty
+            if (rawStores.length === 0) {
+                try {
+                    const storesRes = await fetch('/api/stores').catch(() => null);
+                    if (storesRes && storesRes.ok) {
+                        const storesData = await storesRes.json().catch(() => ({}));
+                        if (Array.isArray(storesData.stores) && storesData.stores.length > 0) {
+                            rawStores = storesData.stores;
                         }
                     }
+                } catch (err) {
+                    console.warn("Stores API fetch warning:", err);
                 }
             }
-        } catch {}
 
-        try {
-            const { getAllStores } = await import('@/lib/firebaseDb');
-            const remoteStores = await Promise.race([
-                getAllStores(),
-                new Promise(res => setTimeout(() => res([]), 8000))
-            ]);
-            if (Array.isArray(remoteStores)) {
-                for (const rStore of remoteStores) {
-                    if (!rStore) continue;
-                    const slug = (rStore.username || rStore.name || rStore.id || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
-                    if (slug && !isStoreDeleted(rStore.id) && !isStoreDeleted(rStore.username) && !isStoreDeleted(slug) && !seenSlugs.has(slug)) {
-                        seenSlugs.add(slug);
-                        const prods = await getProductsByStore(rStore.id || slug);
-                        const hasGumroad = Boolean(rStore.gumroadToken || rStore.gumroadProductUrl || (typeof window !== 'undefined' && (localStorage.getItem(`gumroad_token_${slug}`) || localStorage.getItem(`gumroad_url_${slug}`))));
-                        found.push({
-                            id: rStore.id || `store_${slug}`,
-                            name: rStore.name || slug,
-                            username: slug,
-                            description: rStore.description || '',
-                            theme: rStore.theme || 'viral_lander',
-                            themeColor: rStore.themeColor || '#10B981',
-                            logo: rStore.logo || '',
-                            status: rStore.status || 'active',
-                            hasGumroad,
-                            gumroadToken: rStore.gumroadToken || '',
-                            gumroadProductUrl: rStore.gumroadProductUrl || '',
-                            productsCount: prods.length,
-                            products: prods,
-                            createdAt: rStore.createdAt || new Date().toISOString()
-                        });
-                    }
-                }
+            // 3. Fallback to local edge stores if offline
+            if (rawStores.length === 0 && typeof window !== 'undefined') {
+                rawStores = getAllLocalStores();
             }
-        } catch (fbErr) {}
 
-        setShops(found);
-        
-        let targetStore = null;
-        if (typeof window !== 'undefined') {
-            const urlParams = new URLSearchParams(window.location.search);
-            const requestedSlug = urlParams.get('store');
-            if (requestedSlug) {
-                targetStore = found.find(s => 
-                    (s.username && s.username.toLowerCase() === requestedSlug.toLowerCase()) ||
-                    (s.id && s.id.toLowerCase() === requestedSlug.toLowerCase()) ||
-                    (s.id && s.id.toLowerCase() === `store_${requestedSlug.toLowerCase()}`)
+            // If stores exist, clear any previous empty/cleared ack flags
+            if (rawStores.length > 0 && typeof window !== 'undefined') {
+                localStorage.removeItem('gumshop_stores_cleared');
+                localStorage.removeItem('gumshop_empty_dashboard_ack');
+            }
+
+            // Standardize and normalize stores
+            for (const sStore of rawStores) {
+                if (!sStore) continue;
+                const rawSlug = sStore.username || sStore.slug || sStore.name || sStore.id || '';
+                const slug = String(rawSlug).toLowerCase().replace(/^store_/, '').replace(/[^a-z0-9-]+/g, '-');
+                if (!slug || isStoreDeleted(sStore.id) || isStoreDeleted(slug) || seenSlugs.has(slug)) continue;
+
+                // Skip automated temporary test harness stores from dashboard display
+                if (slug.startsWith('price-test-store-') || slug.startsWith('price_test_store_')) continue;
+
+                seenSlugs.add(slug);
+                const prods = Array.isArray(sStore.products) ? sStore.products : [];
+                const prodsCount = typeof sStore.productsCount === 'number' 
+                    ? sStore.productsCount 
+                    : prods.length;
+                const hasGumroad = Boolean(
+                    sStore.gumroadToken || 
+                    sStore.gumroadProductUrl || 
+                    (typeof window !== 'undefined' && (localStorage.getItem(`gumroad_token_${slug}`) || localStorage.getItem(`gumroad_url_${slug}`)))
                 );
-            }
-        }
-        
-        if (!targetStore) {
-            const currActive = getActiveStoreSync();
-            if (currActive && !isStoreDeleted(currActive.id) && !isStoreDeleted(currActive.username)) {
-                targetStore = found.find(s => s.username === currActive.username || s.id === currActive.id) || currActive;
-            }
-        }
-        
-        if (!targetStore && found.length > 0) {
-            targetStore = found[0];
-        }
 
-        if (targetStore) {
-            setActiveStore(targetStore);
-        } else {
-            setActiveStore(null);
+                const themeMode = typeof sStore.theme === 'string' 
+                    ? sStore.theme 
+                    : (sStore.theme?.mode || sStore.theme?.theme || 'tech_hardware');
+
+                const themeColor = sStore.themeColor || 
+                    (typeof sStore.theme === 'object' ? sStore.theme?.primary : null) || 
+                    '#10B981';
+
+                found.push({
+                    id: sStore.id || `store_${slug}`,
+                    name: sStore.name || slug,
+                    username: slug,
+                    description: sStore.description || '',
+                    theme: themeMode,
+                    themeColor: themeColor,
+                    logo: sStore.logo || sStore.logo_url || '',
+                    status: sStore.status || 'active',
+                    hasGumroad,
+                    gumroadToken: sStore.gumroadToken || '',
+                    gumroadProductUrl: sStore.gumroadProductUrl || '',
+                    productsCount: prodsCount,
+                    products: prods,
+                    createdAt: sStore.createdAt || sStore.created_at || new Date().toISOString()
+                });
+            }
+
+            setShops(found);
+
+            let targetStore = null;
+            if (typeof window !== 'undefined') {
+                const urlParams = new URLSearchParams(window.location.search);
+                const requestedSlug = urlParams.get('store');
+                if (requestedSlug) {
+                    targetStore = found.find(s => 
+                        (s.username && s.username.toLowerCase() === requestedSlug.toLowerCase()) ||
+                        (s.id && s.id.toLowerCase() === requestedSlug.toLowerCase()) ||
+                        (s.id && s.id.toLowerCase() === `store_${requestedSlug.toLowerCase()}`)
+                    );
+                }
+            }
+
+            if (!targetStore) {
+                const hpSlug = getHomepageStoreSlug();
+                if (hpSlug) {
+                    targetStore = found.find(s => s.username === hpSlug || s.id === hpSlug || s.id === `store_${hpSlug}`);
+                }
+            }
+
+            if (!targetStore) {
+                const currActive = getActiveStoreSync();
+                if (currActive) {
+                    targetStore = found.find(s => s.username === currActive.username || s.id === currActive.id) || currActive;
+                }
+            }
+
+            if (!targetStore && found.length > 0) {
+                targetStore = found[0];
+            }
+
+            if (targetStore) {
+                setActiveStore(targetStore);
+            } else {
+                setActiveStore(null);
+            }
+        } catch (err) {
+            console.error("Dashboard store resolution error:", err);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     useEffect(() => {
@@ -782,7 +792,9 @@ export default function MasterDashboardPage() {
 
     // Active Store Isolated Data & Metrics (Zero Cross-Store Mixing)
     const activeStoreSlugClean = (activeStore?.username || activeStore?.id || '').toLowerCase().replace(/^store_/, '');
-    const activeStoreProducts = activeStore ? (activeStore.products || []).filter(p => p && p.id && !isProductDeleted(p.id)) : [];
+    const activeStoreProducts = Array.isArray(activeStore?.products) 
+        ? activeStore.products.filter(p => p && p.id && !isProductDeleted(p.id)) 
+        : [];
     
     const activeStoreOrders = orders.filter(o => {
         if (!activeStoreSlugClean) return false;
@@ -1125,7 +1137,7 @@ export default function MasterDashboardPage() {
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{activeStore.name}</h2>
                                                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                                                        {activeStore.theme?.replace('_', ' ') || 'tech hardware'}
+                                                        {typeof activeStore.theme === 'string' ? activeStore.theme.replace('_', ' ') : (activeStore.theme?.mode || activeStore.theme?.primary || 'standard')}
                                                     </span>
                                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                                                         <Check size={10} /> Active
@@ -2004,7 +2016,7 @@ function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onS
                             <img src={shop.logo} alt={shop.name} className="w-full h-full object-cover rounded-xl" />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center font-black text-emerald-600 text-base">
-                                {shop.name.charAt(0).toUpperCase()}
+                                {(shop.name || shop.username || 'Store').charAt(0).toUpperCase()}
                             </div>
                         )}
                     </div>
@@ -2029,7 +2041,7 @@ function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onS
                             </span>
                         )}
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                            {shop.theme?.replace('_', ' ')}
+                            {typeof shop.theme === 'string' ? shop.theme.replace('_', ' ') : (shop.theme?.mode || shop.theme?.primary || 'standard')}
                         </span>
                         <button
                             onClick={(e) => onDelete(shop.username, shop.id, e)}

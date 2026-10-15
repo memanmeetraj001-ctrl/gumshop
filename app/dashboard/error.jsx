@@ -12,6 +12,8 @@ export default function DashboardError({ error, reset }) {
     const handleClearAndReload = () => {
         try {
             if (typeof window !== 'undefined') {
+                localStorage.removeItem('gumshop_stores_cleared');
+                localStorage.removeItem('gumshop_empty_dashboard_ack');
                 window.location.reload();
             }
         } catch {}
