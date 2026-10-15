@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
@@ -23,12 +24,28 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
     const router = useRouter();
     const cartCount = useSelector(state => state.cart.total);
     const { count: wishlistCount } = useWishlist();
+    const [mounted, setMounted] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isOwner, setIsOwner] = useState(false);
     const [searchInput, setSearchInput] = useState(searchTerm);
     const [availableStores, setAvailableStores] = useState([]);
     const [storesMenuOpen, setStoresMenuOpen] = useState(false);
     const storesMenuRef = useRef(null);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (mobileMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [mobileMenuOpen]);
 
     useEffect(() => {
         // Check if master admin is authenticated
@@ -297,72 +314,120 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                 </form>
             </div>
 
-            {/* Mobile Drawer */}
-            {mobileMenuOpen && (
-                <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs md:hidden animate-in fade-in">
-                    <div className="fixed inset-y-0 right-0 w-full max-w-xs bg-white p-6 shadow-2xl flex flex-col justify-between animate-in slide-in-from-right">
+            {/* Mobile Drawer (Portal to document.body to prevent parent backdrop-filter trapping) */}
+            {mounted && mobileMenuOpen && createPortal(
+                <div className="fixed inset-0 z-[100] md:hidden">
+                    {/* Dark Backdrop */}
+                    <div 
+                        className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity cursor-pointer"
+                        onClick={() => setMobileMenuOpen(false)}
+                    />
+
+                    {/* Sliding Opaque White Drawer */}
+                    <div className="fixed inset-y-0 right-0 w-full max-w-xs bg-white text-slate-900 p-6 shadow-2xl flex flex-col justify-between overflow-y-auto z-10">
                         <div>
-                            <div className="flex items-center justify-between pb-6 border-b border-slate-100">
+                            {/* Drawer Header */}
+                            <div className="flex items-center justify-between pb-5 border-b border-slate-100">
                                 <div className="flex items-center gap-2">
-                                    <div className="size-8 rounded-xl bg-slate-900 text-white flex items-center justify-center">
+                                    <div className="size-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs">
                                         <Zap size={16} className="fill-white" />
                                     </div>
                                     <span className="font-extrabold text-base text-slate-900">GumShop</span>
                                 </div>
-                                <button onClick={() => setMobileMenuOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+                                <button 
+                                    onClick={() => setMobileMenuOpen(false)} 
+                                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                                    aria-label="Close menu"
+                                >
                                     <X size={20} />
                                 </button>
                             </div>
 
-                            <div className="flex flex-col gap-2 mt-6 text-sm font-bold text-slate-700">
+                            {/* Storefront Navigation Links */}
+                            <div className="flex flex-col gap-1.5 mt-5 text-sm font-bold text-slate-700">
                                 <Link 
                                     href="/#catalog" 
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className="p-3 rounded-xl hover:bg-slate-50 transition"
+                                    className="p-3 rounded-xl hover:bg-slate-50 text-slate-800 transition flex items-center justify-between"
                                 >
-                                    Browse All Products
+                                    <span>Browse All Products</span>
                                 </Link>
                                 <Link 
                                     href="/#special-deals" 
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className="p-3 rounded-xl bg-rose-50 text-rose-700 font-extrabold transition flex items-center justify-between"
+                                    className="p-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold transition flex items-center justify-between"
                                 >
                                     <span>🔥 Special Deals</span>
-                                    <span className="text-[10px] bg-rose-200 px-2 py-0.5 rounded-full">Limited</span>
+                                    <span className="text-[10px] bg-rose-200/80 text-rose-800 px-2 py-0.5 rounded-full font-bold">Limited</span>
                                 </Link>
                                 <Link 
                                     href="/shop" 
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className="p-3 rounded-xl hover:bg-slate-50 transition"
+                                    className="p-3 rounded-xl hover:bg-slate-50 text-slate-800 transition"
                                 >
                                     Trending Collections
                                 </Link>
                                 <Link 
                                     href="/track" 
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className="p-3 rounded-xl hover:bg-slate-50 transition"
+                                    className="p-3 rounded-xl hover:bg-slate-50 text-slate-800 transition"
                                 >
                                     📦 Track My Order
                                 </Link>
-                                <Link 
-                                    href="/cart" 
-                                    onClick={() => setMobileMenuOpen(false)}
-                                    className="p-3 rounded-xl hover:bg-slate-50 transition flex items-center justify-between"
+                                <button 
+                                    onClick={() => {
+                                        setMobileMenuOpen(false);
+                                        if (onOpenCart) onOpenCart();
+                                    }}
+                                    className="p-3 rounded-xl hover:bg-slate-50 text-slate-800 transition flex items-center justify-between w-full text-left font-bold"
                                 >
                                     <span>My Cart</span>
-                                    <span className="text-xs bg-slate-900 text-white size-5 rounded-full flex items-center justify-center">
+                                    <span className="text-xs font-black bg-slate-900 text-white size-5 rounded-full flex items-center justify-center">
                                         {cartCount}
                                     </span>
-                                </Link>
+                                </button>
                             </div>
+
+                            {/* Our Stores Switcher (if stores available) */}
+                            {availableStores.length > 0 && (
+                                <div className="mt-6 pt-5 border-t border-slate-100">
+                                    <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2 px-1">
+                                        Our Stores ({availableStores.length})
+                                    </div>
+                                    <div className="space-y-1">
+                                        {availableStores.map(store => (
+                                            <Link
+                                                key={store.id || store.username}
+                                                href={`/shop/${store.username || store.id}`}
+                                                onClick={() => setMobileMenuOpen(false)}
+                                                className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition text-xs font-bold text-slate-700"
+                                            >
+                                                <div className="flex items-center gap-2 truncate">
+                                                    <Store size={14} className="text-emerald-600 shrink-0" />
+                                                    <span className="truncate">{store.name}</span>
+                                                </div>
+                                                <span className="text-[10px] text-slate-400 font-mono">/shop</span>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="pt-6 border-t border-slate-100">
+                        {/* Footer Quick Links & Owner Button */}
+                        <div className="pt-6 border-t border-slate-100 mt-6 space-y-3">
+                            <div className="grid grid-cols-2 gap-2 text-[11px] font-medium text-slate-500">
+                                <Link href="/policies/shipping" onClick={() => setMobileMenuOpen(false)} className="hover:text-slate-800">Shipping Policy</Link>
+                                <Link href="/policies/refund" onClick={() => setMobileMenuOpen(false)} className="hover:text-slate-800">Refund Policy</Link>
+                                <Link href="/policies/privacy" onClick={() => setMobileMenuOpen(false)} className="hover:text-slate-800">Privacy Policy</Link>
+                                <Link href="/policies/terms" onClick={() => setMobileMenuOpen(false)} className="hover:text-slate-800">Terms of Service</Link>
+                            </div>
+
                             {isOwner ? (
                                 <Link
                                     href="/dashboard"
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className="w-full py-3 bg-emerald-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm"
+                                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition"
                                 >
                                     <Store size={15} />
                                     <span>Enter Owner HQ</span>
@@ -371,14 +436,15 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                                 <Link
                                     href="/login"
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className="w-full py-3 bg-slate-900 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2"
+                                    className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition"
                                 >
                                     <span>Store Owner Access</span>
                                 </Link>
                             )}
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </header>
     );
