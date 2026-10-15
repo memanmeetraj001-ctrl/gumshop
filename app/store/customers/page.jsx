@@ -158,7 +158,7 @@ export default function StoreCustomersPage() {
             } else {
                 map.set(email, {
                     id: lead.id || `lead_${email}`,
-                    name: lead.name || email.split('@')[0],
+                    name: lead.name || (email ? email.split('@')[0] : 'Subscriber'),
                     email: email,
                     phone: lead.phone || '',
                     city: 'Digital Lead',

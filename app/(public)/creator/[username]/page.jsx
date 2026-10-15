@@ -636,7 +636,7 @@ export default function CreatorBioPage({ params }) {
         }).catch(() => {});
 
         // 2. Dispatch to server-side orders store
-        const leadName = email.split('@')[0];
+        const leadName = email ? email.split('@')[0] : 'Subscriber';
         fetch('/api/store/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -669,7 +669,7 @@ export default function CreatorBioPage({ params }) {
             return;
         }
 
-        const leadName = email.split('@')[0];
+        const leadName = email ? email.split('@')[0] : 'Subscriber';
         const newLead = {
             id: `lead_${Date.now()}`,
             name: leadName,
@@ -1130,11 +1130,12 @@ export default function CreatorBioPage({ params }) {
                             </div>
 
                             {/* ─── Product Section: Single-Product Hero Lander OR Multi-Product Stack ─── */}
-                            {(displayedProducts.length === 1 || storeInfo?.singleProductStore) ? (
+                            {(displayedProducts.length > 0 && (displayedProducts.length === 1 || storeInfo?.singleProductStore)) ? (
                                 /* 🚀 ULTRA HIGH-CONVERTING SINGLE-PRODUCT HERO LANDER */
                                 (() => {
                                     const heroItem = displayedProducts[0];
-                                    const baseItem = heroItem.name ? heroItem.name.split(' ')[0] : 'Item';
+                                    if (!heroItem) return null;
+                                    const baseItem = heroItem.name ? String(heroItem.name).split(' ')[0] : 'Item';
                                     const heroPrice = parseFloat(heroItem.price !== undefined && heroItem.price !== null && heroItem.price !== '' ? heroItem.price : 52.99);
                                     const heroCompare = parseFloat(heroItem.compareAtPrice || heroItem.comparePrice || (heroPrice === 52.99 ? 69.99 : Math.round(heroPrice * 1.35 * 100) / 100));
                                     const discountPct = heroCompare > heroPrice ? Math.round(((heroCompare - heroPrice) / heroCompare) * 100) : 0;
@@ -1367,11 +1368,11 @@ export default function CreatorBioPage({ params }) {
                                                                 </div>
                                                                 <div className={`grid gap-1.5 ${heroSizes.length === 4 ? 'grid-cols-4' : (heroSizes.length <= 3 ? 'grid-cols-3' : 'grid-cols-4')}`}>
                                                                     {heroSizes.map((sz, sIdx) => {
-                                                                        const sName = sz.name || sz.label;
+                                                                        const sName = String(sz.name || sz.label || '');
                                                                         const isSelected = selectedSize === sName || (!selectedSize && (sz.popular || sIdx === 1));
                                                                         const matchParen = sName.match(/\(([^)]+)\)/);
                                                                         const shortLabel = sz.short || (matchParen ? matchParen[1] : (sName.length <= 4 ? sName : sName.slice(0, 3)));
-                                                                        const subLabel = sName.split('(')[0].trim();
+                                                                        const subLabel = sName.includes('(') ? sName.split('(')[0].trim() : sName;
                                                                         const isPopular = sz.popular || sName.includes('(M)') || sName.toLowerCase().startsWith('med');
                                                                         return (
                                                                             <button

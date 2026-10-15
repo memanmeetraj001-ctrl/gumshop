@@ -29,16 +29,19 @@ export default function CartDrawer({ isOpen, onClose }) {
 
         for (const [key, qty] of Object.entries(cartItems || {})) {
             if (!qty || qty <= 0) continue;
-            const baseId = key.includes('__') ? key.split('__')[0] : key;
-            let product = cartProducts[key] || cartProducts[baseId] || Object.values(cartProducts).find(p => p?.id === key || p?.id === baseId) || (products || []).find(p => p.id === key || p.id === baseId);
+            const strKey = String(key || '');
+            const baseId = strKey.includes('__') ? strKey.split('__')[0] : strKey;
+            const variant = strKey.includes('__') ? strKey.split('__')[1] : '';
+            let product = cartProducts[strKey] || cartProducts[baseId] || Object.values(cartProducts).find(p => p?.id === strKey || p?.id === baseId) || (products || []).find(p => p && (p.id === strKey || p.id === baseId));
 
             const price = parseFloat(product?.price !== undefined && product?.price !== null ? product.price : 0);
             const name = product?.name || 'Featured Item';
             const image = product?.image || product?.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200';
 
             resolvedItems.push({
-                id: key,
+                id: strKey,
                 name,
+                variant,
                 price,
                 image,
                 quantity: qty,
@@ -53,8 +56,8 @@ export default function CartDrawer({ isOpen, onClose }) {
     // Frequently Bought Together Companion Recommendation
     const crossSellProduct = useMemo(() => {
         if (!items.length || !products?.length) return null;
-        const inCartIds = new Set(items.map(i => i.id.split('__')[0]));
-        return products.find(p => !inCartIds.has(p.id) && parseFloat(p.price || 0) > 0) || null;
+        const inCartIds = new Set(items.map(i => String(i.id || '').split('__')[0]));
+        return products.find(p => p && !inCartIds.has(String(p.id)) && !inCartIds.has(String(p.id).split('__')[0]) && parseFloat(p.price || 0) > 0) || null;
     }, [items, products]);
 
     if (!isOpen) return null;
@@ -264,7 +267,14 @@ export default function CartDrawer({ isOpen, onClose }) {
                                     />
                                     <div className="flex-1 flex flex-col justify-between">
                                         <div className="flex items-start justify-between gap-2">
-                                            <h4 className="text-xs font-bold text-slate-900 line-clamp-2">{item.name}</h4>
+                                            <div>
+                                                <h4 className="text-xs font-bold text-slate-900 line-clamp-2">{item.name}</h4>
+                                                {item.variant && (
+                                                    <span className="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-semibold rounded-md border border-slate-200">
+                                                        {item.variant}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <button 
                                                 onClick={() => dispatch(deleteItemFromCart({ productId: item.id, itemKey: item.id }))}
                                                 className="text-slate-400 hover:text-rose-600 p-1 transition"

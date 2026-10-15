@@ -3,12 +3,20 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 export default function OrdersAreaChart({ allOrders }) {
 
-    // Group orders by date
-    const ordersPerDay = allOrders.reduce((acc, order) => {
-        const date = new Date(order.createdAt).toISOString().split('T')[0] // format: YYYY-MM-DD
-        acc[date] = (acc[date] || 0) + 1
-        return acc
-    }, {})
+    // Group orders by date safely
+    const ordersPerDay = (Array.isArray(allOrders) ? allOrders : []).reduce((acc, order) => {
+        if (!order) return acc;
+        try {
+            const rawDate = order.createdAt || order.created_at || order.date;
+            const parsed = rawDate ? new Date(rawDate) : new Date();
+            const date = !isNaN(parsed.getTime()) ? parsed.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+            acc[date] = (acc[date] || 0) + 1;
+        } catch {
+            const today = new Date().toISOString().split('T')[0];
+            acc[today] = (acc[today] || 0) + 1;
+        }
+        return acc;
+    }, {});
 
     // Convert to array for Recharts
     const chartData = Object.entries(ordersPerDay).map(([date, count]) => ({

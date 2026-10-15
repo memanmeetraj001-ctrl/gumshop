@@ -157,7 +157,7 @@ export async function POST(req) {
             const orderId = orderSessionId || sale.order_number || sale.id || `ord_${Date.now()}`;
             const pricePaid = sale.price ? (parseFloat(sale.price) / 100) : 0;
             const customerEmail = sale.email || 'customer@example.com';
-            const customerName = sale.full_name || customerEmail.split('@')[0];
+            const customerName = sale.full_name || (customerEmail ? String(customerEmail).split('@')[0] : 'Customer');
             const address = sale.shipping_information 
                 ? `${sale.shipping_information.street_address || ''}, ${sale.shipping_information.city || ''} ${sale.shipping_information.postal_code || ''}, ${sale.shipping_information.country || ''}`
                 : (sale.url_params?.shipping_address || 'Provided at checkout');

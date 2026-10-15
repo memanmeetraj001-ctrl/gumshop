@@ -185,8 +185,8 @@ export default function StoreSettings() {
 
         autoSaveTimerRef.current = setTimeout(async () => {
             try {
-                const cleanSlug = (storeInfo.username ? storeInfo.username.trim() : (storeInfo.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || `shop-${Date.now()}`;
-                let targetStoreId = storeInfo.id || `store_${cleanSlug}`;
+                const cleanSlug = (storeInfo.username ? String(storeInfo.username).trim() : String(storeInfo.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || `shop-${Date.now()}`;
+                let targetStoreId = String(storeInfo.id || `store_${cleanSlug}`);
                 targetStoreId = targetStoreId.replace(/^store_store_/, 'store_');
 
                 const activeAvatar = storeInfo.logo || storeInfo.avatar || storeInfo.bioProfile?.avatar || "";
@@ -357,7 +357,7 @@ export default function StoreSettings() {
                     const firstUrl = prods[0].short_url || prods[0].url;
                     setStoreInfo(prev => ({ ...prev, gumroadProductUrl: firstUrl }));
                     if (typeof window !== 'undefined') {
-                        const cleanSlug = (storeInfo.username ? storeInfo.username.trim() : (storeInfo.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'shop';
+                        const cleanSlug = (storeInfo.username ? String(storeInfo.username).trim() : String(storeInfo.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'shop';
                         localStorage.setItem(`gumroad_url_${cleanSlug}`, firstUrl);
                     }
                     toast.success(`Auto-linked "${prods[0].name}" as your checkout product!`);
@@ -395,7 +395,7 @@ export default function StoreSettings() {
             const createdUrl = data.product.short_url || data.product.url;
             setStoreInfo(prev => ({ ...prev, gumroadProductUrl: createdUrl }));
             if (typeof window !== 'undefined') {
-                const cleanSlug = (storeInfo.username ? storeInfo.username.trim() : (storeInfo.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'shop';
+                const cleanSlug = (storeInfo.username ? String(storeInfo.username).trim() : String(storeInfo.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'shop';
                 localStorage.setItem(`gumroad_url_${cleanSlug}`, createdUrl);
             }
             setGumroadProducts(prev => [data.product, ...prev]);

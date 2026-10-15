@@ -67,7 +67,7 @@ export async function GET(req) {
                         // Official sale confirmed by Gumroad API!
                         const pricePaid = matchedSale.price ? (parseFloat(matchedSale.price) / 100) : (existingOrder?.total || 0);
                         const customerEmail = matchedSale.email || existingOrder?.customer?.email || 'customer@gumshop.online';
-                        const customerName = matchedSale.full_name || customerEmail.split('@')[0];
+                        const customerName = matchedSale.full_name || (customerEmail ? String(customerEmail).split('@')[0] : 'Customer');
 
                         const verifiedOrder = {
                             id: orderId,
