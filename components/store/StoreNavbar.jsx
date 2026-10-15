@@ -25,7 +25,26 @@ const StoreNavbar = ({ storeInfo }) => {
         });
 
         try {
-            const res = await fetch('/api/store/data').catch(() => null);
+            const fetchOpts = { cache: 'no-store' };
+            const storesRes = await fetch(`/api/stores?t=${Date.now()}`, fetchOpts).catch(() => null);
+            if (storesRes && storesRes.ok) {
+                const storesData = await storesRes.json().catch(() => ({}));
+                if (Array.isArray(storesData.stores)) {
+                    storesData.stores.forEach(s => {
+                        const slug = (s.username || s.name || s.id || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+                        if (slug && !isStoreDeleted(slug) && !isStoreDeleted(s.id) && !map.has(slug)) {
+                            map.set(slug, {
+                                id: s.id || `store_${slug}`,
+                                name: s.name || slug,
+                                username: slug,
+                                theme: s.theme || 'viral_lander'
+                            });
+                        }
+                    });
+                }
+            }
+
+            const res = await fetch(`/api/store/data?t=${Date.now()}`, fetchOpts).catch(() => null);
             if (res && res.ok) {
                 const data = await res.json().catch(() => ({}));
                 if (Array.isArray(data.stores)) {
