@@ -13,8 +13,8 @@ const ProductDescription = ({ product }) => {
 
             {/* Tabs */}
             <div className="flex border-b border-slate-200 mb-6 max-w-2xl">
-                {['Description', 'Reviews'].map((tab, index) => (
-                    <button className={`${tab === selectedTab ? 'border-b-[1.5px] font-semibold' : 'text-slate-400'} px-3 py-2 font-medium`} key={index} onClick={() => setSelectedTab(tab)}>
+                {['Description', 'Specifications', 'Reviews'].map((tab, index) => (
+                    <button className={`${tab === selectedTab ? 'border-b-[1.5px] font-semibold text-emerald-600 border-emerald-600' : 'text-slate-400'} px-3 py-2 font-medium transition`} key={index} onClick={() => setSelectedTab(tab)}>
                         {tab}
                     </button>
                 ))}
@@ -32,6 +32,27 @@ const ProductDescription = ({ product }) => {
                         <p className="max-w-xl text-base leading-relaxed text-slate-700 whitespace-pre-line">
                             {product.description}
                         </p>
+                    )}
+                </div>
+            )}
+
+            {/* Specifications Tab */}
+            {selectedTab === "Specifications" && (
+                <div className="max-w-2xl space-y-4">
+                    {Array.isArray(product.bullets || product.bulletPoints) && (product.bullets || product.bulletPoints).length > 0 ? (
+                        <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-3">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Core Highlights</h4>
+                            <div className="grid grid-cols-1 gap-2.5">
+                                {(product.bullets || product.bulletPoints).map((item, idx) => (
+                                    <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-700">
+                                        <div className="size-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                                        <span>{item}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-xs text-slate-400 p-4 bg-slate-50 rounded-xl">Standard retail specifications apply.</p>
                     )}
                 </div>
             )}

@@ -172,20 +172,22 @@ const ProductDetails = ({ product, storeInfo }) => {
         }
     };
 
-    const faqs = [
-        {
-            q: "How fast is delivery?",
-            a: "Orders are processed promptly upon payment confirmation. Standard tracked shipping takes 3–7 business days depending on destination."
-        },
-        {
-            q: "What is your refund policy?",
-            a: "If you have any issues with your order, contact our support team. We honor return and refund requests according to our store refund policy."
-        },
-        {
-            q: "Are transactions safe and encrypted?",
-            a: "Yes! All checkouts are processed via bank-grade 256-bit SSL encryption through verified Gumroad payment infrastructure."
-        }
-    ];
+    const faqs = (Array.isArray(product.faqs) && product.faqs.length > 0)
+        ? product.faqs
+        : [
+            {
+                q: "How fast is delivery?",
+                a: "Orders are processed promptly upon payment confirmation. Standard tracked shipping takes 3–7 business days depending on destination."
+            },
+            {
+                q: "What is your refund policy?",
+                a: "If you have any issues with your order, contact our support team. We honor return and refund requests according to our store refund policy."
+            },
+            {
+                q: "Are transactions safe and encrypted?",
+                a: "Yes! All checkouts are processed via bank-grade 256-bit SSL encryption through verified Gumroad payment infrastructure."
+            }
+        ];
 
     return (
         <div className="max-w-7xl mx-auto">
@@ -557,8 +559,19 @@ const ProductDetails = ({ product, storeInfo }) => {
                     </div>
 
                     {/* Product Description */}
-                    <div className="pt-2 text-sm text-slate-600 leading-relaxed">
+                    <div className="pt-2 text-sm text-slate-600 leading-relaxed space-y-3">
                         <p>{product.description || "Curated with the highest standards of materials and craftsmanship. Guaranteed satisfaction."}</p>
+                        
+                        {Array.isArray(product.bullets || product.bulletPoints) && (product.bullets || product.bulletPoints).length > 0 && (
+                            <ul className="space-y-1.5 pt-2 border-t border-slate-100 text-xs font-medium text-slate-700">
+                                {(product.bullets || product.bulletPoints).map((b, idx) => (
+                                    <li key={idx} className="flex items-start gap-2">
+                                        <Check size={14} className="text-emerald-600 shrink-0 mt-0.5" />
+                                        <span>{b}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
 
                     {/* Interactive Product FAQs Accordion */}

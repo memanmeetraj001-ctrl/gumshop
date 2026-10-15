@@ -32,13 +32,16 @@ import {
     Table as TableIcon,
     Star,
     Percent,
-    Scissors
+    Scissors,
+    Eye,
+    Palette
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { setActiveStoreSlug, setHomepageStoreSlug, getAllLocalStores } from '@/lib/activeStore';
 import { isStoreDeleted } from '@/lib/firebaseDb';
 import { normalizeProductPrice, applyPriceSlash } from '@/lib/importer/priceNormalizer.js';
 import { parseCatalogFile } from '@/lib/importer/fileImporter.js';
+import { enhanceProduct, roundPriceStrategy } from '@/lib/importer/productEnhancer.js';
 
 export default function StoreImportPage() {
     const router = useRouter();
@@ -92,6 +95,12 @@ export default function StoreImportPage() {
     const [destDescription, setDestDescription] = useState('');
     const [storeArchitecture, setStoreArchitecture] = useState('multi'); // 'multi' | 'single'
     const [autoConvertCurrency, setAutoConvertCurrency] = useState(true);
+
+    // ✨ Deep Enhancement & Usability States
+    const [autoEnhance, setAutoEnhance] = useState(true);
+    const [priceRounding, setPriceRounding] = useState('charm99'); // 'charm99' | 'charm95' | 'whole' | 'exact'
+    const [previewProduct, setPreviewProduct] = useState(null);
+    const [previewSelectedImage, setPreviewSelectedImage] = useState('');
 
     // 1-Click Homepage Setting & Rights Confirmation
     const [setAsHomepage, setSetAsHomepage] = useState(false);
@@ -165,12 +174,26 @@ export default function StoreImportPage() {
         ).filter(Boolean);
         setSelectedCategories(new Set(cleanCategories.length > 0 ? cleanCategories : ['Featured']));
 
-        // Normalize initial product prices
-        const productsWithNormalizedPrices = (data.products || []).map(p => ({
-            ...p,
-            price: normalizeProductPrice(p.price),
-            compareAtPrice: p.compareAtPrice ? normalizeProductPrice(p.compareAtPrice) : Math.round(normalizeProductPrice(p.price) * 1.35 * 100) / 100
-        }));
+        const initialName = data.store?.name || 'Imported Store';
+
+        // Normalize initial product prices with preferred strategy
+        const productsWithNormalizedPrices = (data.products || []).map(p => {
+            const rawPrice = normalizeProductPrice(p.price);
+            const roundedPrice = roundPriceStrategy(rawPrice, priceRounding);
+            const roundedCompare = p.compareAtPrice 
+                ? roundPriceStrategy(p.compareAtPrice, priceRounding) 
+                : roundPriceStrategy(roundedPrice * 1.35, priceRounding);
+
+            const baseItem = {
+                ...p,
+                price: roundedPrice,
+                compareAtPrice: roundedCompare
+            };
+
+            return autoEnhance 
+                ? enhanceProduct(baseItem, { roundingStrategy: priceRounding, storeName: initialName })
+                : baseItem;
+        });
 
         setImportData({
             ...data,
@@ -182,15 +205,53 @@ export default function StoreImportPage() {
         setSelectedProductIds(new Set(productsWithNormalizedPrices.map(p => p.id)));
 
         // Pre-fill destination store inputs
-        const initialName = data.store?.name || 'Imported Store';
         setDestStoreName(initialName);
         setDestStoreSlug(initialName.toLowerCase().replace(/[^a-z0-9-]+/g, '-'));
         setDestTheme(data.store?.theme || 'viral_lander');
         setDestThemeColor(data.store?.themeColor || '#10B981');
         setDestDescription(data.store?.description || `Curated catalog from ${initialName}.`);
 
+        // Auto-select Single-Product Viral Lander if exactly 1 product is detected
+        if (productsWithNormalizedPrices.length === 1) {
+            setStoreArchitecture('single');
+        }
+
         setStage('preview');
         toast.success(`Detected ${productsWithNormalizedPrices.length} products & ${cleanBanners.length} banners! 🎉`);
+    };
+
+    // Toggle Auto-Enhance on existing preview catalog
+    const handleToggleAutoEnhance = (enable) => {
+        setAutoEnhance(enable);
+        if (!importData?.products) return;
+        const updated = importData.products.map(p => {
+            if (enable) {
+                return enhanceProduct(p, { roundingStrategy: priceRounding, storeName: destStoreName || 'Store' });
+            } else {
+                return {
+                    ...p,
+                    isEnhanced: false
+                };
+            }
+        });
+        setImportData(prev => ({ ...prev, products: updated }));
+        toast.success(enable ? '✨ Auto-Enhanced all product pages with high-converting copy & bundles!' : 'Reverted to standard catalog data');
+    };
+
+    // Change Price Rounding Strategy on existing preview catalog
+    const handleSelectRounding = (strategy) => {
+        setPriceRounding(strategy);
+        if (!importData?.products) return;
+        const updated = importData.products.map(p => {
+            const newPrice = roundPriceStrategy(p.price, strategy);
+            const newCompare = p.compareAtPrice ? roundPriceStrategy(p.compareAtPrice, strategy) : roundPriceStrategy(newPrice * 1.35, strategy);
+            const enhanced = autoEnhance 
+                ? enhanceProduct({ ...p, price: newPrice, compareAtPrice: newCompare }, { roundingStrategy: strategy, storeName: destStoreName || 'Store' })
+                : { ...p, price: newPrice, compareAtPrice: newCompare };
+            return enhanced;
+        });
+        setImportData(prev => ({ ...prev, products: updated }));
+        toast.success(`Applied ${strategy === 'charm99' ? '.99 Charm' : strategy === 'charm95' ? '.95 Charm' : strategy === 'whole' ? '.00 Whole' : 'Exact'} pricing`);
     };
 
     // Analysis Execution via Web Scraper
@@ -1057,13 +1118,45 @@ export default function StoreImportPage() {
 
                                 <span className="text-slate-300">|</span>
 
-                                {/* Charm Pricing */}
+                                {/* Price Rounding Strategy */}
+                                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                                    <span className="text-[11px] font-bold text-slate-500 px-1">Round:</span>
+                                    {[
+                                        { id: 'charm99', label: '.99' },
+                                        { id: 'charm95', label: '.95' },
+                                        { id: 'whole', label: '.00' },
+                                        { id: 'exact', label: 'Exact' }
+                                    ].map(r => (
+                                        <button
+                                            key={r.id}
+                                            type="button"
+                                            onClick={() => handleSelectRounding(r.id)}
+                                            className={`px-2 py-0.5 rounded-lg text-xs font-bold transition ${
+                                                priceRounding === r.id
+                                                    ? 'bg-white text-emerald-700 shadow-2xs'
+                                                    : 'text-slate-600 hover:text-slate-900'
+                                            }`}
+                                        >
+                                            {r.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <span className="text-slate-300">|</span>
+
+                                {/* ✨ Auto-Enhance Mode Toggle */}
                                 <button
-                                    onClick={handleCharmPricing}
-                                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition font-bold"
-                                    title="Round prices to .99"
+                                    type="button"
+                                    onClick={() => handleToggleAutoEnhance(!autoEnhance)}
+                                    className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition border ${
+                                        autoEnhance
+                                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-xs'
+                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                    title="Auto-generate contextual volume bundles, product FAQs, and benefit bullets"
                                 >
-                                    .99 Charm Pricing
+                                    <Sparkles size={13} className={autoEnhance ? "text-amber-300 fill-amber-300" : "text-slate-400"} />
+                                    <span>{autoEnhance ? 'Auto-Enhance ON' : 'Auto-Enhance OFF'}</span>
                                 </button>
 
                                 {/* Currency Selector */}
@@ -1289,7 +1382,14 @@ export default function StoreImportPage() {
                                                             </div>
                                                         ) : (
                                                             <>
-                                                                <h4 className="font-bold text-xs text-slate-900 line-clamp-2">{displayName}</h4>
+                                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                                    {(prod.isEnhanced || autoEnhance) && (
+                                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase tracking-wider border border-emerald-200">
+                                                                            <Sparkles size={9} /> Enhanced
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <h4 className="font-bold text-xs text-slate-900 line-clamp-2 mt-1">{displayName}</h4>
                                                                 <p className="text-[10px] text-slate-500 font-mono mt-0.5 truncate">{displayCategory}</p>
                                                                 
                                                                 <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100">
@@ -1315,13 +1415,33 @@ export default function StoreImportPage() {
                                                                             </button>
                                                                         )}
                                                                     </div>
-                                                                    <button
-                                                                        onClick={() => setEditingProductId(prod.id)}
-                                                                        className="text-slate-400 hover:text-slate-700 p-1 rounded hover:bg-slate-100 transition"
-                                                                        title="Edit Title & Price"
-                                                                    >
-                                                                        <Edit2 size={12} />
-                                                                    </button>
+                                                                    <div className="flex items-center gap-1">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setPreviewProduct({
+                                                                                    ...prod,
+                                                                                    name: displayName,
+                                                                                    price: displayPrice,
+                                                                                    compareAtPrice: displayCompare,
+                                                                                    category: displayCategory
+                                                                                });
+                                                                                setPreviewSelectedImage(prodImg);
+                                                                            }}
+                                                                            className="text-slate-500 hover:text-emerald-700 px-2 py-1 rounded-lg hover:bg-emerald-50 transition flex items-center gap-1 text-[11px] font-bold"
+                                                                            title="Preview Live Product Page"
+                                                                        >
+                                                                            <Eye size={12} />
+                                                                            <span>Preview</span>
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => setEditingProductId(prod.id)}
+                                                                            className="text-slate-400 hover:text-slate-700 p-1 rounded hover:bg-slate-100 transition"
+                                                                            title="Edit Title & Price"
+                                                                        >
+                                                                            <Edit2 size={12} />
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                             </>
                                                         )}
@@ -1416,15 +1536,35 @@ export default function StoreImportPage() {
                                                                     </div>
                                                                 </td>
                                                                 <td className="py-3 px-4 text-right">
-                                                                    {isSuspectedCents && (
+                                                                    <div className="flex items-center justify-end gap-2">
                                                                         <button
                                                                             type="button"
-                                                                            onClick={() => handleFixSingleProductPrice(prod.id)}
-                                                                            className="px-2 py-0.5 rounded bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-[10px] border border-amber-200"
+                                                                            onClick={() => {
+                                                                                setPreviewProduct({
+                                                                                    ...prod,
+                                                                                    name: displayName,
+                                                                                    price: displayPrice,
+                                                                                    compareAtPrice: displayCompare,
+                                                                                    category: displayCategory
+                                                                                });
+                                                                                setPreviewSelectedImage(prodImg);
+                                                                            }}
+                                                                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 font-bold text-[11px] transition flex items-center gap-1"
+                                                                            title="Preview Live Product Page"
                                                                         >
-                                                                            ÷100 Fix
+                                                                            <Eye size={12} />
+                                                                            <span>Preview</span>
                                                                         </button>
-                                                                    )}
+                                                                        {isSuspectedCents && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleFixSingleProductPrice(prod.id)}
+                                                                                className="px-2 py-0.5 rounded bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-[10px] border border-amber-200"
+                                                                            >
+                                                                                ÷100 Fix
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
                                                                 </td>
                                                             </tr>
                                                         );
@@ -1650,7 +1790,40 @@ export default function StoreImportPage() {
                                         </div>
 
                                         <div>
-                                            <label className="block text-xs font-semibold text-slate-700 mb-1">Store Theme</label>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="block text-xs font-semibold text-slate-700">Theme & Palette Presets</label>
+                                                <span className="text-[10px] text-slate-400 font-medium">1-Click Apply</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                {[
+                                                    { id: 'emerald', name: 'Emerald Growth', color: '#10B981', theme: 'viral_lander' },
+                                                    { id: 'midnight', name: 'Midnight Luxury', color: '#0F172A', theme: 'fashion_lookbook' },
+                                                    { id: 'sunset', name: 'Cyber Sunset', color: '#F43F5E', theme: 'viral_lander' },
+                                                    { id: 'ocean', name: 'Ocean Tech', color: '#06B6D4', theme: 'tech_hardware' },
+                                                    { id: 'obsidian', name: 'Obsidian Minimal', color: '#18181B', theme: 'clean_beauty' }
+                                                ].map(p => (
+                                                    <button
+                                                        key={p.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setDestThemeColor(p.color);
+                                                            setDestTheme(p.theme);
+                                                        }}
+                                                        className={`p-2.5 rounded-xl border text-left flex items-center gap-2 transition ${
+                                                            destThemeColor.toLowerCase() === p.color.toLowerCase()
+                                                                ? 'border-emerald-500 bg-emerald-50/50 shadow-2xs'
+                                                                : 'border-slate-200 bg-slate-50 hover:bg-white'
+                                                        }`}
+                                                    >
+                                                        <span className="size-4.5 rounded-full shadow-2xs border border-white shrink-0" style={{ backgroundColor: p.color }} />
+                                                        <span className="text-[11px] font-bold text-slate-800 truncate">{p.name}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-700 mb-1">Store Theme Engine</label>
                                             <select
                                                 value={destTheme}
                                                 onChange={(e) => setDestTheme(e.target.value)}
@@ -1734,6 +1907,185 @@ export default function StoreImportPage() {
                             <p className="text-xs text-slate-500 mt-1">
                                 Persisting products, price rules, and high-res media to database...
                             </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* ─── LIVE PRODUCT PAGE PREVIEW MODAL ─── */}
+                {previewProduct && (
+                    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col border border-slate-200 overflow-hidden">
+                            {/* Modal Header */}
+                            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+                                <div className="flex items-center gap-2">
+                                    <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+                                        Live Storefront Preview
+                                    </span>
+                                    {previewProduct.isEnhanced && (
+                                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
+                                            ✨ Auto-Enhanced
+                                        </span>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setPreviewProduct(null)}
+                                    className="p-1.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            {/* Modal Body: Product Details layout */}
+                            <div className="p-6 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-12 gap-8 text-left">
+                                {/* Left Gallery */}
+                                <div className="md:col-span-6 space-y-3">
+                                    <div className="aspect-square bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 relative">
+                                        <img
+                                            src={previewSelectedImage || previewProduct.image || previewProduct.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'}
+                                            alt={previewProduct.name}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'; }}
+                                        />
+                                        {previewProduct.compareAtPrice > previewProduct.price && (
+                                            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-rose-600 text-white font-black text-[10px] shadow-sm">
+                                                SAVE {Math.round(((previewProduct.compareAtPrice - previewProduct.price) / previewProduct.compareAtPrice) * 100)}%
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Thumbnail strip */}
+                                    {Array.isArray(previewProduct.images) && previewProduct.images.length > 1 && (
+                                        <div className="flex gap-2 overflow-x-auto pb-1">
+                                            {previewProduct.images.map((img, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => setPreviewSelectedImage(img)}
+                                                    className={`size-14 rounded-xl overflow-hidden border-2 shrink-0 transition ${
+                                                        (previewSelectedImage || previewProduct.image) === img ? 'border-emerald-600 ring-2 ring-emerald-500/20' : 'border-slate-200 opacity-70'
+                                                    }`}
+                                                >
+                                                    <img src={img} alt="" className="w-full h-full object-cover" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* UGC Customer Reviews Snippet */}
+                                    {Array.isArray(previewProduct.reviews) && previewProduct.reviews.length > 0 && (
+                                        <div className="pt-4 border-t border-slate-100 space-y-2">
+                                            <div className="text-[11px] font-bold text-slate-700 flex items-center justify-between">
+                                                <span>Verified Customer Reviews</span>
+                                                <div className="flex items-center gap-0.5 text-emerald-500">
+                                                    {Array(5).fill('').map((_, i) => (
+                                                        <Star key={i} size={11} className="fill-emerald-500" />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-700">
+                                                <p className="italic">"{previewProduct.reviews[0]?.review}"</p>
+                                                <div className="mt-1 text-[10px] text-slate-500 font-semibold">
+                                                    — {previewProduct.reviews[0]?.user?.name || 'Customer'} (Verified Buyer)
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Right Content & Buy Options */}
+                                <div className="md:col-span-6 space-y-4">
+                                    <div>
+                                        <span className="text-[10px] font-black tracking-wider uppercase text-emerald-600">
+                                            {previewProduct.kicker || previewProduct.category || 'FEATURED'}
+                                        </span>
+                                        <h3 className="text-lg font-black text-slate-900 mt-0.5 leading-tight">
+                                            {previewProduct.name}
+                                        </h3>
+                                        {previewProduct.subtitle && (
+                                            <p className="text-xs text-slate-500 mt-1">
+                                                {previewProduct.subtitle}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* Pricing Row */}
+                                    <div className="flex items-baseline gap-2 pt-1 border-t border-slate-100">
+                                        <span className="text-2xl font-black text-slate-900 font-mono">
+                                            {currencySymbol}{previewProduct.price.toFixed(2)}
+                                        </span>
+                                        {previewProduct.compareAtPrice > previewProduct.price && (
+                                            <span className="text-sm font-mono text-slate-400 line-through">
+                                                {currencySymbol}{previewProduct.compareAtPrice.toFixed(2)}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Volume Bundles Tiers Preview */}
+                                    {Array.isArray(previewProduct.customBundles) && previewProduct.customBundles.length > 0 && (
+                                        <div className="space-y-1.5 pt-1">
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                                Volume Bundle Tiers
+                                            </span>
+                                            <div className="space-y-1.5">
+                                                {previewProduct.customBundles.map((b, idx) => (
+                                                    <div key={idx} className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between text-xs">
+                                                        <div>
+                                                            <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                                                                <span>{b.label}</span>
+                                                                {b.badge && (
+                                                                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-emerald-600 text-white">
+                                                                        {b.badge}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <span className="text-[10px] text-slate-500">{b.subtitle}</span>
+                                                        </div>
+                                                        <span className="font-mono font-black text-slate-900">
+                                                            {currencySymbol}{b.totalPrice.toFixed(2)}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Trust seals */}
+                                    <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center text-[10px] font-bold text-slate-700">
+                                        <div>🔒 SSL Encrypted</div>
+                                        <div>🚚 Tracked Delivery</div>
+                                        <div>🛡️ 30-Day Guarantee</div>
+                                    </div>
+
+                                    {/* Feature Highlights */}
+                                    {Array.isArray(previewProduct.bullets || previewProduct.bulletPoints) && (previewProduct.bullets || previewProduct.bulletPoints).length > 0 && (
+                                        <div className="space-y-1 pt-1">
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                                Key Highlights
+                                            </span>
+                                            <ul className="space-y-1 text-xs text-slate-700">
+                                                {(previewProduct.bullets || previewProduct.bulletPoints).slice(0, 4).map((b, idx) => (
+                                                    <li key={idx} className="flex items-start gap-1.5">
+                                                        <Check size={13} className="text-emerald-600 mt-0.5 shrink-0" />
+                                                        <span>{b}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    {/* Action Buttons */}
+                                    <div className="pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setPreviewProduct(null)}
+                                            className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold transition"
+                                        >
+                                            Close Preview
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
