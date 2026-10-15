@@ -214,18 +214,22 @@ export default function StoreOrders() {
             return;
         }
 
-        const headers = ["Order ID", "Customer Name", "Customer Email", "Shipping Address", "Total ($)", "Status", "Tracking", "Date", "Items"];
-        const rows = orders.map(o => [
-            o.id || o.orderId,
-            `"${o.customer?.name || 'Customer'}"`,
-            `"${o.customer?.email || ''}"`,
-            `"${(typeof o.customer?.shippingAddress === 'string' ? o.customer.shippingAddress : (o.address?.street || '')).replace(/"/g, '""')}"`,
-            o.total || 0,
-            o.status || 'paid',
-            `"${o.trackingNumber || ''}"`,
-            `"${new Date(o.createdAt || Date.now()).toLocaleDateString()}"`,
-            `"${(typeof o.items === 'string' ? o.items : 'Order Items').replace(/"/g, '""')}"`
-        ]);
+        const headers = ["Order ID", "Customer Name", "Customer Email", "Shipping Address", "Total ($)", "Payment Status", "Fulfillment Status", "Tracking", "Date", "Items"];
+        const rows = orders.map(o => {
+            const isPaid = o.isPaid === true || o.paymentStatus === 'PAID';
+            return [
+                o.id || o.orderId,
+                `"${o.customer?.name || 'Customer'}"`,
+                `"${o.customer?.email || ''}"`,
+                `"${(typeof o.customer?.shippingAddress === 'string' ? o.customer.shippingAddress : (o.address?.street || '')).replace(/"/g, '""')}"`,
+                o.total || 0,
+                isPaid ? "Paid" : "Unpaid (Pending)",
+                o.status || (isPaid ? 'processing' : 'unfulfilled'),
+                `"${o.trackingNumber || ''}"`,
+                `"${new Date(o.createdAt || Date.now()).toLocaleDateString()}"`,
+                `"${(typeof o.items === 'string' ? o.items : 'Order Items').replace(/"/g, '""')}"`
+            ];
+        });
 
         const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
         const encodedUri = encodeURI(csvContent);
@@ -400,8 +404,18 @@ export default function StoreOrders() {
                 (o.customer?.email || '').toLowerCase().includes(query) ||
                 (typeof o.items === 'string' && o.items.toLowerCase().includes(query));
 
-            const matchesStatus = statusFilter === 'ALL' || 
-                (o.status || 'processing').toLowerCase() === statusFilter.toLowerCase();
+            const isOrderPaid = o.isPaid === true || o.paymentStatus === 'PAID';
+
+            let matchesStatus = true;
+            if (statusFilter === 'ALL') {
+                matchesStatus = true;
+            } else if (statusFilter === 'paid') {
+                matchesStatus = isOrderPaid;
+            } else if (statusFilter === 'unpaid') {
+                matchesStatus = !isOrderPaid;
+            } else {
+                matchesStatus = (o.status || 'processing').toLowerCase() === statusFilter.toLowerCase();
+            }
 
             return matchesQuery && matchesStatus;
         });
@@ -468,6 +482,8 @@ export default function StoreOrders() {
                 <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl text-xs font-bold text-slate-600 overflow-x-auto">
                     {[
                         { id: 'ALL', label: 'All Orders' },
+                        { id: 'paid', label: 'Paid' },
+                        { id: 'unpaid', label: 'Unpaid / Pending' },
                         { id: 'processing', label: 'Processing' },
                         { id: 'shipped', label: 'Shipped' },
                         { id: 'delivered', label: 'Delivered' }
@@ -496,7 +512,8 @@ export default function StoreOrders() {
                                 <th className="py-4 px-6">Order ID & Date</th>
                                 <th className="py-4 px-4">Customer Details</th>
                                 <th className="py-4 px-4">Purchased Items</th>
-                                <th className="py-4 px-4">Total Paid</th>
+                                <th className="py-4 px-4">Total</th>
+                                <th className="py-4 px-4">Payment</th>
                                 <th className="py-4 px-4">Fulfillment</th>
                                 <th className="py-4 px-6 text-right">Actions</th>
                             </tr>
@@ -504,7 +521,7 @@ export default function StoreOrders() {
                         <tbody className="divide-y divide-slate-100">
                             {filteredOrders.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="py-14 text-center text-slate-400 text-sm">
+                                    <td colSpan={7} className="py-14 text-center text-slate-400 text-sm">
                                         <div className="size-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
                                             <ShoppingBag size={22} />
                                         </div>
@@ -536,6 +553,7 @@ export default function StoreOrders() {
                                         year: 'numeric'
                                     });
 
+                                    const isPaidOrder = order.isPaid === true || order.paymentStatus === 'PAID';
                                     const isDelivered = order.status === 'delivered';
                                     const isShipped = order.status === 'shipped';
 
@@ -575,25 +593,47 @@ export default function StoreOrders() {
                                                 )}
                                             </td>
 
-                                            {/* Total Paid */}
-                                            <td className="py-4 px-4 font-extrabold text-emerald-600">
+                                            {/* Total */}
+                                            <td className={`py-4 px-4 font-extrabold ${isPaidOrder ? 'text-emerald-600' : 'text-slate-900'}`}>
                                                 ${(Number(order.total) || 0).toFixed(2)}
                                             </td>
 
-                                            {/* Status Badge */}
+                                            {/* Payment Status Badge */}
                                             <td className="py-4 px-4">
-                                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                                                    isDelivered 
-                                                        ? 'bg-emerald-100 text-emerald-800' 
-                                                        : isShipped
-                                                            ? 'bg-blue-100 text-blue-800'
-                                                            : 'bg-amber-100 text-amber-800'
-                                                }`}>
-                                                    {isDelivered && <CheckCircle2 size={11} />}
-                                                    {isShipped && <Truck size={11} />}
-                                                    {!isDelivered && !isShipped && <Clock size={11} />}
-                                                    <span>{order.status || 'processing'}</span>
-                                                </span>
+                                                {isPaidOrder ? (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">
+                                                        <CheckCircle2 size={11} />
+                                                        <span>Paid</span>
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                                                        <Clock size={11} />
+                                                        <span>Unpaid (Checkout Started)</span>
+                                                    </span>
+                                                )}
+                                            </td>
+
+                                            {/* Fulfillment Status Badge */}
+                                            <td className="py-4 px-4">
+                                                {!isPaidOrder ? (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-100 text-slate-500">
+                                                        <Clock size={11} />
+                                                        <span>Awaiting Payment</span>
+                                                    </span>
+                                                ) : (
+                                                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                                                        isDelivered 
+                                                            ? 'bg-emerald-100 text-emerald-800' 
+                                                            : isShipped
+                                                                ? 'bg-blue-100 text-blue-800'
+                                                                : 'bg-amber-100 text-amber-800'
+                                                    }`}>
+                                                        {isDelivered && <CheckCircle2 size={11} />}
+                                                        {isShipped && <Truck size={11} />}
+                                                        {!isDelivered && !isShipped && <Clock size={11} />}
+                                                        <span>{order.status || 'processing'}</span>
+                                                    </span>
+                                                )}
                                             </td>
 
                                             {/* Actions */}
@@ -737,6 +777,29 @@ export default function StoreOrders() {
                         </div>
 
                         <div className="mt-5 space-y-4 text-xs">
+                            {/* Payment Status Banner */}
+                            {viewingOrder.isPaid === true || viewingOrder.paymentStatus === 'PAID' ? (
+                                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-between font-bold">
+                                    <span className="flex items-center gap-1.5">
+                                        <CheckCircle2 size={15} className="text-emerald-600" />
+                                        <span>Payment Status</span>
+                                    </span>
+                                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-900 text-[10px] uppercase tracking-wider">
+                                        Paid
+                                    </span>
+                                </div>
+                            ) : (
+                                <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-center justify-between font-bold">
+                                    <span className="flex items-center gap-1.5">
+                                        <Clock size={15} className="text-amber-600" />
+                                        <span>Payment Status</span>
+                                    </span>
+                                    <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] uppercase tracking-wider">
+                                        Unpaid (Checkout Started)
+                                    </span>
+                                </div>
+                            )}
+
                             {/* Customer info */}
                             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
                                 <p className="font-bold text-slate-900 text-sm">{viewingOrder.customer?.name || 'Customer'}</p>
@@ -763,8 +826,12 @@ export default function StoreOrders() {
                                         : (viewingOrder.orderItems?.map(i => `${i.quantity || 1}x ${i.name} ($${i.price})`).join('\n') || 'Item')}
                                 </p>
                                 <div className="mt-3 pt-3 border-t border-slate-200/60 flex items-center justify-between font-bold text-sm">
-                                    <span className="text-slate-600">Total Amount Paid</span>
-                                    <span className="text-emerald-600 font-black text-base">${(Number(viewingOrder.total) || 0).toFixed(2)}</span>
+                                    <span className="text-slate-600">
+                                        {viewingOrder.isPaid === true || viewingOrder.paymentStatus === 'PAID' ? 'Total Amount Paid' : 'Order Total (Pending Payment)'}
+                                    </span>
+                                    <span className={`${viewingOrder.isPaid === true || viewingOrder.paymentStatus === 'PAID' ? 'text-emerald-600 font-black' : 'text-slate-900 font-bold'} text-base`}>
+                                        ${(Number(viewingOrder.total) || 0).toFixed(2)}
+                                    </span>
                                 </div>
                             </div>
 

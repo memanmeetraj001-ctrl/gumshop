@@ -36,7 +36,8 @@ import {
     Database,
     Eye,
     EyeOff,
-    Scissors
+    Scissors,
+    Clock
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { isProductDeleted, isStoreDeleted, markStoreDeleted, deleteStore } from '@/lib/firebaseDb';
@@ -790,23 +791,25 @@ export default function MasterDashboardPage() {
         return oStoreId === activeStoreSlugClean || oStoreSlug === activeStoreSlugClean;
     });
 
-    const activeStoreRevenue = activeStoreOrders.reduce((sum, o) => {
+    const activeStorePaidOrders = activeStoreOrders.filter(o => o.isPaid === true || o.paymentStatus === 'PAID');
+    const activeStoreRevenue = activeStorePaidOrders.reduce((sum, o) => {
         const val = parseFloat(o.total || o.amount || o.price || 0);
         return sum + (isNaN(val) ? 0 : val);
     }, 0);
 
-    const activeStoreCompletedOrders = activeStoreOrders.filter(o => 
-        (o.status || '').toLowerCase() === 'completed' || o.verified
+    const activeStoreCompletedOrders = activeStorePaidOrders.filter(o => 
+        (o.status || '').toLowerCase() === 'completed' || (o.status || '').toLowerCase() === 'delivered' || o.verified
     ).length;
 
-    const activeStoreAOV = activeStoreOrders.length > 0 
-        ? (activeStoreRevenue / activeStoreOrders.length) 
+    const activeStoreAOV = activeStorePaidOrders.length > 0 
+        ? (activeStoreRevenue / activeStorePaidOrders.length) 
         : 0;
 
     // Financial Metrics
-    const totalOrdersCount = orders.length;
-    const completedOrdersCount = orders.filter(o => (o.status || '').toLowerCase() === 'completed' || o.verified).length;
-    const totalRevenue = orders.reduce((sum, o) => {
+    const paidOrders = orders.filter(o => o.isPaid === true || o.paymentStatus === 'PAID');
+    const totalOrdersCount = paidOrders.length;
+    const completedOrdersCount = paidOrders.filter(o => (o.status || '').toLowerCase() === 'completed' || (o.status || '').toLowerCase() === 'delivered' || o.verified).length;
+    const totalRevenue = paidOrders.reduce((sum, o) => {
         const val = parseFloat(o.total || o.amount || o.price || 0);
         return sum + (isNaN(val) ? 0 : val);
     }, 0);
@@ -1351,8 +1354,14 @@ export default function MasterDashboardPage() {
                                                                 <div className="font-mono font-bold text-xs text-slate-900">
                                                                     ${(parseFloat(o.total || o.amount || 0)).toFixed(2)}
                                                                 </div>
-                                                                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600">
-                                                                    <CheckCircle2 size={9} /> {o.status || 'Verified'}
+                                                                <span className={`inline-flex items-center gap-1 text-[9px] font-bold ${
+                                                                    o.isPaid === true || o.paymentStatus === 'PAID' ? 'text-emerald-600' : 'text-amber-600'
+                                                                }`}>
+                                                                    {o.isPaid === true || o.paymentStatus === 'PAID' ? (
+                                                                        <><CheckCircle2 size={9} /> Paid</>
+                                                                    ) : (
+                                                                        <><Clock size={9} /> Unpaid (Pending)</>
+                                                                    )}
                                                                 </span>
                                                             </div>
                                                         </div>

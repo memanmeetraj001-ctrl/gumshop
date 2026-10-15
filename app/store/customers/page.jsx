@@ -526,8 +526,12 @@ export default function StoreCustomersPage() {
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-mono font-bold text-xs text-slate-900">Order #{ord.id || ord.orderId || `ORD-${idx+1}`}</span>
-                                                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                                                        {ord.status || 'completed'}
+                                                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                                                        ord.isPaid === false || ord.paymentStatus === 'CHECKOUT_STARTED'
+                                                            ? 'bg-amber-100 text-amber-800'
+                                                            : 'bg-emerald-100 text-emerald-800'
+                                                    }`}>
+                                                        {ord.isPaid === false || ord.paymentStatus === 'CHECKOUT_STARTED' ? 'Unpaid' : (ord.status || 'paid')}
                                                     </span>
                                                 </div>
                                                 <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-2">

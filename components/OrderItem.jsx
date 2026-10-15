@@ -75,18 +75,25 @@ const OrderItem = ({ order }) => {
                 </td>
 
                 <td className="text-left space-y-2 text-sm max-md:hidden">
-                    <div
-                        className={`flex items-center justify-center gap-1 rounded-full p-1 capitalize ${
-                            (order.status || '').toUpperCase() === 'PROCESSING' || (order.status || '').toUpperCase() === 'SHIPPED'
-                            ? 'text-yellow-600 bg-yellow-100'
-                            : (order.status || '').toUpperCase() === 'DELIVERED' || (order.status || '').toUpperCase() === 'COMPLETED'
-                                ? 'text-emerald-600 bg-emerald-100'
-                                : 'text-slate-600 bg-slate-100'
-                            }`}
-                    >
-                        <DotIcon size={10} className="scale-250" />
-                        {String(order.status || 'Processing').replace(/_/g, ' ').toLowerCase()}
-                    </div>
+                    {order.isPaid === false || order.paymentStatus === 'CHECKOUT_STARTED' ? (
+                        <div className="flex items-center justify-center gap-1 rounded-full p-1 text-amber-700 bg-amber-100 text-xs font-bold">
+                            <DotIcon size={10} className="scale-250" />
+                            Unpaid (Pending)
+                        </div>
+                    ) : (
+                        <div
+                            className={`flex items-center justify-center gap-1 rounded-full p-1 capitalize ${
+                                (order.status || '').toUpperCase() === 'PROCESSING' || (order.status || '').toUpperCase() === 'SHIPPED'
+                                ? 'text-yellow-600 bg-yellow-100'
+                                : (order.status || '').toUpperCase() === 'DELIVERED' || (order.status || '').toUpperCase() === 'COMPLETED'
+                                    ? 'text-emerald-600 bg-emerald-100'
+                                    : 'text-slate-600 bg-slate-100'
+                                }`}
+                        >
+                            <DotIcon size={10} className="scale-250" />
+                            {String(order.status || 'Processing').replace(/_/g, ' ').toLowerCase()}
+                        </div>
+                    )}
                 </td>
             </tr>
             {/* Mobile */}
@@ -102,8 +109,14 @@ const OrderItem = ({ order }) => {
                         <p>{order.address || 'Standard Delivery'}</p>
                     )}
                     <div className="flex items-center mt-2">
-                        <span className='px-4 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs capitalize'>
-                            {String(order.status || 'Processing').replace(/_/g, ' ').toLowerCase()}
+                        <span className={`px-4 py-1 rounded-full font-bold text-xs capitalize ${
+                            order.isPaid === false || order.paymentStatus === 'CHECKOUT_STARTED'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-emerald-100 text-emerald-700'
+                        }`}>
+                            {order.isPaid === false || order.paymentStatus === 'CHECKOUT_STARTED'
+                                ? 'Unpaid (Pending)'
+                                : String(order.status || 'Processing').replace(/_/g, ' ').toLowerCase()}
                         </span>
                     </div>
                 </td>

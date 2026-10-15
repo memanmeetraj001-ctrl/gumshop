@@ -153,14 +153,18 @@ export default function StoreAnalyticsDashboard() {
     }, [orders, timeRange]);
 
     // Financial & Operational Metrics (100% Real, Zero Mock/Fake)
+    const paidOrders = useMemo(() => {
+        return filteredOrders.filter(o => o.isPaid === true || o.paymentStatus === 'PAID');
+    }, [filteredOrders]);
+
     const totalRevenue = useMemo(() => {
-        return filteredOrders.reduce((sum, o) => {
+        return paidOrders.reduce((sum, o) => {
             const val = parseFloat(o.total || o.amount || o.price || 0);
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
-    }, [filteredOrders]);
+    }, [paidOrders]);
 
-    const totalOrdersCount = filteredOrders.length;
+    const totalOrdersCount = paidOrders.length;
     const averageOrderValue = totalOrdersCount > 0 ? (totalRevenue / totalOrdersCount) : 0;
     
     // Authentic Conversion Rate: Calculated strictly from real orders or explicitly marked as 0.0%
@@ -216,18 +220,22 @@ export default function StoreAnalyticsDashboard() {
             return;
         }
 
-        const headers = ["Order ID", "Date", "Customer Name", "Customer Email", "Status", "Items", "Total ($)", "Carrier", "Tracking"];
-        const rows = filteredOrders.map(o => [
-            `"${o.id || o.orderSessionId || ''}"`,
-            `"${new Date(o.createdAt || Date.now()).toLocaleDateString()}"`,
-            `"${(o.customer?.name || o.customerName || 'Customer').replace(/"/g, '""')}"`,
-            `"${o.customer?.email || o.customerEmail || ''}"`,
-            `"${o.status || 'completed'}"`,
-            `"${(typeof o.items === 'string' ? o.items : (o.orderItems?.map(i => i.name).join(', ') || '')).replace(/"/g, '""')}"`,
-            parseFloat(o.total || o.amount || 0).toFixed(2),
-            `"${o.carrier || ''}"`,
-            `"${o.trackingNumber || ''}"`
-        ]);
+        const headers = ["Order ID", "Date", "Customer Name", "Customer Email", "Payment Status", "Fulfillment Status", "Items", "Total ($)", "Carrier", "Tracking"];
+        const rows = filteredOrders.map(o => {
+            const isPaid = o.isPaid === true || o.paymentStatus === 'PAID';
+            return [
+                `"${o.id || o.orderSessionId || ''}"`,
+                `"${new Date(o.createdAt || Date.now()).toLocaleDateString()}"`,
+                `"${(o.customer?.name || o.customerName || 'Customer').replace(/"/g, '""')}"`,
+                `"${o.customer?.email || o.customerEmail || ''}"`,
+                `"${isPaid ? 'Paid' : 'Unpaid (Pending)'}"`,
+                `"${o.status || (isPaid ? 'processing' : 'unfulfilled')}"`,
+                `"${(typeof o.items === 'string' ? o.items : (o.orderItems?.map(i => i.name).join(', ') || '')).replace(/"/g, '""')}"`,
+                parseFloat(o.total || o.amount || 0).toFixed(2),
+                `"${o.carrier || ''}"`,
+                `"${o.trackingNumber || ''}"`
+            ];
+        });
 
         const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
         const encodedUri = encodeURI(csvContent);
@@ -520,7 +528,8 @@ export default function StoreAnalyticsDashboard() {
                 ) : (
                     <div className="divide-y divide-slate-100">
                         {filteredOrders.slice(0, 6).map((order, idx) => {
-                            const status = (order.status || 'completed').toLowerCase();
+                            const isPaid = order.isPaid === true || order.paymentStatus === 'PAID';
+                            const status = (order.status || 'processing').toLowerCase();
                             const isShipped = status === 'shipped' || status === 'delivered';
                             return (
                                 <div key={idx} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
@@ -530,7 +539,7 @@ export default function StoreAnalyticsDashboard() {
                                         </div>
                                         <div>
                                             <p className="font-bold text-slate-900">
-                                                {order.customer?.name || order.customerName || 'Verified Buyer'}
+                                                {order.customer?.name || order.customerName || 'Customer'}
                                             </p>
                                             <p className="text-[11px] text-slate-400">
                                                 {new Date(order.createdAt || Date.now()).toLocaleDateString()} • {order.customer?.shippingAddress || order.city || 'Standard Delivery'}
@@ -540,15 +549,17 @@ export default function StoreAnalyticsDashboard() {
 
                                     <div className="flex items-center justify-between sm:justify-end gap-4">
                                         <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${
-                                            isShipped 
-                                                ? 'bg-blue-100 text-blue-700' 
-                                                : status === 'processing'
-                                                    ? 'bg-amber-100 text-amber-700'
-                                                    : 'bg-emerald-100 text-emerald-700'
+                                            !isPaid
+                                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                                : isShipped 
+                                                    ? 'bg-blue-100 text-blue-700' 
+                                                    : status === 'processing'
+                                                        ? 'bg-amber-100 text-amber-700'
+                                                        : 'bg-emerald-100 text-emerald-700'
                                         }`}>
-                                            {status}
+                                            {!isPaid ? 'Unpaid' : status}
                                         </span>
-                                        <span className="font-black text-slate-900 text-sm">
+                                        <span className={`font-black text-sm ${isPaid ? 'text-slate-900' : 'text-slate-400'}`}>
                                             {currency}{(parseFloat(order.total || order.amount || 0)).toFixed(2)}
                                         </span>
                                     </div>

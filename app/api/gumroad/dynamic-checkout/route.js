@@ -203,6 +203,7 @@ export async function POST(req) {
                 rushFee: Math.round(totalRushFee * 100) / 100,
                 discountAmount: Math.round(parseFloat(discountAmount || 0) * 100) / 100,
                 currency: 'USD',
+                status: 'unpaid',
                 paymentStatus: PaymentStatus.CHECKOUT_STARTED,
                 orderStatus: OrderStatus.PENDING,
                 fulfillmentStatus: FulfillmentStatus.UNFULFILLED,
