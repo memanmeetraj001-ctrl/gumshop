@@ -89,41 +89,47 @@ await itAsync('serverSaveStore and serverSaveProducts preserve updated prices wi
     const testStoreId = 'store_' + testSlug;
 
     // 1. Create store with initial imported product ($20)
-    await serverSaveStore({
-        id: testStoreId,
-        username: testSlug,
-        name: 'Price Test Store',
-        products: [{
+    try {
+        await serverSaveStore({
+            id: testStoreId,
+            username: testSlug,
+            name: 'Price Test Store',
+            products: [{
+                id: 'prod_test_initial',
+                name: 'Imported Widget',
+                price: 20.00,
+                compareAtPrice: 29.99
+            }]
+        });
+
+        // 2. Verify initial price
+        let store = await serverGetStore(testSlug);
+        assert.strictEqual(store.products[0].price, 20.00, 'Initial imported price must be 20.00');
+
+        // 3. User edits price to $49.99
+        await serverSaveProducts(testStoreId, [{
             id: 'prod_test_initial',
             name: 'Imported Widget',
-            price: 20.00,
-            compareAtPrice: 29.99
-        }]
-    });
+            price: 49.99,
+            compareAtPrice: 69.99
+        }]);
 
-    // 2. Verify initial price
-    let store = await serverGetStore(testSlug);
-    assert.strictEqual(store.products[0].price, 20.00, 'Initial imported price must be 20.00');
+        // 4. Verify that serverGetProducts returns the updated $49.99
+        const prods = await serverGetProducts(testStoreId);
+        const updatedProd = prods.find(p => p.id === 'prod_test_initial');
+        assert.ok(updatedProd, 'Product must exist in store');
+        assert.strictEqual(updatedProd.price, 49.99, 'Product price must stay permanently updated at 49.99');
 
-    // 3. User edits price to $49.99
-    await serverSaveProducts(testStoreId, [{
-        id: 'prod_test_initial',
-        name: 'Imported Widget',
-        price: 49.99,
-        compareAtPrice: 69.99
-    }]);
-
-    // 4. Verify that serverGetProducts returns the updated $49.99
-    const prods = await serverGetProducts(testStoreId);
-    const updatedProd = prods.find(p => p.id === 'prod_test_initial');
-    assert.ok(updatedProd, 'Product must exist in store');
-    assert.strictEqual(updatedProd.price, 49.99, 'Product price must stay permanently updated at 49.99');
-
-    // 5. Verify that serverGetStore also reflects the updated $49.99
-    store = await serverGetStore(testSlug);
-    const storeProd = (store.products || []).find(p => p.id === 'prod_test_initial');
-    assert.ok(storeProd, 'Product must exist in parent store record');
-    assert.strictEqual(storeProd.price, 49.99, 'Parent store products array must stay permanently updated at 49.99');
+        // 5. Verify that serverGetStore also reflects the updated $49.99
+        store = await serverGetStore(testSlug);
+        const storeProd = (store.products || []).find(p => p.id === 'prod_test_initial');
+        assert.ok(storeProd, 'Product must exist in parent store record');
+        assert.strictEqual(storeProd.price, 49.99, 'Parent store products array must stay permanently updated at 49.99');
+    } finally {
+        const { serverDeleteStore } = await import('../lib/serverDb.js');
+        await serverDeleteStore(testStoreId);
+        await serverDeleteStore(testSlug);
+    }
 });
 
 console.log('\n======================================================================');

@@ -225,7 +225,14 @@ export default function MasterDashboardPage() {
                 if (!slug || isStoreDeleted(sStore.id) || isStoreDeleted(slug) || seenSlugs.has(slug)) continue;
 
                 // Skip automated temporary test harness stores from dashboard display
-                if (slug.startsWith('price-test-store-') || slug.startsWith('price_test_store_')) continue;
+                if (
+                    slug.startsWith('price-test-store-') || 
+                    slug.startsWith('price_test_store_') ||
+                    slug === 'live-test' ||
+                    slug === 'store_live_test' ||
+                    slug.startsWith('m2-hp-') ||
+                    slug.startsWith('test-')
+                ) continue;
 
                 seenSlugs.add(slug);
                 const prods = Array.isArray(sStore.products) ? sStore.products : [];

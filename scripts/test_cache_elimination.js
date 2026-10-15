@@ -85,24 +85,30 @@ const testStore = {
     name: 'Live Test Store',
     themeColor: '#3B82F6'
 };
-await serverSaveStore(testStore);
+try {
+    await serverSaveStore(testStore);
 
-const initialProducts = [
-    { id: 'prod_test_live', storeId: 'store_live_test', name: 'Live Product', price: 52.99 }
-];
-await serverSaveProducts('store_live_test', initialProducts);
+    const initialProducts = [
+        { id: 'prod_test_live', storeId: 'store_live_test', name: 'Live Product', price: 52.99 }
+    ];
+    await serverSaveProducts('store_live_test', initialProducts);
 
-let fetched = await serverGetProducts('store_live_test');
-assert.strictEqual(fetched[0].price, 52.99, 'Initial price must be 52.99');
+    let fetched = await serverGetProducts('store_live_test');
+    assert.strictEqual(fetched[0].price, 52.99, 'Initial price must be 52.99');
 
-// Now update price to 79.99 in serverDb
-const updatedProducts = [
-    { id: 'prod_test_live', storeId: 'store_live_test', name: 'Live Product', price: 79.99 }
-];
-await serverSaveProducts('store_live_test', updatedProducts);
+    // Now update price to 79.99 in serverDb
+    const updatedProducts = [
+        { id: 'prod_test_live', storeId: 'store_live_test', name: 'Live Product', price: 79.99 }
+    ];
+    await serverSaveProducts('store_live_test', updatedProducts);
 
-fetched = await serverGetProducts('store_live_test');
-assert.strictEqual(fetched[0].price, 79.99, 'Updated price must immediately reflect 79.99 with 0ms stale lag');
-console.log('✅ Test 3 Passed: Live DB updates reflect immediately with zero delay.');
+    fetched = await serverGetProducts('store_live_test');
+    assert.strictEqual(fetched[0].price, 79.99, 'Updated price must immediately reflect 79.99 with 0ms stale lag');
+    console.log('✅ Test 3 Passed: Live DB updates reflect immediately with zero delay.');
+} finally {
+    const { serverDeleteStore } = await import('../lib/serverDb.js');
+    await serverDeleteStore('store_live_test');
+    await serverDeleteStore('live-test');
+}
 
 console.log('--- 🏆 ALL CACHE ELIMINATION TESTS PASSED 100% ---');
