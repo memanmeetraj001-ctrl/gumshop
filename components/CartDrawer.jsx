@@ -10,11 +10,12 @@ import { getCoupon } from '@/lib/firebaseDb';
 import GumroadIframeModal from './GumroadIframeModal';
 import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 
-export default function CartDrawer({ isOpen, onClose }) {
+export default function CartDrawer({ isOpen, onClose, products: propProducts }) {
     const dispatch = useDispatch();
     const currency = '$';
     const { cartItems, cartProducts = {}, total } = useSelector(state => state.cart);
-    const products = useSelector(state => state.product.list);
+    const reduxProducts = useSelector(state => state.product.list);
+    const products = propProducts && propProducts.length > 0 ? propProducts : reduxProducts;
 
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [couponCode, setCouponCode] = useState('');
@@ -472,6 +473,8 @@ export default function CartDrawer({ isOpen, onClose }) {
                 shippingFee={shippingFee}
                 gumroadUrl={checkoutModal.gumroadUrl}
                 orderSessionId={checkoutModal.orderSessionId}
+                storeId={items[0]?.storeId}
+                storeSlug={items[0]?.storeSlug || (items[0]?.storeId ? String(items[0].storeId).replace(/^store_/, '') : '')}
             />
         </div>
     );

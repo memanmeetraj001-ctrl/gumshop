@@ -30,7 +30,9 @@ export default function GumroadIframeModal({
     total,
     shippingFee = 0,
     gumroadUrl,
-    orderSessionId
+    orderSessionId,
+    storeId: passedStoreId,
+    storeSlug: passedStoreSlug
 }) {
     // 2-Step Checkout State: 'address' -> 'payment'
     const [checkoutStep, setCheckoutStep] = useState('address'); // 'address' | 'payment'
@@ -39,6 +41,16 @@ export default function GumroadIframeModal({
     const [iframeFailed, setIframeFailed] = useState(false);
     const [customLinkInput, setCustomLinkInput] = useState('');
     const [isSavingLink, setIsSavingLink] = useState(false);
+
+    // Timeout safety for mobile browsers to ensure customer can always complete checkout
+    useEffect(() => {
+        if (checkoutStep === 'payment' && isIframeLoading) {
+            const timer = setTimeout(() => {
+                setIsIframeLoading(false);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [checkoutStep, isIframeLoading]);
 
     // Customer Information for Pre-fill and Receipts
     const [formData, setFormData] = useState({
@@ -112,8 +124,8 @@ export default function GumroadIframeModal({
 
     const activeStore = getActiveStoreSync();
     const storeName = activeStore?.name || product?.storeName || 'GumShop Store';
-    const storeId = activeStore?.id || product?.storeId || 'store_default';
-    const cleanSlug = (activeStore?.username || activeStore?.id || storeId || '').toLowerCase().replace(/^store_/, '').trim();
+    const storeId = passedStoreId || activeStore?.id || product?.storeId || 'store_default';
+    const cleanSlug = (passedStoreSlug || activeStore?.username || activeStore?.id || storeId || '').toLowerCase().replace(/^store_/, '').trim();
 
     // Resolve base Gumroad URL
     const persistentUrl = typeof window !== 'undefined' 
