@@ -3,6 +3,16 @@ import { getStoreByUsername, getProductsByStore, createStore, createProduct } fr
 import { resolvePresetStore } from '@/lib/storePresets';
 import { applyPriceSlash } from '@/lib/importer/priceNormalizer.js';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
+const NO_CACHE_HEADERS = {
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+};
+
 /**
  * POST /api/store/duplicate
  * Duplicates an existing store and creates an independent store clone with optional asset copying and price slashing.
@@ -143,13 +153,13 @@ export async function POST(req) {
             newStoreSlug: cleanNewSlug,
             store: duplicatedStore,
             redirectUrl: `/shop/${cleanNewSlug}`
-        });
+        }, { headers: NO_CACHE_HEADERS });
 
     } catch (err) {
         console.error('API /api/store/duplicate error:', err);
         return NextResponse.json({
             success: false,
             error: 'Failed to duplicate store.'
-        }, { status: 500 });
+        }, { status: 500, headers: NO_CACHE_HEADERS });
     }
 }

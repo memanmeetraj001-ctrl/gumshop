@@ -3,6 +3,16 @@ import { createStore, createProduct, recordImportHistory, getStore, getStoreByUs
 import { serverSaveStore, serverSaveProducts } from '@/lib/serverDb';
 import { normalizeProductPrice, applyPriceSlash } from '@/lib/importer/priceNormalizer.js';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
+const NO_CACHE_HEADERS = {
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+};
+
 /**
  * POST /api/importer/import
  * Executes import of selected products, banners, and categories into a target store.
@@ -176,7 +186,7 @@ export async function POST(req) {
             store: storeRecord,
             productsCount: savedProducts.length,
             redirectUrl: `/shop/${cleanSlug}`
-        });
+        }, { headers: NO_CACHE_HEADERS });
 
         // Set Homepage cookie if requested
         if (setAsHomepage) {
@@ -194,6 +204,6 @@ export async function POST(req) {
         return NextResponse.json({ 
             success: false, 
             error: err?.message || 'Failed to create store from imported data.' 
-        }, { status: 500 });
+        }, { status: 500, headers: NO_CACHE_HEADERS });
     }
 }

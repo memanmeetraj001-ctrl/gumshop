@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { useAuth } from "@/lib/AuthContext";
 import { updateUserCart, getUserCart } from "@/lib/firebaseDb";
 import { setCart } from "@/lib/features/cart/cartSlice";
+import { purgeStaleCatalogCaches } from "@/lib/cachePurge";
 
 export default function CartSync() {
     const { user, loading } = useAuth();
@@ -16,6 +17,7 @@ export default function CartSync() {
     useEffect(() => {
         const hydrateCart = async () => {
             try {
+                purgeStaleCatalogCaches();
                 if (user && !loading) {
                     const remoteCart = await getUserCart(user.uid);
                     if (remoteCart && remoteCart.cartItems && Object.keys(remoteCart.cartItems).length > 0) {

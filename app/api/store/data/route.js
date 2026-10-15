@@ -11,6 +11,16 @@ import {
     isSupabaseConfigured 
 } from '@/lib/serverDb';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
+const NO_CACHE_HEADERS = {
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+};
+
 export async function GET(req) {
     try {
         const { searchParams } = new URL(req.url);
@@ -22,7 +32,7 @@ export async function GET(req) {
                 success: true,
                 isSupabase: isSupabaseConfigured(),
                 stores: allStores
-            });
+            }, { headers: NO_CACHE_HEADERS });
         }
 
         const store = await serverGetStore(slug);
@@ -39,9 +49,9 @@ export async function GET(req) {
             isSupabase: isSupabaseConfigured(),
             store,
             products
-        });
+        }, { headers: NO_CACHE_HEADERS });
     } catch (e) {
-        return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+        return NextResponse.json({ success: false, error: e.message }, { status: 500, headers: NO_CACHE_HEADERS });
     }
 }
 
@@ -51,7 +61,7 @@ export async function POST(req) {
         const { store, products } = body;
 
         if (!store) {
-            return NextResponse.json({ success: false, error: 'Store object is required' }, { status: 400 });
+            return NextResponse.json({ success: false, error: 'Store object is required' }, { status: 400, headers: NO_CACHE_HEADERS });
         }
 
         const cleanSlug = (store.username || store.slug || store.id || '').toLowerCase().trim().replace(/^store_/, '');
@@ -72,9 +82,9 @@ export async function POST(req) {
             isSupabase: isSupabaseConfigured(),
             storeId,
             slug: cleanSlug
-        });
+        }, { headers: NO_CACHE_HEADERS });
     } catch (e) {
-        return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+        return NextResponse.json({ success: false, error: e.message }, { status: 500, headers: NO_CACHE_HEADERS });
     }
 }
 
@@ -88,7 +98,7 @@ export async function DELETE(req) {
                 success: true,
                 isSupabase: isSupabaseConfigured(),
                 wiped: true
-            });
+            }, { headers: NO_CACHE_HEADERS });
         }
 
         const productId = searchParams.get('productId');
@@ -98,7 +108,7 @@ export async function DELETE(req) {
                 success: true,
                 isSupabase: isSupabaseConfigured(),
                 deletedProduct: productId
-            });
+            }, { headers: NO_CACHE_HEADERS });
         }
 
         const id = searchParams.get('id');
@@ -109,8 +119,8 @@ export async function DELETE(req) {
         return NextResponse.json({
             success: true,
             isSupabase: isSupabaseConfigured()
-        });
+        }, { headers: NO_CACHE_HEADERS });
     } catch (e) {
-        return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+        return NextResponse.json({ success: false, error: e.message }, { status: 500, headers: NO_CACHE_HEADERS });
     }
 }
