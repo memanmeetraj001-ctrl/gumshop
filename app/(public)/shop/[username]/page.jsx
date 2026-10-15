@@ -192,7 +192,26 @@ export default function StoreShop({ params }) {
 
                 {/* Product Catalog Grid */}
                 <div className="mt-8">
-                    {filteredProducts.length === 0 ? (
+                    {filteredProducts.length === 1 && storeInfo?.singleProductStore ? (
+                        <div className="max-w-xl mx-auto">
+                            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 mb-6 text-center text-xs text-emerald-800 flex items-center justify-between gap-3 shadow-xs">
+                                <span className="font-bold flex items-center gap-1.5">
+                                    <Sparkles size={14} className="text-emerald-600" />
+                                    <span>Single-Product Featured Lander Active</span>
+                                </span>
+                                <Link 
+                                    href={`/creator/${username}`}
+                                    className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition"
+                                >
+                                    View Bio Lander →
+                                </Link>
+                            </div>
+                            <ProductCard 
+                                product={filteredProducts[0]} 
+                                onOpenCart={() => setCartDrawerOpen(true)} 
+                            />
+                        </div>
+                    ) : filteredProducts.length === 0 ? (
                         <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200 shadow-sm">
                             <ShoppingBag size={40} className="mx-auto text-slate-300 mb-3" />
                             <p className="text-base font-bold text-slate-800">No products found in "{activeCategory}"</p>

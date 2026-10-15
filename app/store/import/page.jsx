@@ -93,6 +93,7 @@ export default function StoreImportPage() {
     const [destThemeColor, setDestThemeColor] = useState('#10B981');
     const [destDescription, setDestDescription] = useState('');
     const [storeArchitecture, setStoreArchitecture] = useState('multi'); // 'multi' | 'single'
+    const [importScope, setImportScope] = useState('multi'); // 'single' | 'multi'
     const [autoConvertCurrency, setAutoConvertCurrency] = useState(true);
 
     // ✨ Deep Enhancement & Usability States
@@ -210,8 +211,8 @@ export default function StoreImportPage() {
         setDestThemeColor(data.store?.themeColor || '#10B981');
         setDestDescription(data.store?.description || `Curated catalog from ${initialName}.`);
 
-        // Auto-select Single-Product Viral Lander if exactly 1 product is detected
-        if (productsWithNormalizedPrices.length === 1) {
+        // Auto-select Single-Product Viral Lander if exactly 1 product is detected or single-page scope was chosen
+        if (productsWithNormalizedPrices.length === 1 || importScope === 'single') {
             setStoreArchitecture('single');
         }
 
@@ -266,14 +267,20 @@ export default function StoreImportPage() {
         setAnalysisLog([
             'Verifying URL protocol and SSRF security policies...',
             'Establishing secure connection to public storefront...',
-            'Extracting product catalogs, variants, and high-res imagery...'
+            importScope === 'single'
+                ? 'Extracting target product and high-res imagery (Single-Page Mode)...'
+                : 'Extracting product catalog across multiple pages and categories (Multi-Page Mode)...'
         ]);
 
         try {
             const res = await fetch('/api/importer/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: targetUrl.trim() })
+                body: JSON.stringify({ 
+                    url: targetUrl.trim(),
+                    crawlScope: importScope === 'single' ? 'single_page' : 'multi_page',
+                    importScope
+                })
             });
 
             const data = await res.json();
@@ -520,6 +527,34 @@ export default function StoreImportPage() {
         });
     };
 
+    const selectAllCategories = () => {
+        if (!importData?.categories) return;
+        const all = new Set(importData.categories.map(c => 
+            typeof c === 'string' ? c : (c?.name || c?.title || 'Featured')
+        ).filter(Boolean));
+        setSelectedCategories(all);
+        toast.success(`Selected all ${all.size} categories!`);
+    };
+
+    const deselectAllCategories = () => {
+        setSelectedCategories(new Set());
+        toast.success('Deselected all categories');
+    };
+
+    const syncProductSelectionWithCategories = () => {
+        if (!importData?.products) return;
+        const matchingIds = new Set();
+        importData.products.forEach(p => {
+            const cat = editedProducts[p.id]?.category !== undefined ? editedProducts[p.id].category : p.category;
+            const cleanCat = typeof cat === 'string' ? cat : (cat?.name || 'Featured');
+            if (selectedCategories.has(cleanCat)) {
+                matchingIds.add(p.id);
+            }
+        });
+        setSelectedProductIds(matchingIds);
+        toast.success(`Synchronized products: ${matchingIds.size} of ${importData.products.length} products selected`);
+    };
+
     // Execute Import & Store Creation
     const handleExecuteImport = async () => {
         if (!rightsConfirmed) {
@@ -736,70 +771,141 @@ export default function StoreImportPage() {
                                 </button>
                             </div>
 
-                            {/* Store Architecture & Conversion Mode Selector (Available on Step 1) */}
-                            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <label className="block text-xs font-black uppercase tracking-wider text-slate-800">
-                                            Store Architecture & Optimization Mode
-                                        </label>
-                                        <p className="text-[11px] text-slate-500 mt-0.5">
-                                            Choose how your imported store and Stan Store link-in-bio will be generated
-                                        </p>
+                            {/* Import Crawl Scope & Optimization Mode Selector (Available on Step 1) */}
+                            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-4">
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <label className="block text-xs font-black uppercase tracking-wider text-slate-800">
+                                                1. Import Crawl Scope
+                                            </label>
+                                            <p className="text-[11px] text-slate-500 mt-0.5">
+                                                Choose whether to extract only the target page/product or paginate across the full store
+                                            </p>
+                                        </div>
+                                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                            {importScope === 'single' ? '📄 One Page' : '📚 Multi-Page'}
+                                        </span>
                                     </div>
-                                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                                        Selectable
-                                    </span>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setImportScope('single');
+                                                setStoreArchitecture('single');
+                                            }}
+                                            className={`p-3.5 rounded-xl border text-left transition cursor-pointer ${
+                                                importScope === 'single'
+                                                    ? 'border-emerald-500 bg-white ring-2 ring-emerald-500/20 text-slate-900 shadow-sm'
+                                                    : 'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                                                    <span>📄 Single-Page Import (One Page)</span>
+                                                </div>
+                                                {importScope === 'single' && (
+                                                    <span className="size-4 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                                                        <Check size={11} className="stroke-[3]" />
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 mt-1 leading-snug">
+                                                Extracts only the specified product URL or first page (fastest, ideal for 1-product landers or drop tests).
+                                            </p>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setImportScope('multi');
+                                                setStoreArchitecture('multi');
+                                            }}
+                                            className={`p-3.5 rounded-xl border text-left transition cursor-pointer ${
+                                                importScope === 'multi'
+                                                    ? 'border-emerald-500 bg-white ring-2 ring-emerald-500/20 text-slate-900 shadow-sm'
+                                                    : 'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                                                    <span>📚 Multi-Page Catalog Import</span>
+                                                </div>
+                                                {importScope === 'multi' && (
+                                                    <span className="size-4 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                                                        <Check size={11} className="stroke-[3]" />
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 mt-1 leading-snug">
+                                                Deep crawls across multiple pages (page 1, 2, 3...) to extract the full catalog across all collections.
+                                            </p>
+                                        </button>
+                                    </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => setStoreArchitecture('single')}
-                                        className={`p-4 rounded-xl border text-left transition ${
-                                            storeArchitecture === 'single'
-                                                ? 'border-emerald-500 bg-white ring-2 ring-emerald-500/20 text-slate-900 shadow-sm'
-                                                : 'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300'
-                                        }`}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                                                <span>🎯 Single-Product Store</span>
-                                            </div>
-                                            {storeArchitecture === 'single' && (
-                                                <span className="size-4 rounded-full bg-emerald-500 text-white flex items-center justify-center">
-                                                    <Check size={11} className="stroke-[3]" />
-                                                </span>
-                                            )}
+                                <div className="space-y-2 pt-2 border-t border-slate-200/80">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <label className="block text-xs font-black uppercase tracking-wider text-slate-800">
+                                                2. Store Architecture Mode
+                                            </label>
+                                            <p className="text-[11px] text-slate-500 mt-0.5">
+                                                Choose how your destination storefront will be presented to customers
+                                            </p>
                                         </div>
-                                        <p className="text-[11px] text-slate-500 mt-1.5 leading-snug">
-                                            Dedicated high-converting Stan Store hero lander with 1, 2, and 3 multi-pack bundles and instant direct checkout.
-                                        </p>
-                                    </button>
+                                    </div>
 
-                                    <button
-                                        type="button"
-                                        onClick={() => setStoreArchitecture('multi')}
-                                        className={`p-4 rounded-xl border text-left transition ${
-                                            storeArchitecture === 'multi'
-                                                ? 'border-emerald-500 bg-white ring-2 ring-emerald-500/20 text-slate-900 shadow-sm'
-                                                : 'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300'
-                                        }`}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                                                <span>🏬 Multi-Product Catalog</span>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setStoreArchitecture('single')}
+                                            className={`p-3.5 rounded-xl border text-left transition cursor-pointer ${
+                                                storeArchitecture === 'single'
+                                                    ? 'border-emerald-500 bg-white ring-2 ring-emerald-500/20 text-slate-900 shadow-sm'
+                                                    : 'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                                                    <span>🎯 One-Page Store (Single Product Lander)</span>
+                                                </div>
+                                                {storeArchitecture === 'single' && (
+                                                    <span className="size-4 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                                                        <Check size={11} className="stroke-[3]" />
+                                                    </span>
+                                                )}
                                             </div>
-                                            {storeArchitecture === 'multi' && (
-                                                <span className="size-4 rounded-full bg-emerald-500 text-white flex items-center justify-center">
-                                                    <Check size={11} className="stroke-[3]" />
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p className="text-[11px] text-slate-500 mt-1.5 leading-snug">
-                                            Standard browsable catalog collection with category filters, product search grid, and shopping cart.
-                                        </p>
-                                    </button>
+                                            <p className="text-[11px] text-slate-500 mt-1 leading-snug">
+                                                Dedicated hero lander with 1, 2, and 3-pack volume bundles and instant direct checkout.
+                                            </p>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setStoreArchitecture('multi')}
+                                            className={`p-3.5 rounded-xl border text-left transition cursor-pointer ${
+                                                storeArchitecture === 'multi'
+                                                    ? 'border-emerald-500 bg-white ring-2 ring-emerald-500/20 text-slate-900 shadow-sm'
+                                                    : 'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                                                    <span>🏬 Multi-Product Catalog</span>
+                                                </div>
+                                                {storeArchitecture === 'multi' && (
+                                                    <span className="size-4 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                                                        <Check size={11} className="stroke-[3]" />
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 mt-1 leading-snug">
+                                                Standard browsable catalog collection with category filters, product search grid, and shopping cart.
+                                            </p>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Currency Auto-Conversion Checkbox */}
@@ -839,6 +945,7 @@ export default function StoreImportPage() {
                                                     const val = e.target.value;
                                                     setTargetUrl(val);
                                                     if (val.includes('/products/') || val.includes('/product/')) {
+                                                        setImportScope('single');
                                                         setStoreArchitecture('single');
                                                     }
                                                 }}
@@ -856,21 +963,20 @@ export default function StoreImportPage() {
                                         <span className="text-xs font-semibold text-slate-500 mr-2">Try sample stores:</span>
                                         <div className="inline-flex flex-wrap gap-2 mt-1">
                                             {[
-                                                { label: 'HolidayDrop (Single Pet Costume)', url: 'https://holidaydrop.store/products/phantompaws-horseman-costume' },
-                                                { label: 'HighGear Toys', url: 'https://highgeartoys.com' },
-                                                { label: 'Gymshark Look', url: 'https://gymshark.com' },
-                                                { label: 'Allbirds Shoes', url: 'https://allbirds.com' }
+                                                { label: 'HolidayDrop (Single Pet Costume)', url: 'https://holidaydrop.store/products/phantompaws-horseman-costume', scope: 'single' },
+                                                { label: 'HighGear Toys', url: 'https://highgeartoys.com', scope: 'multi' },
+                                                { label: 'Gymshark Look', url: 'https://gymshark.com', scope: 'multi' },
+                                                { label: 'Allbirds Shoes', url: 'https://allbirds.com', scope: 'multi' }
                                             ].map(sample => (
                                                 <button
                                                     key={sample.label}
                                                     type="button"
                                                     onClick={() => {
                                                         setTargetUrl(sample.url);
-                                                        if (sample.url.includes('/products/')) {
-                                                            setStoreArchitecture('single');
-                                                        }
+                                                        setImportScope(sample.scope);
+                                                        setStoreArchitecture(sample.scope);
                                                     }}
-                                                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] font-medium text-slate-700 transition"
+                                                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] font-medium text-slate-700 transition cursor-pointer"
                                                 >
                                                     {sample.label}
                                                 </button>
@@ -1643,8 +1749,40 @@ export default function StoreImportPage() {
 
                         {/* ─── TAB: CATEGORIES ─── */}
                         {activeTab === 'categories' && (
-                            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
-                                <h3 className="text-sm font-bold text-slate-900 mb-3">Select Categories to Retain</h3>
+                            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                                    <div>
+                                        <h3 className="text-sm font-bold text-slate-900">Select Categories to Retain</h3>
+                                        <p className="text-xs text-slate-500 mt-0.5">
+                                            {selectedCategories.size} of {importData.categories?.length || 0} categories selected
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <button
+                                            type="button"
+                                            onClick={selectAllCategories}
+                                            className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs border border-emerald-200 transition cursor-pointer"
+                                        >
+                                            Select All
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={deselectAllCategories}
+                                            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-200 transition cursor-pointer"
+                                        >
+                                            Deselect All
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={syncProductSelectionWithCategories}
+                                            className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 transition flex items-center gap-1.5 cursor-pointer"
+                                            title="Auto-select only products in active categories"
+                                        >
+                                            <Filter size={12} />
+                                            <span>Sync Products ({selectedProductIds.size})</span>
+                                        </button>
+                                    </div>
+                                </div>
                                 <div className="flex flex-wrap gap-2.5">
                                     {importData.categories?.map((cat, idx) => {
                                         const catName = typeof cat === 'string' ? cat : (cat?.name || cat?.title || `Category ${idx + 1}`);
@@ -1652,8 +1790,9 @@ export default function StoreImportPage() {
                                         return (
                                             <button
                                                 key={catName || idx}
+                                                type="button"
                                                 onClick={() => toggleCategorySelect(catName)}
-                                                className={`px-4 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 ${
+                                                className={`px-4 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 cursor-pointer ${
                                                     isSelected
                                                         ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-sm'
                                                         : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300'

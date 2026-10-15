@@ -10,6 +10,8 @@ export async function POST(req) {
     try {
         const body = await req.json().catch(() => ({}));
         const targetUrl = body.url || body.targetUrl || body.storeUrl;
+        const crawlScope = body.crawlScope || (body.importScope === 'single' ? 'single_page' : 'multi_page');
+        const maxPages = body.maxPages ? parseInt(body.maxPages, 10) : 5;
 
         if (!targetUrl || typeof targetUrl !== 'string') {
             return NextResponse.json({ 
@@ -18,7 +20,7 @@ export async function POST(req) {
             }, { status: 400 });
         }
 
-        const result = await analyzeStoreUrl(targetUrl);
+        const result = await analyzeStoreUrl(targetUrl, { crawlScope, maxPages });
 
         if (!result.success) {
             return NextResponse.json({ 
