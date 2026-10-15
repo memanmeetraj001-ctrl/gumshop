@@ -251,8 +251,9 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                         {/* Wishlist Button */}
                         <button
                             onClick={onOpenWishlist || (() => router.push('/shop'))}
-                            className="relative p-2.5 text-slate-600 hover:text-rose-600 hover:bg-slate-100 rounded-full transition"
+                            className="relative p-2.5 text-slate-600 hover:text-rose-600 hover:bg-slate-100 rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-rose-500 cursor-pointer"
                             title="View Wishlist"
+                            aria-label={`View Wishlist (${wishlistCount} items)`}
                         >
                             <Heart size={20} />
                             {wishlistCount > 0 && (
@@ -265,8 +266,9 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                         {/* Cart Drawer Trigger Button */}
                         <button
                             onClick={onOpenCart || (() => router.push('/cart'))}
-                            className="relative p-2.5 sm:px-4 sm:py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-full flex items-center gap-2 shadow-sm transition active:scale-98"
+                            className="relative p-2.5 sm:px-4 sm:py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-full flex items-center gap-2 shadow-sm transition active:scale-98 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
                             title="Open Cart"
+                            aria-label={`Open Cart (${cartCount} items)`}
                         >
                             <ShoppingBag size={18} />
                             <span className="hidden sm:inline text-xs font-bold">Cart</span>
@@ -281,8 +283,9 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                         {isOwner && (
                             <Link
                                 href="/dashboard"
-                                className="hidden sm:inline-flex p-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-full transition"
+                                className="hidden sm:inline-flex p-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                                 title="Store HQ / Cloner"
+                                aria-label="Open Master Fleet Dashboard"
                             >
                                 <Store size={18} />
                             </Link>
@@ -291,7 +294,8 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                         {/* Mobile Hamburger Menu */}
                         <button
                             onClick={() => setMobileMenuOpen(true)}
-                            className="p-2 text-slate-700 hover:bg-slate-100 rounded-xl md:hidden"
+                            aria-label="Open navigation menu"
+                            className="p-2 text-slate-700 hover:bg-slate-100 rounded-xl md:hidden outline-none focus-visible:ring-2 focus-visible:ring-slate-700 cursor-pointer"
                         >
                             <Menu size={22} />
                         </button>

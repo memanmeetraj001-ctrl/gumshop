@@ -963,7 +963,8 @@ export default function CreatorBioPage({ params }) {
                     <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs font-medium">
                         <button
                             onClick={() => setViewMode('phone')}
-                            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
+                            aria-label="Switch to Phone Frame view"
+                            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
                                 viewMode === 'phone' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
                             }`}
                         >
@@ -971,7 +972,8 @@ export default function CreatorBioPage({ params }) {
                         </button>
                         <button
                             onClick={() => setViewMode('full')}
-                            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
+                            aria-label="Switch to Full Width view"
+                            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
                                 viewMode === 'full' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
                             }`}
                         >
@@ -982,7 +984,8 @@ export default function CreatorBioPage({ params }) {
                     {/* Copy Bio Link */}
                     <button
                         onClick={handleCopyShareLink}
-                        className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
+                        aria-label="Copy store bio link"
+                        className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-xs cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                     >
                         {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
                         <span>{copied ? "Copied!" : "Copy Bio Link"}</span>
@@ -1533,8 +1536,9 @@ export default function CreatorBioPage({ params }) {
                                                                     <button
                                                                         key={bIdx}
                                                                         type="button"
+                                                                        aria-pressed={isSelected}
                                                                         onClick={() => setSelectedPackIndex(bIdx)}
-                                                                        className={`relative p-2.5 sm:p-3 rounded-2xl text-left transition-all cursor-pointer border-2 ${
+                                                                        className={`relative p-2.5 sm:p-3 rounded-2xl text-left transition-all cursor-pointer border-2 outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-1 ${
                                                                             isSelected 
                                                                                 ? 'border-slate-950 bg-slate-900/5 shadow-sm ring-1 ring-slate-950' 
                                                                                 : 'border-slate-200 bg-white hover:border-slate-300'
@@ -1636,7 +1640,7 @@ export default function CreatorBioPage({ params }) {
                                                         <div className="space-y-2">
                                                             <button
                                                                 onClick={() => handleInstantBuy(heroItem, activeBundle, couponDiscountVal, stanAppliedCoupon?.code)}
-                                                                className="w-full py-3.5 px-6 rounded-2xl font-black text-base tracking-wider shadow-lg transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer hover:opacity-95 uppercase"
+                                                                className="w-full py-3.5 px-6 rounded-2xl font-black text-base tracking-wider shadow-lg transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer hover:opacity-95 uppercase outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
                                                                 style={{ 
                                                                     backgroundColor: resolveCtaTheme(creator.themeColor || '#f97316', false).backgroundColor, 
                                                                     color: resolveCtaTheme(creator.themeColor || '#f97316', false).color 
@@ -1648,7 +1652,7 @@ export default function CreatorBioPage({ params }) {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleAddToCart(heroItem, activeBundle)}
-                                                                className="w-full py-2.5 px-6 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-extrabold text-xs tracking-wider transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer border border-slate-200"
+                                                                className="w-full py-2.5 px-6 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-extrabold text-xs tracking-wider transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer border border-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
                                                             >
                                                                 <ShoppingBag size={15} className="text-slate-700" />
                                                                 <span>ADD TO CART</span>

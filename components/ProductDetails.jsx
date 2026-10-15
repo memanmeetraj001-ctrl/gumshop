@@ -443,8 +443,9 @@ const ProductDetails = ({ product, storeInfo }) => {
                                         <button
                                             key={idx}
                                             type="button"
+                                            aria-pressed={selectedColor?.name === col.name}
                                             onClick={() => setSelectedColor(col)}
-                                            className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 transition text-xs font-semibold ${
+                                            className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 transition text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer ${
                                                 selectedColor?.name === col.name
                                                     ? 'border-emerald-600 bg-emerald-50/60 text-slate-900 shadow-xs'
                                                     : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
@@ -477,8 +478,9 @@ const ProductDetails = ({ product, storeInfo }) => {
                                         <button
                                             key={idx}
                                             type="button"
+                                            aria-pressed={selectedSize?.name === sz.name}
                                             onClick={() => setSelectedSize(sz)}
-                                            className={`p-3 rounded-xl border-2 text-left transition flex flex-col justify-between ${
+                                            className={`p-3 rounded-xl border-2 text-left transition flex flex-col justify-between outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer ${
                                                 selectedSize?.name === sz.name
                                                     ? 'border-emerald-600 bg-emerald-50/60 shadow-xs'
                                                     : 'border-slate-200 bg-white hover:border-slate-300'
@@ -504,8 +506,17 @@ const ProductDetails = ({ product, storeInfo }) => {
                             {quantityTiers.map((tier) => (
                                 <div
                                     key={tier.qty}
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-pressed={selectedQuantity === tier.qty}
                                     onClick={() => setSelectedQuantity(tier.qty)}
-                                    className={`p-3.5 rounded-2xl border-2 cursor-pointer flex items-center justify-between transition-all ${
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            setSelectedQuantity(tier.qty);
+                                        }
+                                    }}
+                                    className={`p-3.5 rounded-2xl border-2 cursor-pointer flex items-center justify-between transition-all outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 select-none ${
                                         selectedQuantity === tier.qty
                                             ? 'border-emerald-600 bg-emerald-50/50 shadow-sm'
                                             : 'border-slate-200 hover:border-slate-300 bg-white'

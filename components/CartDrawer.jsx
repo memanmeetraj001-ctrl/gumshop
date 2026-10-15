@@ -278,7 +278,8 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                         </div>
                         <button 
                             onClick={onClose}
-                            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                            aria-label="Close cart drawer"
+                            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition outline-none focus-visible:ring-2 focus-visible:ring-slate-400 cursor-pointer"
                         >
                             <X size={20} />
                         </button>
@@ -352,8 +353,9 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                                             </div>
                                             <button 
                                                 onClick={() => dispatch(deleteItemFromCart({ productId: item.id, itemKey: item.id }))}
-                                                className="text-slate-400 hover:text-rose-600 p-1 transition"
+                                                className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg transition outline-none focus-visible:ring-2 focus-visible:ring-rose-500 cursor-pointer"
                                                 title="Remove"
+                                                aria-label={`Remove ${item.name} from cart`}
                                             >
                                                 <Trash2 size={14} />
                                             </button>
@@ -362,19 +364,21 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                                             <span className="text-sm font-extrabold text-slate-900">
                                                 {currency}{(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}
                                             </span>
-                                            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
+                                            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5 shadow-2xs">
                                                 <button
                                                     onClick={() => dispatch(removeFromCart({ productId: item.id, itemKey: item.id }))}
-                                                    className="w-7 h-7 rounded flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 active:scale-95 transition cursor-pointer"
+                                                    className="w-7 h-7 rounded flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 active:scale-95 transition outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
                                                     title="Decrease quantity"
+                                                    aria-label={`Decrease quantity of ${item.name}`}
                                                 >
                                                     <Minus size={13} />
                                                 </button>
-                                                <span className="text-xs font-bold px-1.5 min-w-5 text-center">{item.quantity}</span>
+                                                <span className="text-xs font-bold px-1.5 min-w-5 text-center select-none">{item.quantity}</span>
                                                 <button
                                                     onClick={() => dispatch(addToCart({ productId: item.id, itemKey: item.id, product: item }))}
-                                                    className="w-7 h-7 rounded flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 active:scale-95 transition cursor-pointer"
+                                                    className="w-7 h-7 rounded flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 active:scale-95 transition outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
                                                     title="Increase quantity"
+                                                    aria-label={`Increase quantity of ${item.name}`}
                                                 >
                                                     <Plus size={13} />
                                                 </button>
@@ -465,12 +469,14 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                                             placeholder="Promo code (try SAVE20)"
                                             value={couponCode}
                                             onChange={(e) => setCouponCode(e.target.value)}
-                                            className="w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-emerald-500 transition"
+                                            aria-label="Promo code input"
+                                            className="w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 transition"
                                         />
                                     </div>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+                                        aria-label="Apply promo code"
+                                        className="px-4 py-2 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold text-xs rounded-xl transition outline-none focus-visible:ring-2 focus-visible:ring-slate-900 cursor-pointer"
                                     >
                                         Apply
                                     </button>
@@ -518,7 +524,7 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                                 <Link
                                     href="/cart"
                                     onClick={onClose}
-                                    className="w-full py-2.5 text-center text-xs font-bold text-slate-500 hover:text-slate-800 block transition"
+                                    className="w-full py-2.5 text-center text-xs font-bold text-slate-500 hover:text-slate-800 block transition rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                                 >
                                     View Full Cart Details →
                                 </Link>

@@ -128,10 +128,11 @@ export default function ProductCard({ product, onOpenCart }) {
                     )}
 
                     {/* Floating Action Buttons */}
-                    <div className="absolute top-3 right-3 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <div className="absolute top-3 right-3 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200">
                         <button
                             onClick={handleWishlist}
-                            className={`size-8 rounded-full flex items-center justify-center shadow-md backdrop-blur-md transition ${
+                            aria-label={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+                            className={`size-8 rounded-full flex items-center justify-center shadow-md backdrop-blur-md transition outline-none focus-visible:ring-2 focus-visible:ring-rose-500 cursor-pointer ${
                                 isWishlisted ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'bg-white/90 text-slate-500 hover:text-rose-600 hover:bg-white'
                             }`}
                             title="Add to Wishlist"
@@ -144,18 +145,20 @@ export default function ProductCard({ product, onOpenCart }) {
                                 e.stopPropagation();
                                 setShowQuickView(true);
                             }}
-                            className="size-8 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-slate-900 flex items-center justify-center shadow-md backdrop-blur-md transition"
+                            aria-label="Quick View"
+                            className="size-8 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-slate-900 flex items-center justify-center shadow-md backdrop-blur-md transition outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
                             title="Quick View"
                         >
                             <Eye size={14} />
                         </button>
                     </div>
 
-                    {/* Quick Add Overlay on Hover (Desktop) */}
-                    <div className="absolute inset-x-3 bottom-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 hidden sm:block">
+                    {/* Quick Add Overlay on Hover / Focus (Desktop) */}
+                    <div className="absolute inset-x-3 bottom-3 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 group-focus-within:translate-y-0 hidden sm:block">
                         <button
                             onClick={handleAddToCart}
-                            className="w-full py-2.5 px-3 bg-slate-900/90 hover:bg-slate-900 backdrop-blur-md text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-1.5 transition active:scale-98"
+                            aria-label="Add to Cart"
+                            className="w-full py-2.5 px-3 bg-slate-900/90 hover:bg-slate-900 backdrop-blur-md text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-1.5 transition active:scale-98 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
                         >
                             <ShoppingBag size={14} />
                             <span>Add to Cart</span>
@@ -195,9 +198,9 @@ export default function ProductCard({ product, onOpenCart }) {
                         </Link>
                     </div>
 
-                    {/* Pricing & Mobile Action */}
+                    {/* Pricing & Direct Actions */}
                     <div className="mt-4 pt-3 border-t border-slate-100">
-                        <div className="flex items-baseline justify-between">
+                        <div className="flex items-center justify-between">
                             <div className="flex items-baseline gap-2">
                                 <span className="text-base sm:text-lg font-black text-slate-900">
                                     {currency}{price.toFixed(2)}
@@ -208,22 +211,44 @@ export default function ProductCard({ product, onOpenCart }) {
                                     </span>
                                 )}
                             </div>
+
+                            {/* Desktop Direct Quick Actions */}
+                            <div className="hidden sm:flex items-center gap-1.5">
+                                <button
+                                    onClick={handleAddToCart}
+                                    className="size-8 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 flex items-center justify-center transition outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
+                                    title="Add to Cart"
+                                    aria-label="Add to Cart"
+                                >
+                                    <ShoppingBag size={14} />
+                                </button>
+                                <button
+                                    onClick={handleBuyNow}
+                                    className="size-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white flex items-center justify-center shadow-xs transition outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
+                                    title="Instant Buy"
+                                    aria-label="Instant Buy"
+                                >
+                                    <Zap size={14} className="fill-white" />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Mobile Buy Buttons */}
                         <div className="grid grid-cols-2 gap-1.5 mt-3 sm:hidden">
                             <button
                                 onClick={handleAddToCart}
-                                className="py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-[11px] rounded-xl flex items-center justify-center gap-1 transition"
+                                aria-label="Add to Cart"
+                                className="py-2.5 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 font-bold text-[11px] rounded-xl flex items-center justify-center gap-1 transition outline-none focus-visible:ring-2 focus-visible:ring-slate-400 cursor-pointer"
                             >
-                                <ShoppingBag size={12} />
+                                <ShoppingBag size={13} />
                                 <span>Add</span>
                             </button>
                             <button
                                 onClick={handleBuyNow}
-                                className="py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[11px] rounded-xl flex items-center justify-center gap-1 transition"
+                                aria-label="Instant Buy"
+                                className="py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-[11px] rounded-xl flex items-center justify-center gap-1 transition outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer shadow-xs shadow-emerald-600/20"
                             >
-                                <Zap size={12} className="fill-white" />
+                                <Zap size={13} className="fill-white" />
                                 <span>Buy</span>
                             </button>
                         </div>
