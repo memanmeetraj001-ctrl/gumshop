@@ -284,6 +284,35 @@ export default function CreatorBioPage({ params }) {
         }
     }, []);
 
+    // Interactive Circular Story Highlights State ('reviews' | 'unboxing' | 'deals' | 'sizing' | null)
+    const [activeStoryHighlight, setActiveStoryHighlight] = useState(null);
+
+    // Capture incoming UTM marketing tags and persist to sessionStorage for checkout attribution
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const search = window.location.search;
+            if (search) {
+                const sp = new URLSearchParams(search);
+                const source = sp.get('utm_source');
+                const medium = sp.get('utm_medium');
+                const campaign = sp.get('utm_campaign');
+                const content = sp.get('utm_content');
+                const term = sp.get('utm_term');
+                if (source || medium || campaign) {
+                    const attribution = {
+                        source: source || '',
+                        medium: medium || '',
+                        campaign: campaign || '',
+                        content: content || '',
+                        term: term || '',
+                        timestamp: new Date().toISOString()
+                    };
+                    sessionStorage.setItem('active_utm', JSON.stringify(attribution));
+                }
+            }
+        }
+    }, []);
+
     // Resolve hero product's gallery images for automatic carousel
     const heroItemForCarousel = (products && products.length > 0) ? products[0] : null;
     const heroGalleryImages = useMemo(() => {
@@ -516,6 +545,14 @@ export default function CreatorBioPage({ params }) {
             value: finalPrice,
             currency: 'USD'
         });
+
+        let activeAttribution = null;
+        if (typeof window !== 'undefined') {
+            try {
+                const rawUtm = sessionStorage.getItem('active_utm');
+                if (rawUtm) activeAttribution = JSON.parse(rawUtm);
+            } catch {}
+        }
         
         try {
             const res = await fetch('/api/gumroad/dynamic-checkout', {
@@ -524,6 +561,7 @@ export default function CreatorBioPage({ params }) {
                 body: JSON.stringify({
                     storeId: creator.id || `store_${cleanUser}`,
                     storeName: creator.name || 'Creator Store',
+                    attribution: activeAttribution,
                     items: [{
                         productId: product.id,
                         name: itemName,
@@ -577,8 +615,41 @@ export default function CreatorBioPage({ params }) {
             return;
         }
 
+        const email = freeDownloadModal.email.trim().toLowerCase();
+
+        // 1. Dispatch to dedicated leads API for 1-click marketing export
+        fetch('/api/store/leads', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                store: cleanUser,
+                email: email,
+                source: 'Digital Freebie Download',
+                leadMagnetTitle: freeDownloadModal.product?.name || 'Digital Resource'
+            })
+        }).catch(() => {});
+
+        // 2. Dispatch to server-side orders store
+        const leadName = email.split('@')[0];
+        fetch('/api/store/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                storeId: storeInfo?.id || `store_${cleanUser}`,
+                customer: { name: leadName, email },
+                items: [{
+                    name: freeDownloadModal.product?.name || 'Digital Freebie',
+                    price: 0,
+                    quantity: 1
+                }],
+                total: 0,
+                source: 'Digital Freebie Download',
+                status: 'lead'
+            })
+        }).catch(() => {});
+
         setFreeDownloadModal(prev => ({ ...prev, submitted: true }));
-        toast.success(`Download link sent to ${freeDownloadModal.email}! 🎉`);
+        toast.success(`Download link sent to ${email}! 🎉`);
         setTimeout(() => {
             setFreeDownloadModal({ isOpen: false, product: null, email: '', submitted: false });
         }, 2200);
@@ -603,7 +674,19 @@ export default function CreatorBioPage({ params }) {
             lastOrderDate: new Date().toISOString()
         };
 
-        // 1. Dispatch to server-side order/lead store
+        // 1. Dispatch to dedicated leads API for 1-click CSV export
+        fetch('/api/store/leads', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                store: cleanUser,
+                email: email,
+                source: 'Stan Bio Lead Magnet',
+                leadMagnetTitle: creator.leadMagnet?.title || 'Complimentary Guide'
+            })
+        }).catch(() => {});
+
+        // 2. Dispatch to server-side order/lead store
         fetch('/api/store/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -624,7 +707,7 @@ export default function CreatorBioPage({ params }) {
             })
         }).catch(() => {});
 
-        // 2. Persist in local storage for instant offline resilience
+        // 3. Persist in local storage for instant offline resilience
         try {
             const crmKey = `gumshop_customers_${cleanUser}`;
             const existing = JSON.parse(localStorage.getItem(crmKey) || '[]');
@@ -934,6 +1017,39 @@ export default function CreatorBioPage({ params }) {
                                             </svg>
                                         </a>
                                     )}
+                                </div>
+
+                                {/* ─── Circular Story Highlights (Instagram / TikTok Style) ─── */}
+                                <div className="mt-4 w-full">
+                                    <div className="flex items-center justify-between max-w-xs mx-auto gap-2 py-1">
+                                        {[
+                                            { id: 'reviews', label: 'Reviews', badge: '4.9★', ring: 'from-amber-400 via-orange-500 to-amber-600', icon: Star },
+                                            { id: 'unboxing', label: 'In The Box', badge: 'Preview', ring: 'from-blue-500 via-indigo-500 to-purple-600', icon: Package },
+                                            { id: 'deals', label: 'Deals', badge: 'Coupons', ring: 'from-emerald-400 via-teal-500 to-emerald-600', icon: Ticket },
+                                            { id: 'sizing', label: 'Fit Guide', badge: 'Guarantee', ring: 'from-rose-400 via-pink-500 to-purple-600', icon: ShieldCheck }
+                                        ].map((story) => {
+                                            const IconComp = story.icon;
+                                            return (
+                                                <button
+                                                    key={story.id}
+                                                    type="button"
+                                                    onClick={() => setActiveStoryHighlight(story.id)}
+                                                    className="flex flex-col items-center gap-1 group cursor-pointer focus:outline-none shrink-0"
+                                                >
+                                                    <div className={`p-0.5 rounded-full bg-gradient-to-tr ${story.ring} shadow-xs transition-transform duration-200 group-hover:scale-105 group-active:scale-95`}>
+                                                        <div className="size-12 sm:size-13 rounded-full bg-white flex items-center justify-center p-0.5">
+                                                            <div className="w-full h-full rounded-full bg-slate-50 flex items-center justify-center text-slate-800 group-hover:bg-slate-100 transition">
+                                                                <IconComp size={18} className="text-slate-800" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-slate-700 tracking-tight text-center">
+                                                        {story.label}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
 
                                 {/* ─── Custom CTA Link Buttons (Stan Store Killer Feature) ─── */}
@@ -1717,8 +1833,229 @@ export default function CreatorBioPage({ params }) {
                 </div>
             )}
 
+            {/* Story Highlights Micro-Modal Viewer */}
+            {activeStoryHighlight && (
+                <div 
+                    className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+                    onClick={() => setActiveStoryHighlight(null)}
+                >
+                    <div 
+                        className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 relative animate-in zoom-in-95"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Story Progress Simulation Bar */}
+                        <div className="w-full bg-slate-100 rounded-full h-1.5 mb-4 overflow-hidden">
+                            <div className="bg-emerald-500 h-1.5 rounded-full w-full animate-pulse" />
+                        </div>
+
+                        {/* Close button */}
+                        <button
+                            onClick={() => setActiveStoryHighlight(null)}
+                            className="absolute top-4 right-4 size-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer"
+                        >
+                            <X size={16} />
+                        </button>
+
+                        {/* Story 1: Reviews */}
+                        {activeStoryHighlight === 'reviews' && (
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="size-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                                        <Star size={20} className="fill-amber-400 text-amber-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-extrabold text-slate-950 text-base">Verified Buyer Love</h3>
+                                        <p className="text-[11px] font-bold text-amber-700">⭐ 4.9 / 5.0 (1,480+ Reviews)</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1 my-3 text-xs">
+                                    <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                        <div className="flex items-center justify-between font-bold text-[11px] text-slate-900 mb-1">
+                                            <span>Sarah T.</span>
+                                            <span className="text-emerald-700">Verified Buyer ✓</span>
+                                        </div>
+                                        <p className="text-slate-600 text-[11px] leading-relaxed">
+                                            "Our golden retriever stole the show! It took 20 seconds to buckle on and stayed completely secure all night."
+                                        </p>
+                                    </div>
+                                    <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                        <div className="flex items-center justify-between font-bold text-[11px] text-slate-900 mb-1">
+                                            <span>Marcus K.</span>
+                                            <span className="text-emerald-700">Verified Buyer ✓</span>
+                                        </div>
+                                        <p className="text-slate-600 text-[11px] leading-relaxed">
+                                            "The pumpkin head is lightweight so my pup didn't mind it at all. Arrived fast in 2 days. 10/10!"
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setActiveStoryHighlight(null)}
+                                    className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition cursor-pointer"
+                                >
+                                    Browse Costumes & Deals →
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Story 2: In The Box */}
+                        {activeStoryHighlight === 'unboxing' && (
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="size-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                                        <Package size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-extrabold text-slate-950 text-base">What Arrives In Your Box</h3>
+                                        <p className="text-[11px] font-bold text-blue-700">Complete Deluxe Set</p>
+                                    </div>
+                                </div>
+                                {heroGalleryImages.length > 0 && (
+                                    <img 
+                                        src={getSafeImageUrl(heroGalleryImages[0])}
+                                        alt="Costume Package Preview"
+                                        className="w-full h-36 object-cover rounded-2xl mb-3 border border-slate-200"
+                                        onError={(e) => handleImageError(e, 'product')}
+                                    />
+                                )}
+                                <ul className="text-xs text-slate-700 space-y-1.5 mb-4 font-medium">
+                                    <li className="flex items-center gap-2">
+                                        <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                                        <span>1x Hand-Crafted Headless Horseman Costume</span>
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                                        <span>1x Lightweight Pumpkin Head with safety mount</span>
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                                        <span>1x Ergonomic Breathable Cape & Harness</span>
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                                        <span>1x Quick Sizing & Washing Care Guide</span>
+                                    </li>
+                                </ul>
+                                <button
+                                    onClick={() => setActiveStoryHighlight(null)}
+                                    className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition cursor-pointer"
+                                >
+                                    Select Your Pack & Order →
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Story 3: Deals */}
+                        {activeStoryHighlight === 'deals' && (
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="size-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                        <Ticket size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-extrabold text-slate-950 text-base">Today's Creator Deals</h3>
+                                        <p className="text-[11px] font-bold text-emerald-700">Tap Any Coupon To Auto-Apply</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-2 my-3">
+                                    {[
+                                        { code: 'FLASH15', discount: 15, label: '15% OFF Entire Order', desc: 'Instant bio follower discount' },
+                                        { code: 'SAVE20', discount: 20, label: '20% OFF 2+ Costumes', desc: 'Best value for multi-pet packs' },
+                                        { code: 'WELCOME10', discount: 10, label: '10% OFF Welcome Bonus', desc: 'New customer storewide promo' }
+                                    ].map(c => (
+                                        <div key={c.code} className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                                            <div>
+                                                <p className="font-mono font-black text-xs text-emerald-800">{c.code}</p>
+                                                <p className="text-[11px] font-bold text-slate-800">{c.label}</p>
+                                                <p className="text-[10px] text-slate-400">{c.desc}</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setStanAppliedCoupon({
+                                                        code: c.code,
+                                                        type: 'percentage',
+                                                        discount: c.discount,
+                                                        label: `${c.discount}% OFF`
+                                                    });
+                                                    if (typeof window !== 'undefined') {
+                                                        sessionStorage.setItem('active_coupon', c.code);
+                                                    }
+                                                    toast.success(`Coupon "${c.code}" applied! ${c.discount}% OFF activated 🎉`);
+                                                    setActiveStoryHighlight(null);
+                                                }}
+                                                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shrink-0 transition cursor-pointer"
+                                            >
+                                                Apply
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Story 4: Sizing */}
+                        {activeStoryHighlight === 'sizing' && (
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="size-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                                        <ShieldCheck size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-extrabold text-slate-950 text-base">Perfect Fit Guarantee</h3>
+                                        <p className="text-[11px] font-bold text-rose-700">100% Free Size Exchanges</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-2 text-xs my-3">
+                                    <div className="grid grid-cols-3 gap-1.5 p-2 rounded-xl bg-slate-100 font-bold text-[10px] uppercase text-slate-600">
+                                        <span>Size</span>
+                                        <span>Chest</span>
+                                        <span>Pet Weight</span>
+                                    </div>
+                                    {[
+                                        { size: 'Small (S)', chest: '12 - 16"', weight: 'Up to 15 lbs' },
+                                        { size: 'Medium (M)', chest: '16 - 22"', weight: '15 - 35 lbs' },
+                                        { size: 'Large (L)', chest: '22 - 28"', weight: '35 - 65 lbs' },
+                                        { size: 'X-Large (XL)', chest: '28 - 36"', weight: '65+ lbs' }
+                                    ].map(r => (
+                                        <div key={r.size} className="grid grid-cols-3 gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-100 text-[11px]">
+                                            <span className="font-bold text-slate-900">{r.size}</span>
+                                            <span className="text-slate-600">{r.chest}</span>
+                                            <span className="text-slate-600">{r.weight}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="text-[11px] text-slate-500 mb-3 text-center">
+                                    Between sizes? We recommend choosing the larger size for maximum pet comfort.
+                                </p>
+                                <button
+                                    onClick={() => setActiveStoryHighlight(null)}
+                                    className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition cursor-pointer"
+                                >
+                                    Got It — Ready To Order →
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Exit Intent Discount Recovery Modal */}
-            <ExitIntentModal onApplyCoupon={(code) => toast.success(`Coupon ${code} activated for checkout!`)} />
+            <ExitIntentModal 
+                onApplyCoupon={(code, discount) => {
+                    const discNum = discount || 15;
+                    const couponCode = code || 'FLASH15';
+                    setStanAppliedCoupon({
+                        code: couponCode,
+                        type: 'percentage',
+                        discount: discNum,
+                        label: `${discNum}% OFF`
+                    });
+                    if (typeof window !== 'undefined') {
+                        sessionStorage.setItem('active_coupon', couponCode);
+                    }
+                    toast.success(`Coupon "${couponCode}" applied! ${discNum}% OFF activated 🎉`);
+                }} 
+            />
 
             {/* AI Shopping Assistant (generative_ui) */}
             <AiShoppingAssistant 

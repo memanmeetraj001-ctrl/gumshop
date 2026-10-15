@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart, removeFromCart, deleteItemFromCart } from '@/lib/features/cart/cartSlice';
-import { X, Trash2, ShoppingBag, Plus, Minus, Zap, ShieldCheck, Tag } from 'lucide-react';
+import { X, Trash2, ShoppingBag, Plus, Minus, Zap, ShieldCheck, Tag, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { getActiveStoreSync } from '@/lib/activeStore';
@@ -32,8 +32,6 @@ export default function CartDrawer({ isOpen, onClose }) {
             const baseId = key.includes('__') ? key.split('__')[0] : key;
             let product = cartProducts[key] || cartProducts[baseId] || Object.values(cartProducts).find(p => p?.id === key || p?.id === baseId) || (products || []).find(p => p.id === key || p.id === baseId);
 
-
-
             const price = parseFloat(product?.price !== undefined && product?.price !== null ? product.price : 0);
             const name = product?.name || 'Featured Item';
             const image = product?.image || product?.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200';
@@ -52,12 +50,32 @@ export default function CartDrawer({ isOpen, onClose }) {
         return { items: resolvedItems, subtotal: calculatedSubtotal };
     }, [isOpen, cartItems, cartProducts, products]);
 
+    // Frequently Bought Together Companion Recommendation
+    const crossSellProduct = useMemo(() => {
+        if (!items.length || !products?.length) return null;
+        const inCartIds = new Set(items.map(i => i.id.split('__')[0]));
+        return products.find(p => !inCartIds.has(p.id) && parseFloat(p.price || 0) > 0) || null;
+    }, [items, products]);
+
     if (!isOpen) return null;
 
-    const freeShippingThreshold = 50;
-    const shippingFee = subtotal >= freeShippingThreshold || subtotal === 0 ? 0 : 4.99;
-    const amountNeededForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
-    const freeShippingProgress = Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100));
+    // Multi-Tier Milestones: $50 (Free Standard Shipping), $75 (Free Mystery Gift), $100 (Priority VIP Dispatch)
+    const maxTierThreshold = 100;
+    const overallTierProgress = Math.min(100, Math.round((subtotal / maxTierThreshold) * 100));
+    const shippingFee = subtotal >= 50 || subtotal === 0 ? 0 : 4.99;
+
+    let tierMessage = '';
+    if (subtotal === 0) {
+        tierMessage = 'Add items to unlock FREE Worldwide Shipping!';
+    } else if (subtotal < 50) {
+        tierMessage = `Add $${(50 - subtotal).toFixed(2)} more for FREE Worldwide Shipping!`;
+    } else if (subtotal < 75) {
+        tierMessage = `🎉 FREE Shipping unlocked! Add $${(75 - subtotal).toFixed(2)} for a Mystery Gift 🎁`;
+    } else if (subtotal < 100) {
+        tierMessage = `🎁 Mystery Gift unlocked! Add $${(100 - subtotal).toFixed(2)} for Priority VIP Dispatch ⚡`;
+    } else {
+        tierMessage = `🌟 Max VIP Perks Unlocked: FREE Shipping + Mystery Gift + VIP Dispatch!`;
+    }
 
     const finalTotal = Math.max(0, subtotal + shippingFee - appliedDiscount);
 
@@ -110,6 +128,14 @@ export default function CartDrawer({ isOpen, onClose }) {
             const itemGumroadUrl = items.find(i => i.gumroadUrl)?.gumroadUrl || '';
             const effectiveGumroadUrl = activeStore?.gumroadProductUrl || activeStore?.gumroadUrl || storeScopedUrl || persistentUrl || itemGumroadUrl || '';
 
+            let activeAttribution = null;
+            if (typeof window !== 'undefined') {
+                try {
+                    const rawUtm = sessionStorage.getItem('active_utm');
+                    if (rawUtm) activeAttribution = JSON.parse(rawUtm);
+                } catch {}
+            }
+
             const res = await fetch('/api/gumroad/dynamic-checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -118,6 +144,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                     storeName: activeStore?.name || 'GumShop Super Store',
                     gumroadProductUrl: effectiveGumroadUrl,
                     accessToken: activeStore?.gumroadToken || persistentToken || '',
+                    attribution: activeAttribution,
                     items: items.map(i => ({
                         productId: i.id,
                         name: i.name,
@@ -179,25 +206,30 @@ export default function CartDrawer({ isOpen, onClose }) {
                         </button>
                     </div>
 
-                    {/* Free Shipping Progress Bar */}
-                    <div className="px-6 py-3 bg-emerald-50/70 border-b border-emerald-100">
+                    {/* Tiered Milestone Progress Bar */}
+                    <div className="px-6 py-3 bg-gradient-to-b from-emerald-50/80 to-teal-50/40 border-b border-emerald-100/80">
                         <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
-                            {amountNeededForFreeShipping > 0 ? (
-                                <span className="text-slate-700">
-                                    Add <strong className="text-emerald-700 font-extrabold">${amountNeededForFreeShipping.toFixed(2)}</strong> more for <strong className="text-emerald-700">FREE Worldwide Shipping!</strong>
-                                </span>
-                            ) : (
-                                <span className="text-emerald-800 font-bold flex items-center gap-1">
-                                    🎉 You unlocked FREE Worldwide Shipping!
-                                </span>
-                            )}
-                            <span className="text-emerald-700 font-bold">{freeShippingProgress}%</span>
+                            <span className="text-slate-800 font-bold truncate pr-2">
+                                {tierMessage}
+                            </span>
+                            <span className="text-emerald-700 font-extrabold shrink-0">{overallTierProgress}%</span>
                         </div>
-                        <div className="w-full bg-emerald-200/60 rounded-full h-2 overflow-hidden">
+                        <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
                             <div 
-                                className="bg-emerald-600 h-2 rounded-full transition-all duration-500"
-                                style={{ width: `${freeShippingProgress}%` }}
+                                className="bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 h-2 rounded-full transition-all duration-500"
+                                style={{ width: `${overallTierProgress}%` }}
                             />
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] font-bold mt-1.5 text-slate-400">
+                            <span className={subtotal >= 50 ? 'text-emerald-700 font-black' : ''}>
+                                {subtotal >= 50 ? '✓ $50 Free Ship' : '$50 Free Ship'}
+                            </span>
+                            <span className={subtotal >= 75 ? 'text-emerald-700 font-black' : ''}>
+                                {subtotal >= 75 ? '✓ $75 Free Gift' : '$75 Free Gift'}
+                            </span>
+                            <span className={subtotal >= 100 ? 'text-emerald-700 font-black' : ''}>
+                                {subtotal >= 100 ? '✓ $100 VIP' : '$100 VIP'}
+                            </span>
                         </div>
                     </div>
 
@@ -266,6 +298,56 @@ export default function CartDrawer({ isOpen, onClose }) {
                                     </div>
                                 </div>
                             ))
+                        )}
+
+                        {/* Frequently Bought Together Companion Recommendation Card */}
+                        {items.length > 0 && crossSellProduct && (
+                            <div className="mt-4 p-3 rounded-2xl bg-gradient-to-br from-amber-50/90 to-emerald-50/60 border border-amber-200/80 shadow-2xs">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900 flex items-center gap-1">
+                                        <Sparkles size={12} className="text-amber-500" /> Frequently Bought Together
+                                    </span>
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-600 text-white shadow-2xs">
+                                        15% OFF BUNDLE
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <img 
+                                        src={getSafeImageUrl(crossSellProduct.image || crossSellProduct.images?.[0])}
+                                        alt={crossSellProduct.name || 'Companion item'}
+                                        loading="lazy"
+                                        decoding="async"
+                                        className="w-12 h-12 rounded-xl object-cover bg-white border border-slate-200 shrink-0"
+                                        onError={(e) => handleImageError(e, 'product')}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <h5 className="text-xs font-bold text-slate-900 truncate">{crossSellProduct.name}</h5>
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                            <span className="text-xs font-extrabold text-emerald-700">
+                                                ${(parseFloat(crossSellProduct.price || 0) * 0.85).toFixed(2)}
+                                            </span>
+                                            <span className="text-[11px] text-slate-400 line-through">
+                                                ${parseFloat(crossSellProduct.price || 0).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const discountedPrice = Number((parseFloat(crossSellProduct.price || 0) * 0.85).toFixed(2));
+                                            dispatch(addToCart({
+                                                productId: crossSellProduct.id,
+                                                itemKey: crossSellProduct.id,
+                                                product: { ...crossSellProduct, price: discountedPrice }
+                                            }));
+                                            toast.success(`Added ${crossSellProduct.name} with 15% OFF bundle savings! 🎉`);
+                                        }}
+                                        className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold text-xs shrink-0 shadow-xs transition cursor-pointer"
+                                    >
+                                        + Add
+                                    </button>
+                                </div>
+                            </div>
                         )}
                     </div>
 

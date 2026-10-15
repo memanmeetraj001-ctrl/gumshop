@@ -568,6 +568,13 @@ export default function StoreOrders() {
                                                     <Calendar size={11} />
                                                     <span>{formattedDate}</span>
                                                 </p>
+                                                {(order.attribution?.source || (order.source && order.source !== 'Direct Storefront')) && (
+                                                    <div className="mt-1">
+                                                        <span className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200/80 rounded-md px-1.5 py-0.5 inline-flex items-center gap-1 truncate max-w-36">
+                                                            🔗 {order.attribution?.source || order.source}
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </td>
 
                                             {/* Customer & Address */}
@@ -816,6 +823,37 @@ export default function StoreOrders() {
                                     </span>
                                 </div>
                             </div>
+
+                            {/* Campaign Attribution info if available */}
+                            {(viewingOrder.attribution || viewingOrder.source) && (
+                                <div className="p-3.5 rounded-2xl bg-purple-50/80 border border-purple-200/80 text-xs">
+                                    <p className="font-bold text-purple-900 flex items-center gap-1.5 uppercase text-[10px] tracking-wider mb-1.5">
+                                        <span>🔗 Traffic & Campaign Attribution</span>
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-2 text-purple-950 font-medium text-[11px]">
+                                        <div>
+                                            <span className="text-purple-600 block text-[10px]">Source</span>
+                                            <span className="font-bold">{viewingOrder.attribution?.source || viewingOrder.source || 'Direct'}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-purple-600 block text-[10px]">Medium</span>
+                                            <span className="font-bold">{viewingOrder.attribution?.medium || 'Standard / Direct'}</span>
+                                        </div>
+                                        {viewingOrder.attribution?.campaign && (
+                                            <div>
+                                                <span className="text-purple-600 block text-[10px]">Campaign</span>
+                                                <span className="font-bold">{viewingOrder.attribution.campaign}</span>
+                                            </div>
+                                        )}
+                                        {viewingOrder.attribution?.content && (
+                                            <div>
+                                                <span className="text-purple-600 block text-[10px]">Content / Ad</span>
+                                                <span className="font-bold">{viewingOrder.attribution.content}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Items & Total */}
                             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">

@@ -222,6 +222,8 @@ export async function POST(req) {
                     shippingAddress: customer.address || 'Provided during Gumroad checkout'
                 },
                 couponCode: couponCode ? String(couponCode).toUpperCase() : null,
+                attribution: body.attribution || body.utm || null,
+                source: body.attribution?.source ? `${body.attribution.source}${body.attribution.medium ? ` / ${body.attribution.medium}` : ''}` : (body.source || 'Direct Storefront'),
                 checkoutInitiatedAt: new Date().toISOString()
             };
 
