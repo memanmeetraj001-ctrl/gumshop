@@ -41,22 +41,7 @@ export default function Cart() {
             // 1. Check cartProducts stored during addToCart
             let product = cartProducts[key] || (products || []).find(p => p.id === key);
 
-            // 2. Check localStorage cached stores (for newly cloned or merchant products)
-            if (!product && typeof window !== 'undefined') {
-                for (let i = 0; i < localStorage.length; i++) {
-                    const lsKey = localStorage.key(i);
-                    if (lsKey && (lsKey.startsWith('cloned_store_') || lsKey.startsWith('store_'))) {
-                        try {
-                            const storeData = JSON.parse(localStorage.getItem(lsKey) || '{}');
-                            const match = (storeData.products || []).find(p => p.id === key || p.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-') === key);
-                            if (match) {
-                                product = match;
-                                break;
-                            }
-                        } catch (e) {}
-                    }
-                }
-            }
+
 
             // 3. Fallback placeholder if product was deleted but still in cart
             if (!product) {

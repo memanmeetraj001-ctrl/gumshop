@@ -32,21 +32,7 @@ export default function CartDrawer({ isOpen, onClose }) {
             const baseId = key.includes('__') ? key.split('__')[0] : key;
             let product = cartProducts[key] || cartProducts[baseId] || Object.values(cartProducts).find(p => p?.id === key || p?.id === baseId) || (products || []).find(p => p.id === key || p.id === baseId);
 
-            if (!product && typeof window !== 'undefined') {
-                for (let i = 0; i < localStorage.length; i++) {
-                    const lsKey = localStorage.key(i);
-                    if (lsKey && (lsKey.startsWith('cloned_store_') || lsKey.startsWith('store_') || lsKey.startsWith('gumshop_db_products/'))) {
-                        try {
-                            const parsed = JSON.parse(localStorage.getItem(lsKey) || '{}');
-                            if (parsed.id === key || parsed.id === baseId) { product = parsed; break; }
-                            if (parsed.products) {
-                                const match = parsed.products.find(p => p.id === key || p.id === baseId);
-                                if (match) { product = match; break; }
-                            }
-                        } catch {}
-                    }
-                }
-            }
+
 
             const price = parseFloat(product?.price !== undefined && product?.price !== null ? product.price : 0);
             const name = product?.name || 'Featured Item';

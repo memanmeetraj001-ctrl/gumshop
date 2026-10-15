@@ -211,15 +211,9 @@ export default function StanStoreBioEditor() {
                 };
                 setCurrentStore(updatedStore);
 
-                // Sync local caches
+                // Sync active store slug
                 if (typeof window !== 'undefined') {
-                    localStorage.setItem(`store_${cleanSlug}`, JSON.stringify(updatedStore));
-                    localStorage.setItem(`cloned_store_${cleanSlug}`, JSON.stringify(updatedStore));
-                    localStorage.setItem(targetStoreId, JSON.stringify(updatedStore));
-                    localStorage.setItem('gumshop_active_store', JSON.stringify(updatedStore));
                     localStorage.setItem('active_store_slug', cleanSlug);
-                    localStorage.setItem(`gumshop_db_stores/${targetStoreId}`, JSON.stringify(updatedStore));
-                    localStorage.setItem(`gumshop_db_stores/store_${cleanSlug}`, JSON.stringify(updatedStore));
                     window.dispatchEvent(new Event('active_store_changed'));
                 }
 
@@ -325,15 +319,9 @@ export default function StanStoreBioEditor() {
             };
             setCurrentStore(updatedStore);
 
-            // 1. LocalStorage caches for instant synchronous reflection across all views
+            // 1. Sync active store slug and dispatch events
             if (typeof window !== 'undefined') {
-                localStorage.setItem(`store_${cleanSlug}`, JSON.stringify(updatedStore));
-                localStorage.setItem(`cloned_store_${cleanSlug}`, JSON.stringify(updatedStore));
-                localStorage.setItem(targetStoreId, JSON.stringify(updatedStore));
-                localStorage.setItem('gumshop_active_store', JSON.stringify(updatedStore));
                 localStorage.setItem('active_store_slug', cleanSlug);
-                localStorage.setItem(`gumshop_db_stores/${targetStoreId}`, JSON.stringify(updatedStore));
-                localStorage.setItem(`gumshop_db_stores/store_${cleanSlug}`, JSON.stringify(updatedStore));
                 window.dispatchEvent(new Event('active_store_changed'));
                 window.dispatchEvent(new Event('products_updated'));
             }

@@ -211,7 +211,6 @@ export default function StoreSettings() {
 
                 // Sync active store session without bloated duplicate database copies
                 if (typeof window !== 'undefined') {
-                    localStorage.setItem('gumshop_active_store', JSON.stringify(payload));
                     localStorage.setItem('active_store_slug', cleanSlug);
                     if (storeInfo.gumroadProductUrl) localStorage.setItem(`gumroad_url_${cleanSlug}`, storeInfo.gumroadProductUrl);
                     if (storeInfo.gumroadToken) localStorage.setItem(`gumroad_token_${cleanSlug}`, storeInfo.gumroadToken);
@@ -283,14 +282,7 @@ export default function StoreSettings() {
             if (typeof window !== 'undefined') {
                 localStorage.setItem(`gumroad_token_${cleanSlug}`, storeInfo.gumroadToken.trim());
                 localStorage.setItem(`gumroad_token_store_${cleanSlug}`, storeInfo.gumroadToken.trim());
-                const raw = localStorage.getItem('gumshop_active_store');
-                if (raw) {
-                    try {
-                        const s = JSON.parse(raw);
-                        s.gumroadToken = storeInfo.gumroadToken.trim();
-                        localStorage.setItem('gumshop_active_store', JSON.stringify(s));
-                    } catch {}
-                }
+
             }
 
             // Also vault server-side for this store
@@ -431,16 +423,7 @@ export default function StoreSettings() {
 
             const persistentToken = (storeInfo.gumroadToken || '').trim();
 
-            // Preserve existing products from active cache so saving settings never wipes them!
-            let currentProducts = storeInfo.products || [];
-            if (currentProducts.length === 0 && typeof window !== 'undefined') {
-                try {
-                    const cached = JSON.parse(localStorage.getItem(`cloned_store_${cleanSlug}`) || localStorage.getItem(`store_${cleanSlug}`) || '{}');
-                    if (Array.isArray(cached.products) && cached.products.length > 0) {
-                        currentProducts = cached.products;
-                    }
-                } catch {}
-            }
+            const currentProducts = storeInfo.products || [];
 
             const activeAvatar = storeInfo.logo || storeInfo.avatar || storeInfo.bioProfile?.avatar || "";
             const payloadToSave = {
@@ -538,7 +521,6 @@ export default function StoreSettings() {
                 if (payloadToSave.socials) {
                     localStorage.setItem(`gumshop_socials_${cleanSlug}`, JSON.stringify(payloadToSave.socials));
                 }
-                localStorage.setItem('gumshop_active_store', JSON.stringify(payloadToSave));
                 localStorage.setItem('active_store_slug', cleanSlug);
                 window.dispatchEvent(new Event('active_store_changed'));
                 window.dispatchEvent(new Event('products_updated'));

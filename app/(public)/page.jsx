@@ -100,8 +100,6 @@ export default function SuperStorefront() {
                     const storeProducts = await getProductsByStore(store.id || store.username);
                     if (storeProducts && storeProducts.length > 0) {
                         setProducts(storeProducts);
-                    } else if (store?.products && Array.isArray(store.products) && store.products.length > 0) {
-                        setProducts(store.products);
                     } else {
                         // Store catalog is clean and empty (0 products)
                         setProducts([]);

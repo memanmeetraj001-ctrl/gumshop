@@ -84,24 +84,7 @@ export default function StoreManageProducts() {
                     console.warn("Products query fallback:", e);
                 }
 
-                // 2. If empty, check embedded products[] in this store object
-                if ((!data || data.length === 0) && Array.isArray(store.products) && store.products.length > 0) {
-                    data = store.products
-                        .filter(p => p && !isProductDeleted(p.id))
-                        .map(p => ({ ...p, storeId }));
-                }
 
-                // 3. Scan sessionStorage ONLY for this specific store (cloned_store_${storeSlug})
-                if ((!data || data.length === 0) && typeof window !== 'undefined') {
-                    try {
-                        const cached = JSON.parse(sessionStorage.getItem(`cloned_store_${storeSlug}`) || 'null');
-                        if (cached && Array.isArray(cached.products) && cached.products.length > 0) {
-                            data = cached.products
-                                .filter(p => p && !isProductDeleted(p.id))
-                                .map(p => ({ ...p, storeId }));
-                        }
-                    } catch {}
-                }
 
                 // Filter out any tombstoned deleted products and dummy/placeholder items (Partial Payment, etc.)
                 const sanitized = (data || []).filter(p => p && p.id && !isProductDeleted(p.id) && !isJunkProductName(p.name || p.title) && (p.price === undefined || parseFloat(p.price) > 0));

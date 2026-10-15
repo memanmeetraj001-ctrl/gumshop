@@ -60,24 +60,7 @@ export default function EditProductPage() {
             try {
                 let prod = await getProduct(productId);
 
-                if (!prod && typeof window !== 'undefined') {
-                    // Check local edge storage
-                    const raw = localStorage.getItem(`gumshop_db_products/${productId}`);
-                    if (raw) prod = JSON.parse(raw);
 
-                    if (!prod) {
-                        for (let i = 0; i < localStorage.length; i++) {
-                            const k = localStorage.key(i);
-                            if (k && (k.startsWith('cloned_store_') || k.startsWith('store_'))) {
-                                try {
-                                    const store = JSON.parse(localStorage.getItem(k) || '{}');
-                                    const match = (store.products || []).find(p => p.id === productId);
-                                    if (match) { prod = match; break; }
-                                } catch {}
-                            }
-                        }
-                    }
-                }
 
                 if (prod) {
                     const retail = parseFloat(prod.price || 0);

@@ -53,12 +53,11 @@ it('public/manifest.json reflects The Best E-Commerce Store for Best Deals & Vir
 });
 
 // 3. Check updateProduct in lib/firebaseDb.js
-it('lib/firebaseDb.js updateProduct updates all local caches and PATCHes /api/products', () => {
+it('lib/firebaseDb.js updateProduct PATCHes /api/products to Supabase and dispatches event without storage caching', () => {
     const fbDbCode = fs.readFileSync(path.join(ROOT, 'lib/firebaseDb.js'), 'utf-8');
-    assert.ok(fbDbCode.includes('gumshop_db_products/'), 'updateProduct must update gumshop_db_products cache');
-    assert.ok(fbDbCode.includes('gumshop_active_store'), 'updateProduct must update gumshop_active_store cache');
-    assert.ok(fbDbCode.includes('cloned_store_'), 'updateProduct must update cloned_store_ cache');
     assert.ok(fbDbCode.includes('/api/products'), 'updateProduct must PATCH /api/products');
+    assert.ok(fbDbCode.includes('products_updated'), 'updateProduct must dispatch products_updated event');
+    assert.ok(!fbDbCode.includes('localStorage.setItem(prodKey'), 'updateProduct must not cache products to localStorage');
 });
 
 // 4. Check dbUpdateProduct in lib/supabase.js

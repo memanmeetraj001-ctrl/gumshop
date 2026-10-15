@@ -622,11 +622,11 @@ export default function StoreImportPage() {
 
             // Sync with active store and homepage store (pure live state)
             if (typeof window !== 'undefined') {
-                const effectiveSlug = data.slug;
+                const effectiveSlug = data.slug || data.store?.username || data.store?.id;
                 try {
                     localStorage.removeItem('gumshop_stores_cleared');
                     localStorage.removeItem('gumshop_empty_dashboard_ack');
-                    setActiveStoreSlug(data.store);
+                    setActiveStoreSlug(effectiveSlug);
 
                     if (setAsHomepage) {
                         await setHomepageStoreSlug(effectiveSlug);
