@@ -105,47 +105,74 @@ const PRESET_STYLES = {
 
 function formatCreatorProfile(store, rawUsername) {
     if (!store) return null;
-    const cleanUser = (rawUsername || store.username || '').toLowerCase().trim();
-    const storeClean = (store.username || cleanUser).toLowerCase().trim();
-    const bioProfile = store.bioProfile || store.data?.bioProfile || {};
-    const rawDisplayName = bioProfile.displayName || store.name || store.storeName || (rawUsername ? rawUsername.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Store');
-    const displayName = decodeHtmlEntities(rawDisplayName);
-    
-    // Fall back to demo socials ONLY for explicit demo store
-    const defaultSocials = storeClean === 'demo' ? DEFAULT_DEMO_CREATOR.socials : {};
-    const mergedSocials = { ...defaultSocials, ...(store.socials || {}), ...(bioProfile.socials || {}) };
+    try {
+        const cleanUser = (rawUsername || store.username || store.slug || '').toLowerCase().trim();
+        const storeClean = (store.username || store.slug || cleanUser).toLowerCase().trim();
+        const bioProfile = (typeof store.bioProfile === 'object' && store.bioProfile !== null)
+            ? store.bioProfile
+            : ((typeof store.data?.bioProfile === 'object' && store.data?.bioProfile !== null) ? store.data.bioProfile : {});
 
-    const rawBio = bioProfile.tagline || store.bio || store.description || store.tagline || `Official storefront for ${displayName}. Browse our curated collection.`;
-    const cleanBio = decodeHtmlEntities(rawBio);
+        const rawDisplayName = bioProfile.displayName || store.name || store.storeName || (rawUsername ? String(rawUsername).replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Store');
+        const displayName = decodeHtmlEntities(String(rawDisplayName || 'Store'));
+        
+        // Fall back to demo socials ONLY for explicit demo store
+        const defaultSocials = storeClean === 'demo' ? DEFAULT_DEMO_CREATOR.socials : {};
+        const mergedSocials = { ...defaultSocials, ...(store.socials || {}), ...(bioProfile.socials || {}) };
 
-    return {
-        id: store.id || `store_${storeClean}`,
-        name: displayName,
-        handle: bioProfile.handle || store.username || cleanUser,
-        verified: bioProfile.verified !== undefined ? bioProfile.verified : true,
-        bio: cleanBio,
-        avatar: (() => {
-            const raw = bioProfile.avatar || store.avatar || store.logo || '';
-            const safe = raw.startsWith('http://') ? raw.replace('http://', 'https://') : raw;
-            return safe || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}`;
-        })(),
-        socials: mergedSocials,
-        customLinks: bioProfile.customLinks || [],
-        leadMagnet: bioProfile.leadMagnet || null,
-        backgroundPreset: bioProfile.backgroundPreset || 'warm_studio',
-        productDisplayMode: bioProfile.productDisplayMode || 'all',
-        featuredProductIds: bioProfile.featuredProductIds || [],
-        gumroadProductUrl: store.gumroadProductUrl || store.gumroadUrl || '',
-        themeColor: bioProfile.themeColor || store.themeColor || '#10B981',
-        tracking: store.tracking || bioProfile.tracking || {},
-        status: store.status || 'approved'
-    };
+        const rawBio = bioProfile.tagline || store.bio || store.description || store.tagline || `Official storefront for ${displayName}. Browse our curated collection.`;
+        const cleanBio = decodeHtmlEntities(String(rawBio || ''));
+
+        return {
+            id: store.id || `store_${storeClean}`,
+            name: displayName,
+            handle: bioProfile.handle || store.username || store.slug || cleanUser,
+            verified: bioProfile.verified !== undefined ? Boolean(bioProfile.verified) : true,
+            bio: cleanBio,
+            avatar: (() => {
+                const raw = bioProfile.avatar || store.avatar || store.logo || store.logo_url || '';
+                const safe = (typeof raw === 'string' && raw.startsWith('http://')) ? raw.replace('http://', 'https://') : (typeof raw === 'string' ? raw : '');
+                return safe || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}`;
+            })(),
+            socials: mergedSocials,
+            customLinks: Array.isArray(bioProfile.customLinks) ? bioProfile.customLinks : [],
+            leadMagnet: bioProfile.leadMagnet || null,
+            backgroundPreset: bioProfile.backgroundPreset || 'warm_studio',
+            productDisplayMode: bioProfile.productDisplayMode || 'all',
+            featuredProductIds: Array.isArray(bioProfile.featuredProductIds) ? bioProfile.featuredProductIds : [],
+            gumroadProductUrl: store.gumroadProductUrl || store.gumroadUrl || '',
+            themeColor: bioProfile.themeColor || store.themeColor || '#10B981',
+            tracking: store.tracking || bioProfile.tracking || {},
+            status: store.status || 'approved'
+        };
+    } catch (err) {
+        console.error("formatCreatorProfile error, returning safe fallback profile:", err);
+        const safeName = store?.name || rawUsername || 'Store';
+        return {
+            id: store?.id || `store_${rawUsername || 'unknown'}`,
+            name: safeName,
+            handle: rawUsername || 'store',
+            verified: true,
+            bio: store?.bio || store?.description || 'Official storefront.',
+            avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(safeName)}`,
+            socials: {},
+            customLinks: [],
+            leadMagnet: null,
+            backgroundPreset: 'warm_studio',
+            productDisplayMode: 'all',
+            featuredProductIds: [],
+            gumroadProductUrl: store?.gumroadProductUrl || store?.gumroadUrl || '',
+            themeColor: '#10B981',
+            tracking: {},
+            status: 'approved'
+        };
+    }
 }
 
 export default function CreatorBioPage({ params }) {
-    // Next.js 15+ dynamic params unwrapping with safe fallback
+    // Next.js 15+ dynamic params unwrapping with safe client fallback
     const resolvedParams = params ? (typeof params.then === 'function' ? use(params) : params) : null;
-    const rawUsername = resolvedParams?.username || 'demo';
+    const clientPathUser = typeof window !== 'undefined' ? (window.location.pathname.split('/creator/')[1]?.split('/')[0] || '') : '';
+    const rawUsername = resolvedParams?.username || clientPathUser || 'demo';
     const cleanUser = rawUsername.toLowerCase().trim();
 
     // Synchronous initial state resolution so frame 1 matches the store immediately
@@ -343,7 +370,7 @@ export default function CreatorBioPage({ params }) {
             if (isMounted) setLoading(false);
         }, 8000);
 
-        const loadCreatorStore = async () => {
+        const loadCreatorStore = async (isRetry = false) => {
             try {
                 // 1. Authoritative Supabase / serverDb fetch
                 let store = null;
@@ -357,14 +384,30 @@ export default function CreatorBioPage({ params }) {
                             resolvedProducts = Array.isArray(apiData.products) ? apiData.products : [];
                         }
                     }
-                } catch {}
+                } catch (e) {
+                    console.warn("Direct API fetch error:", e);
+                }
 
-                // 2. Fallback to local / presets cache
+                // 2. Direct Supabase / PostgREST fallback
                 if (!store) {
-                    const { getStoreAndCatalog } = await import('@/lib/storePresets');
-                    const fallbackData = await getStoreAndCatalog(rawUsername);
-                    store = fallbackData.store;
-                    resolvedProducts = fallbackData.products || [];
+                    try {
+                        const { resolveStoreAndProducts } = await import('@/lib/storePresets');
+                        const fallbackData = await resolveStoreAndProducts(rawUsername);
+                        if (fallbackData?.store) {
+                            store = fallbackData.store;
+                            resolvedProducts = fallbackData.products || [];
+                        }
+                    } catch (e) {
+                        console.warn("Direct data layer fallback error:", e);
+                    }
+                }
+
+                // 3. Auto-retry once after 1s before giving up (guards against cold start / mobile latency)
+                if (!store && !isRetry && cleanUser !== 'demo') {
+                    setTimeout(() => {
+                        if (isMounted) loadCreatorStore(true);
+                    }, 1000);
+                    return;
                 }
 
                 if (isMounted) {
@@ -374,7 +417,7 @@ export default function CreatorBioPage({ params }) {
                         setCreator(prof);
                         setProducts(resolvedProducts || []);
                         if (typeof document !== 'undefined') {
-                            document.title = `${prof.name} (@${cleanUser}) — Stan Store & Bio Catalog | GumShop`;
+                            document.title = `${prof?.name || rawUsername} (@${cleanUser}) — Stan Store & Bio Catalog | GumShop`;
                         }
                     } else if (cleanUser === 'demo') {
                         const demoData = getStoreAndCatalogSync('demo');
@@ -383,7 +426,7 @@ export default function CreatorBioPage({ params }) {
                         setCreator(prof);
                         setProducts(demoData.products || []);
                         if (typeof document !== 'undefined') {
-                            document.title = `${prof.name} — Stan Store & Bio Catalog | GumShop`;
+                            document.title = `${prof?.name || 'Store'} — Stan Store & Bio Catalog | GumShop`;
                         }
                     } else {
                         // Only clear if store was never loaded, preventing transient flash

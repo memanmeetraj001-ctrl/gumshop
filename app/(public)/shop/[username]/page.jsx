@@ -65,18 +65,23 @@ export default function StoreShop({ params }) {
                     }
                 }
 
-                // 2. Fallback: local cached store
-                const { getStoreAndCatalog } = await import('@/lib/storePresets');
-                const { store, products: resolvedProducts } = await getStoreAndCatalog(rawUsername);
-                if (store) {
-                    if (!store.gumroadToken && typeof window !== 'undefined') {
-                        store.gumroadToken = localStorage.getItem('gumshop_gumroad_token') || '';
+                // 2. Fallback: direct Supabase data layer
+                try {
+                    const { resolveStoreAndProducts } = await import('@/lib/storePresets');
+                    const { store: fbStore, products: fbProducts } = await resolveStoreAndProducts(rawUsername);
+                    if (fbStore) {
+                        if (!fbStore.gumroadToken && typeof window !== 'undefined') {
+                            fbStore.gumroadToken = localStorage.getItem('gumshop_gumroad_token') || '';
+                        }
+                        setStoreInfo(fbStore);
+                        setProducts(fbProducts || []);
+                        if (typeof document !== 'undefined') {
+                            document.title = `${fbStore.name || rawUsername} — Official Storefront | GumShop`;
+                        }
+                        return;
                     }
-                    setStoreInfo(store);
-                    setProducts(resolvedProducts || []);
-                    if (typeof document !== 'undefined') {
-                        document.title = `${store.name || rawUsername} — Official Storefront | GumShop`;
-                    }
+                } catch (e) {
+                    console.warn("Direct data layer fallback error in shop:", e);
                 }
             } catch (err) {
                 console.error("Error fetching store data:", err);
