@@ -1,12 +1,17 @@
 'use client'
-import Image from "next/image"
 import { MapPin, Mail, Phone, Store, User } from "lucide-react"
+import { getSafeImageUrl, handleImageError } from "@/lib/imageUtils"
 
 const StoreInfo = ({store}) => {
     return (
         <div className="flex-1 space-y-2 text-sm">
             {store?.logo ? (
-                <Image width={100} height={100} src={store.logo} alt={store.name || "Store"} className="max-w-20 max-h-20 object-contain shadow rounded-full max-sm:mx-auto" />
+                <img 
+                    src={getSafeImageUrl(store.logo)} 
+                    alt={store.name || "Store"} 
+                    className="max-w-20 max-h-20 object-contain shadow rounded-full max-sm:mx-auto" 
+                    onError={(e) => handleImageError(e, 'avatar')}
+                />
             ) : (
                 <div className="w-20 h-20 shadow rounded-full max-sm:mx-auto bg-slate-100 flex items-center justify-center text-slate-400">
                     <Store size={32} />
@@ -36,7 +41,12 @@ const StoreInfo = ({store}) => {
             <p className="text-slate-700 mt-5">Applied  on <span className="text-xs">{store.createdAt ? new Date(store.createdAt).toLocaleDateString() : 'N/A'}</span> by</p>
             <div className="flex items-center gap-2 text-sm ">
                 {store.user?.image ? (
-                    <Image width={36} height={36} src={store.user.image} alt={store.user.name || "User"} className="w-9 h-9 rounded-full" />
+                    <img 
+                        src={getSafeImageUrl(store.user.image)} 
+                        alt={store.user.name || "User"} 
+                        className="w-9 h-9 rounded-full object-cover" 
+                        onError={(e) => handleImageError(e, 'avatar')}
+                    />
                 ) : (
                     <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
                         <User size={20} />

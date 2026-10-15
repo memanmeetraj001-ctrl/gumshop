@@ -1,10 +1,10 @@
 'use client'
-import Image from "next/image";
 import { DotIcon } from "lucide-react";
 import { useSelector } from "react-redux";
 import Rating from "./Rating";
 import { useState } from "react";
 import RatingModal from "./RatingModal";
+import { getSafeImageUrl, handleImageError } from "@/lib/imageUtils";
 
 const OrderItem = ({ order }) => {
 
@@ -37,8 +37,9 @@ const OrderItem = ({ order }) => {
                                     <div className="w-16 aspect-square bg-slate-100 flex items-center justify-center rounded-xl overflow-hidden shrink-0">
                                         <img
                                             className="h-full w-full object-cover"
-                                            src={prodImg}
+                                            src={getSafeImageUrl(prodImg)}
                                             alt={prodName}
+                                            onError={(e) => handleImageError(e, 'product')}
                                         />
                                     </div>
                                     <div className="flex flex-col justify-center text-sm">

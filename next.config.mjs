@@ -4,9 +4,8 @@ const nextConfig = {
     compress: true,
     images: {
         remotePatterns: [
-            { protocol: 'https', hostname: 'images.unsplash.com' },
-            { protocol: 'https', hostname: 'cdn.shopify.com' },
-            { protocol: 'https', hostname: 'api.dicebear.com' }
+            { protocol: 'https', hostname: '**' },
+            { protocol: 'http', hostname: '**' }
         ]
     }
 };

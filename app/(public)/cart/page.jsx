@@ -4,10 +4,10 @@ import OrderSummary from "@/components/OrderSummary";
 import PageTitle from "@/components/PageTitle";
 import { deleteItemFromCart } from "@/lib/features/cart/cartSlice";
 import { Trash2Icon } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { getSafeImageUrl, handleImageError } from "@/lib/imageUtils";
 
 export default function Cart() {
 
@@ -101,12 +101,11 @@ export default function Cart() {
                                     <tr key={index} className="space-x-2">
                                         <td className="flex gap-3 my-4">
                                             <div className="flex gap-3 items-center justify-center bg-slate-100 w-16 h-16 object-cover rounded-md overflow-hidden">
-                                                <Image 
-                                                    src={item.images?.[0] || item.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100"} 
+                                                <img 
+                                                    src={getSafeImageUrl(item.images?.[0] || item.image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100")} 
                                                     className="h-14 w-auto object-cover" 
                                                     alt={item.name || "Product"} 
-                                                    width={45} 
-                                                    height={45} 
+                                                    onError={(e) => handleImageError(e, 'product')}
                                                 />
                                             </div>
                                             <div>

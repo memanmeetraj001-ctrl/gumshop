@@ -1,8 +1,8 @@
 'use client'
 import { ArrowRight, StarIcon } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
 import { useState } from "react"
+import { getSafeImageUrl, handleImageError } from "@/lib/imageUtils"
 
 const ProductDescription = ({ product }) => {
 
@@ -90,7 +90,12 @@ const ProductDescription = ({ product }) => {
             {/* Store Page */}
             {product.store && (
                 <div className="flex gap-3 mt-14">
-                    <Image src={product.store?.logo || "/placeholder.png"} alt="" className="size-11 rounded-full ring ring-slate-400" width={100} height={100} />
+                    <img 
+                        src={getSafeImageUrl(product.store?.logo || "/placeholder.png")} 
+                        alt={product.store?.name || "Store"} 
+                        className="size-11 rounded-full ring ring-slate-400 object-cover" 
+                        onError={(e) => handleImageError(e, 'avatar')}
+                    />
                     <div>
                         <p className="font-medium text-slate-600">Product by {product.store?.name}</p>
                         <Link href={`/shop/${product.store?.username}`} className="flex items-center gap-1.5 text-green-500"> view store <ArrowRight size={14} /></Link>

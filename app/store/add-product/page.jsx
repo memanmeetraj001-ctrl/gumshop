@@ -1,6 +1,5 @@
 'use client'
 import { assets } from "@/assets/assets"
-import Image from "next/image"
 import { useState, useEffect, Suspense } from "react"
 import { toast } from "react-hot-toast"
 import { useSearchParams, useRouter } from "next/navigation"
