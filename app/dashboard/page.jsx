@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { isProductDeleted, isStoreDeleted, markStoreDeleted, deleteStore } from '@/lib/firebaseDb';
-import { setActiveStoreSlug, getActiveStoreSync, getAllLocalStores, getHomepageStoreSlug, setHomepageStoreSlug } from '@/lib/activeStore';
+import { setActiveStoreSlug, getActiveStoreSync, getAllLocalStores, getHomepageStoreSlug, setHomepageStoreSlug, getHomepageMode, setHomepageMode } from '@/lib/activeStore';
 
 const ADMIN_SESSION_TOKEN = 'gumshop_superadmin_session_meetminal_verified_2026';
 
@@ -62,6 +62,7 @@ export default function MasterDashboardPage() {
     const [shops, setShops] = useState([]);
     const [activeStore, setActiveStore] = useState(null);
     const [homepageStoreSlug, setHomepageStoreSlugState] = useState('');
+    const [homepageMode, setHomepageModeState] = useState('single');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [authChecking, setAuthChecking] = useState(true);
     const [inPagePassword, setInPagePassword] = useState('');
@@ -419,17 +420,42 @@ export default function MasterDashboardPage() {
             if (e?.detail?.slug) {
                 setHomepageStoreSlugState(e.detail.slug);
             }
+            fetch('/api/store/homepage', { cache: 'no-store' })
+                .then(r => r.json())
+                .then(d => {
+                    if (d?.homepageMode) setHomepageModeState(d.homepageMode);
+                    if (d?.homepageSlug) setHomepageStoreSlugState(d.homepageSlug);
+                })
+                .catch(() => {});
         };
+
+        // Hydrate homepage mode and store
+        fetch('/api/store/homepage', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(d => {
+                if (d?.homepageMode && isMounted) setHomepageModeState(d.homepageMode);
+                if (d?.homepageSlug && isMounted) setHomepageStoreSlugState(d.homepageSlug);
+            })
+            .catch(() => {
+                if (isMounted) {
+                    setHomepageModeState(getHomepageMode());
+                    const hp = getHomepageStoreSlug();
+                    if (hp) setHomepageStoreSlugState(hp);
+                }
+            });
+
         window.addEventListener('pageshow', handlePageShow);
         window.addEventListener('active_store_changed', handleStoreChange);
         window.addEventListener('stores_updated', handleStoresUpdated);
         window.addEventListener('homepage_store_changed', handleHomepageChange);
+        window.addEventListener('homepage_mode_changed', handleHomepageChange);
         return () => {
             isMounted = false;
             window.removeEventListener('pageshow', handlePageShow);
             window.removeEventListener('active_store_changed', handleStoreChange);
             window.removeEventListener('stores_updated', handleStoresUpdated);
             window.removeEventListener('homepage_store_changed', handleHomepageChange);
+            window.removeEventListener('homepage_mode_changed', handleHomepageChange);
         };
     }, []);
 
@@ -561,6 +587,19 @@ export default function MasterDashboardPage() {
         await setHomepageStoreSlug(slug);
         setHomepageStoreSlugState(slug);
         toast.success(`Store "${shop.name}" is now the official Homepage (/)! 🌟`);
+    };
+
+    // Toggle Homepage Mode: 'all' (Marketplace) vs 'single' (Designated Store)
+    const handleSetHomepageMode = async (mode) => {
+        const nextMode = mode === 'all' ? 'all' : 'single';
+        setHomepageModeState(nextMode);
+        await setHomepageMode(nextMode, homepageStoreSlug);
+        if (nextMode === 'all') {
+            toast.success('🌐 Homepage is now set to All Shops Marketplace!');
+        } else {
+            const currentName = shops.find(s => s.username === homepageStoreSlug || s.id === homepageStoreSlug)?.name || homepageStoreSlug || 'Designated Store';
+            toast.success(`⭐ Homepage is now set to Single Store (${currentName})`);
+        }
     };
 
     // 1-Click Backup Export
@@ -1471,21 +1510,79 @@ export default function MasterDashboardPage() {
                                         <Globe size={15} />
                                     </div>
                                     <div>
-                                        <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
-                                            <span>Default Homepage (gumshop.online):</span>
-                                            <span className="text-amber-700 font-extrabold">
-                                                {shops.find(s => s.username === homepageStoreSlug || s.id === homepageStoreSlug)?.name || homepageStoreSlug || 'Auto (First Active Store)'}
-                                            </span>
+                                        <div className="text-xs font-bold text-slate-900 flex items-center gap-2 flex-wrap">
+                                            <span>Root Homepage (gumshop.online):</span>
+                                            {homepageMode === 'all' ? (
+                                                <span className="inline-flex items-center gap-1.5 text-emerald-700 font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[11px]">
+                                                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                    🌐 All Shops Marketplace ({shops.length} Active Stores)
+                                                </span>
+                                            ) : (
+                                                <span className="text-amber-700 font-extrabold">
+                                                    ⭐ {shops.find(s => s.username === homepageStoreSlug || s.id === homepageStoreSlug)?.name || homepageStoreSlug || 'Auto (First Active Store)'}
+                                                </span>
+                                            )}
                                         </div>
-                                        <div className="text-[11px] text-slate-500">
-                                            Select which store is served when visitors load the homepage (/)
+                                        <div className="text-[11px] text-slate-500 mt-0.5">
+                                            {homepageMode === 'all' 
+                                                ? 'Homepage showcases products from all active stores labeled with shop names' 
+                                                : 'Homepage serves dedicated catalog and branding of the designated store'}
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                    {/* Segmented Mode Switch */}
+                                    <div className="flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSetHomepageMode('all')}
+                                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                                                homepageMode === 'all'
+                                                    ? 'bg-emerald-600 text-white shadow-xs'
+                                                    : 'text-slate-600 hover:text-slate-900'
+                                            }`}
+                                        >
+                                            🌐 All Shops
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSetHomepageMode('single')}
+                                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                                                homepageMode === 'single'
+                                                    ? 'bg-slate-900 text-white shadow-xs'
+                                                    : 'text-slate-600 hover:text-slate-900'
+                                            }`}
+                                        >
+                                            ⭐ Single Store
+                                        </button>
+                                    </div>
+
+                                    {/* Store Selector Dropdown for Single Mode */}
+                                    {homepageMode === 'single' && (
+                                        <div className="flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 text-xs">
+                                            <span className="text-amber-800 font-bold">⭐ Set Homepage:</span>
+                                            <select
+                                                value={homepageStoreSlug || ''}
+                                                onChange={(e) => {
+                                                    const target = shops.find(s => s.username === e.target.value);
+                                                    if (target) handleSetHomepage(target);
+                                                }}
+                                                className="bg-transparent text-amber-800 font-bold focus:outline-none cursor-pointer"
+                                            >
+                                                <option value="" className="bg-white text-slate-600">Default (First Active Store)</option>
+                                                {shops.map(s => (
+                                                    <option key={s.username} value={s.username} className="bg-white text-amber-800">
+                                                        {s.name} ({s.username})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {/* Active Dashboard Scope Selector */}
                                     <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
-                                        <span className="text-slate-600 font-semibold">Active:</span>
+                                        <span className="text-slate-600 font-semibold">Active HQ:</span>
                                         <select
                                             value={activeStore?.username || ''}
                                             onChange={(e) => {
@@ -1497,25 +1594,6 @@ export default function MasterDashboardPage() {
                                             {shops.map(s => (
                                                 <option key={s.username} value={s.username} className="bg-white text-slate-900">
                                                     {s.name} ({s.username}){s.username === homepageStoreSlug ? ' ⭐ [Homepage]' : ''}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 text-xs">
-                                        <span className="text-amber-800 font-bold">⭐ Set Homepage:</span>
-                                        <select
-                                            value={homepageStoreSlug || ''}
-                                            onChange={(e) => {
-                                                const target = shops.find(s => s.username === e.target.value);
-                                                if (target) handleSetHomepage(target);
-                                            }}
-                                            className="bg-transparent text-amber-800 font-bold focus:outline-none cursor-pointer"
-                                        >
-                                            <option value="" className="bg-white text-slate-600">Default (First Active Store)</option>
-                                            {shops.map(s => (
-                                                <option key={s.username} value={s.username} className="bg-white text-amber-800">
-                                                    {s.name} ({s.username})
                                                 </option>
                                             ))}
                                         </select>

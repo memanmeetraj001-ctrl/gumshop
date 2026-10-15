@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { dbGetProducts, dbCreateProduct, dbUpdateProduct, dbDeleteProduct } from '@/lib/supabase';
+import { getAllProductsWithStores } from '@/lib/db/products';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -14,7 +15,14 @@ const NO_CACHE_HEADERS = {
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
+    const mode = searchParams.get('mode');
     const storeId = searchParams.get('store_id') || searchParams.get('store');
+
+    if (mode === 'all') {
+      const products = await getAllProductsWithStores();
+      return NextResponse.json({ success: true, products }, { headers: NO_CACHE_HEADERS });
+    }
+
     const products = await dbGetProducts(storeId);
     return NextResponse.json({ success: true, products }, { headers: NO_CACHE_HEADERS });
   } catch (err) {

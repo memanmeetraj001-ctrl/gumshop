@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react';
-import { Star, ShoppingBag, Eye, Heart, Zap } from 'lucide-react';
+import { Star, ShoppingBag, Eye, Heart, Zap, Store } from 'lucide-react';
 import Link from 'next/link';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '@/lib/features/cart/cartSlice';
@@ -11,7 +11,7 @@ import { getActiveStoreSync } from '@/lib/activeStore';
 import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 import toast from 'react-hot-toast';
 
-export default function ProductCard({ product, onOpenCart }) {
+export default function ProductCard({ product, onOpenCart, showShopName = false }) {
     const dispatch = useDispatch();
     const { toggle, has } = useWishlist();
     const [showQuickView, setShowQuickView] = useState(false);
@@ -170,9 +170,22 @@ export default function ProductCard({ product, onOpenCart }) {
                 <div className="p-4 sm:p-5 flex flex-col justify-between flex-1">
                     <div>
                         <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                                {product.category || 'Featured'}
-                            </span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                    {product.category || 'Featured'}
+                                </span>
+                                {showShopName && (product.storeName || product.storeSlug) && (
+                                    <Link 
+                                        href={`/shop/${product.storeSlug || product.storeId?.replace(/^store_/, '')}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition hover:text-emerald-700 max-w-[140px] truncate"
+                                        title={`Visit ${product.storeName || product.storeSlug}`}
+                                    >
+                                        <Store size={10} className="shrink-0 text-slate-400" />
+                                        <span className="truncate">{product.storeName || product.storeSlug}</span>
+                                    </Link>
+                                )}
+                            </div>
                             {(() => {
                                 const numRating = typeof product.rating === 'number' 
                                     ? product.rating 

@@ -30,11 +30,13 @@ export default function SuperStorefront() {
 
     const [products, setProducts] = useState([]);
     const [activeStore, setActiveStore] = useState(null);
+    const [homepageMode, setHomepageModeState] = useState('single');
     const [loading, setLoading] = useState(true);
     const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
     const [wishlistDrawerOpen, setWishlistDrawerOpen] = useState(false);
 
     // Filters state
+    const [selectedStore, setSelectedStore] = useState('All');
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [sortBy, setSortBy] = useState('featured');
     const [searchTerm, setSearchTerm] = useState('');
@@ -47,13 +49,15 @@ export default function SuperStorefront() {
         const loadStoreAndCatalog = async () => {
             setLoading(true);
             try {
-                // 1. Resolve designated homepage store directly from server (Highest priority)
+                // 1. Resolve designated homepage store & mode directly from server (Highest priority)
                 let store = null;
                 let targetSlug = null;
+                let mode = 'single';
                 try {
                     const hpRes = await fetch('/api/store/homepage', { cache: 'no-store' });
                     if (hpRes.ok) {
                         const hpData = await hpRes.json();
+                        if (hpData.homepageMode) mode = hpData.homepageMode;
                         if (hpData.homepageStore) store = hpData.homepageStore;
                         if (hpData.homepageSlug) targetSlug = hpData.homepageSlug;
                     }
@@ -64,6 +68,29 @@ export default function SuperStorefront() {
                     store = getHomepageStoreSync();
                     targetSlug = targetSlug || getHomepageStoreSlug();
                 }
+
+                // If in All Shops Marketplace Mode
+                if (mode === 'all') {
+                    setHomepageModeState('all');
+                    try {
+                        const allProdsRes = await fetch('/api/products?mode=all', { cache: 'no-store' });
+                        if (allProdsRes.ok) {
+                            const pData = await allProdsRes.json();
+                            if (pData.success && Array.isArray(pData.products) && pData.products.length > 0) {
+                                setActiveStore({
+                                    name: 'All Shops Marketplace',
+                                    username: 'marketplace',
+                                    isMarketplace: true,
+                                    description: 'Browse verified top-selling products across our creator fleet.'
+                                });
+                                setProducts(pData.products);
+                                return;
+                            }
+                        }
+                    } catch {}
+                }
+
+                setHomepageModeState('single');
 
                 // If targetSlug exists but store object not hydrated yet, resolve via direct API
                 if (!store && targetSlug) {
@@ -120,12 +147,14 @@ export default function SuperStorefront() {
 
         if (typeof window !== 'undefined') {
             window.addEventListener('homepage_store_changed', loadStoreAndCatalog);
+            window.addEventListener('homepage_mode_changed', loadStoreAndCatalog);
             window.addEventListener('active_store_changed', loadStoreAndCatalog);
         }
 
         return () => {
             if (typeof window !== 'undefined') {
                 window.removeEventListener('homepage_store_changed', loadStoreAndCatalog);
+                window.removeEventListener('homepage_mode_changed', loadStoreAndCatalog);
                 window.removeEventListener('active_store_changed', loadStoreAndCatalog);
             }
         };
@@ -140,9 +169,28 @@ export default function SuperStorefront() {
         return Array.from(set);
     }, [products]);
 
+    // Extract dynamic unique shops (for All Shops Marketplace Mode)
+    const shopsList = useMemo(() => {
+        if (homepageMode !== 'all') return [];
+        const map = new Map();
+        products.forEach(p => {
+            const slug = p.storeSlug || p.storeId?.replace(/^store_/, '');
+            const name = p.storeName || slug;
+            if (slug && !map.has(slug)) {
+                map.set(slug, { slug, name });
+            }
+        });
+        return Array.from(map.values());
+    }, [homepageMode, products]);
+
     // Filter and sort products
     const filteredProducts = useMemo(() => {
         let list = [...products];
+
+        // Store Filter (in All Shops Marketplace mode)
+        if (homepageMode === 'all' && selectedStore !== 'All') {
+            list = list.filter(p => (p.storeSlug === selectedStore) || (p.storeId && (p.storeId === selectedStore || p.storeId === `store_${selectedStore}`)));
+        }
 
         // Search Filter
         if (searchTerm.trim()) {
@@ -150,7 +198,8 @@ export default function SuperStorefront() {
             list = list.filter(p => 
                 (p.name && p.name.toLowerCase().includes(query)) ||
                 (p.description && p.description.toLowerCase().includes(query)) ||
-                (p.category && p.category.toLowerCase().includes(query))
+                (p.category && p.category.toLowerCase().includes(query)) ||
+                (p.storeName && p.storeName.toLowerCase().includes(query))
             );
         }
 
@@ -178,7 +227,7 @@ export default function SuperStorefront() {
         }
 
         return list;
-    }, [products, searchTerm, selectedCategory, inStockOnly, sortBy]);
+    }, [products, homepageMode, selectedStore, searchTerm, selectedCategory, inStockOnly, sortBy]);
 
     // Discounted deals subset
     const discountedDeals = useMemo(() => {
@@ -234,12 +283,23 @@ export default function SuperStorefront() {
                         {/* Pill Badge */}
                         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-6">
                             <Sparkles size={14} className="text-emerald-400" />
-                            <span>Curated Catalog · Independent Merchant</span>
+                            <span>
+                                {homepageMode === 'all' 
+                                    ? 'Curated Marketplace · All Stores & Creators' 
+                                    : 'Curated Catalog · Independent Merchant'}
+                            </span>
                         </div>
 
                         {/* Bold Main Headline */}
                         <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white leading-tight sm:leading-none">
-                            {activeStore?.name ? (
+                            {homepageMode === 'all' ? (
+                                <>
+                                    Curated Marketplace & <br />
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
+                                        All Shops Deals.
+                                    </span>
+                                </>
+                            ) : activeStore?.name ? (
                                 <>
                                     {activeStore.name} <br />
                                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
@@ -258,7 +318,9 @@ export default function SuperStorefront() {
 
                         {/* Subheadline */}
                         <p className="mt-5 text-base sm:text-lg text-slate-300 leading-relaxed font-normal max-w-2xl mx-auto">
-                            {storeDescription}
+                            {homepageMode === 'all'
+                                ? 'Browse verified top-selling products across our creator fleet with instant dynamic checkout.'
+                                : storeDescription}
                         </p>
 
                         {/* Hero CTAs */}
@@ -270,7 +332,7 @@ export default function SuperStorefront() {
                                 <span>Browse Catalog</span>
                                 <ArrowRight size={16} />
                             </button>
-                            {activeStore?.username && (
+                            {activeStore?.username && !activeStore?.isMarketplace && (
                                 <Link
                                     href={`/creator/${activeStore.username}`}
                                     className="px-6 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white font-bold text-sm flex items-center gap-2 transition"
@@ -311,28 +373,63 @@ export default function SuperStorefront() {
                 </div>
             </section>
 
-            {/* 2. Visual Category Tiles Bar */}
-            {categories.length > 1 && (
-                <section className="bg-white border-b border-slate-200/80 py-6">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                            {categories.map((cat) => {
-                                const isSelected = selectedCategory === cat;
-                                return (
+            {/* 2. Visual Category & Store Filter Bar */}
+            {(categories.length > 1 || (homepageMode === 'all' && shopsList.length > 1)) && (
+                <section className="bg-white border-b border-slate-200/80 py-5">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
+                        {/* Store Filter Pills (Marketplace Mode) */}
+                        {homepageMode === 'all' && shopsList.length > 1 && (
+                            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1 shrink-0">
+                                    <Store size={12} /> Stores:
+                                </span>
+                                <button
+                                    onClick={() => setSelectedStore('All')}
+                                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                                        selectedStore === 'All'
+                                            ? 'bg-emerald-600 text-white shadow-xs'
+                                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                    }`}
+                                >
+                                    All Stores ({products.length})
+                                </button>
+                                {shopsList.map(s => (
                                     <button
-                                        key={cat}
-                                        onClick={() => setSelectedCategory(cat)}
-                                        className={`px-5 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-                                            isSelected 
-                                                ? 'bg-slate-900 text-white shadow-md shadow-slate-900/20 scale-102' 
+                                        key={s.slug}
+                                        onClick={() => setSelectedStore(s.slug)}
+                                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                                            selectedStore === s.slug
+                                                ? 'bg-emerald-600 text-white shadow-xs'
                                                 : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                                         }`}
                                     >
-                                        {cat}
+                                        {s.name}
                                     </button>
-                                );
-                            })}
-                        </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Category Filter Pills */}
+                        {categories.length > 1 && (
+                            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                                {categories.map((cat) => {
+                                    const isSelected = selectedCategory === cat;
+                                    return (
+                                        <button
+                                            key={cat}
+                                            onClick={() => setSelectedCategory(cat)}
+                                            className={`px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                                                isSelected 
+                                                    ? 'bg-slate-900 text-white shadow-md shadow-slate-900/20 scale-102' 
+                                                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                            }`}
+                                        >
+                                            {cat}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </section>
             )}
@@ -360,6 +457,7 @@ export default function SuperStorefront() {
                                     key={product.id} 
                                     product={product} 
                                     onOpenCart={() => setCartDrawerOpen(true)}
+                                    showShopName={homepageMode === 'all'}
                                 />
                             ))}
                         </div>
@@ -460,6 +558,7 @@ export default function SuperStorefront() {
                                     key={product.id} 
                                     product={product} 
                                     onOpenCart={() => setCartDrawerOpen(true)}
+                                    showShopName={homepageMode === 'all'}
                                 />
                             ))}
                         </div>
