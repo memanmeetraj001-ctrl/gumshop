@@ -9,11 +9,24 @@ import "./globals.css";
 export const metadata = {
     metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online'),
     title: {
-        default: "GumShop.online — 1-Click Store Cloner & Automated E-Commerce for Beginners",
-        template: "%s | GumShop"
+        default: "GumShop.online — 1-Click Clone to Gumroad Store | Best Pricing & Verified Wholesale Rates",
+        template: "%s | GumShop — 1-Click Gumroad Store Cloner"
     },
-    description: "Launch a high-converting, fully automated online store in 60 seconds. 1-Click store cloner, white-labeled Gumroad checkout, dedicated creator bio store, and 100% free forever.",
-    keywords: ["shopify alternative", "store cloner", "free ecommerce builder", "link in bio store", "dropshipping cloner", "gumroad ecommerce", "stan store alternative", "creator store"],
+    description: "1-Click clone any winning e-commerce or creator store directly to Gumroad. Access guaranteed best pricing, direct supplier wholesale rates, automated Gumroad checkout, and high-converting storefronts with zero monthly subscription fees.",
+    keywords: [
+        "1 click clone to gumroad store",
+        "gumroad store cloner",
+        "gumroad online store",
+        "best pricing ecommerce",
+        "wholesale rates dropshipping",
+        "clone store to gumroad",
+        "gumroad ecommerce",
+        "free stan store alternative",
+        "high converting gumroad store",
+        "verified wholesale pricing",
+        "creator bio store",
+        "zero fee ecommerce"
+    ],
     authors: [{ name: "GumShop Team", url: "https://gumshop.online" }],
     creator: "GumShop",
     publisher: "GumShop",
@@ -31,8 +44,8 @@ export const metadata = {
         canonical: 'https://gumshop.online',
     },
     openGraph: {
-        title: "GumShop.online — The Free Shopify for Beginners & Creators",
-        description: "Clone any winning store in 60 seconds with banners, reviews, creator bio mode, and instant checkout. 100% Free Forever.",
+        title: "GumShop.online — 1-Click Clone to Gumroad Store | Best Pricing & Wholesale Rates",
+        description: "1-Click clone any winning store to Gumroad with verified customer reviews, high-res media, creator bio mode, and automated checkout. 100% free with direct wholesale supplier margins.",
         url: "https://gumshop.online",
         siteName: "GumShop.online",
         locale: "en_US",
@@ -42,14 +55,14 @@ export const metadata = {
                 url: '/favicon.svg',
                 width: 512,
                 height: 512,
-                alt: 'GumShop E-Commerce Logo'
+                alt: 'GumShop — 1-Click Clone to Gumroad Store'
             }
         ]
     },
     twitter: {
         card: "summary_large_image",
-        title: "GumShop.online — The Free Shopify for Beginners & Creators",
-        description: "Launch your high-converting online store in 60s for $0. No monthly fees, no app subscriptions.",
+        title: "GumShop.online — 1-Click Clone to Gumroad Store | Best Pricing & Wholesale Rates",
+        description: "1-Click clone any store directly to Gumroad in 60 seconds. Guaranteed best pricing, direct wholesale rates, and zero monthly fees.",
         images: ['/favicon.svg']
     },
     robots: {

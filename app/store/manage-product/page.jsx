@@ -128,8 +128,18 @@ export default function StoreManageProducts() {
     const handleUpdateRetailPrice = async (productId, newPrice) => {
         const p = parseFloat(newPrice) || 0;
         if (p <= 0) return;
-        await updateProduct(productId, { price: p });
-        setProducts(prev => prev.map(item => item.id === productId ? { ...item, price: p } : item));
+        const target = products.find(prod => prod.id === productId);
+        const currentCompare = parseFloat(target?.compareAtPrice || target?.mrp || 0);
+        const updatedCompare = currentCompare > p ? currentCompare : Math.round(p * 1.35 * 100) / 100;
+        const customBundles = generateContextualBundles(target?.name || 'Product', p, 'exact');
+        const updatePayload = {
+            price: p,
+            compareAtPrice: updatedCompare,
+            mrp: updatedCompare,
+            customBundles
+        };
+        await updateProduct(productId, updatePayload);
+        setProducts(prev => prev.map(item => item.id === productId ? { ...item, ...updatePayload } : item));
         toast.success("Retail price updated!");
     };
 

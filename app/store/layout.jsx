@@ -1,8 +1,8 @@
 import StoreLayout from "@/components/store/StoreLayout";
 
 export const metadata = {
-    title: "GumShop.online — Merchant Command Center",
-    description: "Launch, clone, and manage your high-converting online storefront with GumShop.online",
+    title: "Merchant Command Center | GumShop — 1-Click Gumroad Store Cloner",
+    description: "Manage products, customize wholesale pricing, and track automated Gumroad store checkouts with GumShop.online",
 };
 
 export default function RootStoreLayout({ children }) {
