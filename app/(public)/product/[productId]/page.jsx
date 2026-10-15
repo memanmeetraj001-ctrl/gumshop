@@ -191,7 +191,7 @@ export default function Product() {
                             },
                             offers: {
                                 '@type': 'Offer',
-                                url: typeof window !== 'undefined' ? window.location.href : `https://gumshop.online/product/${product.id}`,
+                                url: `https://www.gumshop.online/product/${encodeURIComponent(product.id || '')}`,
                                 priceCurrency: 'USD',
                                 price: parseFloat(product.price || 0).toFixed(2),
                                 availability: product.inStock !== false ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',

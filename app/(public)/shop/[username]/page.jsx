@@ -287,7 +287,7 @@ export default function StoreShop({ params }) {
                         '@type': 'OnlineStore',
                         name: storeInfo?.name || `${username} Store`,
                         description: storeInfo?.description || `Official store for ${storeInfo?.name || username} on GumShop.`,
-                        url: typeof window !== 'undefined' ? window.location.href : `https://gumshop.online/shop/${username}`,
+                        url: `https://www.gumshop.online/shop/${encodeURIComponent(username || '')}`,
                         hasMerchantReturnPolicy: {
                             '@type': 'MerchantReturnPolicy',
                             applicableCountry: 'US',
