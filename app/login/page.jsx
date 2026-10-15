@@ -139,13 +139,13 @@ export default function LoginGate() {
                             <ShieldCheck size={16} />
                             <span>Active Master Session Detected</span>
                         </div>
-                        <a
+                        <Link
                             href="/dashboard"
                             className="inline-flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
                         >
                             <span>Open Master Command Center</span>
                             <ArrowRight size={14} />
-                        </a>
+                        </Link>
                         <p className="text-[11px] text-slate-500 mt-2">Or enter password below to refresh credentials</p>
                     </div>
                 )}
