@@ -75,16 +75,14 @@ export default function MasterDashboardPage() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'archived'
-    const [selectedCatalogStore, setSelectedCatalogStore] = useState('all');
-    const [selectedOrdersStore, setSelectedOrdersStore] = useState('all');
 
     // Orders state
     const [orders, setOrders] = useState([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
     const [gumroadConnected, setGumroadConnected] = useState(null);
 
-    // Master HQ Navigation State: 'overview' | 'stores' | 'products' | 'imports' | 'orders' | 'analytics' | 'gumroad' | 'settings'
-    const [activeNavTab, setActiveNavTab] = useState('overview');
+    // Master HQ Navigation State: 'stores' | 'overview' | 'imports' | 'analytics'
+    const [activeNavTab, setActiveNavTab] = useState('stores');
 
     // Master Import History State
     const [importHistory, setImportHistory] = useState([]);
@@ -190,8 +188,10 @@ export default function MasterDashboardPage() {
                 if (ls && ls.username && !isStoreDeleted(ls.id) && !isStoreDeleted(ls.username) && !seenSlugs.has(ls.username)) {
                     seenSlugs.add(ls.username);
                     const prods = await getProductsByStore(ls.id || ls.username);
+                    const hasGumroad = Boolean(ls.gumroadToken || ls.gumroadProductUrl || (typeof window !== 'undefined' && (localStorage.getItem(`gumroad_token_${ls.username}`) || localStorage.getItem(`gumroad_url_${ls.username}`))));
                     found.push({
                         ...ls,
+                        hasGumroad,
                         products: prods,
                         productsCount: prods.length
                     });
@@ -211,6 +211,7 @@ export default function MasterDashboardPage() {
                         if (slug && !isStoreDeleted(sStore.id) && !isStoreDeleted(sStore.username) && !isStoreDeleted(slug) && !seenSlugs.has(slug)) {
                             seenSlugs.add(slug);
                             const prods = await getProductsByStore(sStore.id || slug);
+                            const hasGumroad = Boolean(sStore.gumroadToken || sStore.gumroadProductUrl || (typeof window !== 'undefined' && (localStorage.getItem(`gumroad_token_${slug}`) || localStorage.getItem(`gumroad_url_${slug}`))));
                             found.push({
                                 id: sStore.id || `store_${slug}`,
                                 name: sStore.name || slug,
@@ -220,6 +221,9 @@ export default function MasterDashboardPage() {
                                 themeColor: sStore.themeColor || '#10B981',
                                 logo: sStore.logo || '',
                                 status: sStore.status || 'active',
+                                hasGumroad,
+                                gumroadToken: sStore.gumroadToken || '',
+                                gumroadProductUrl: sStore.gumroadProductUrl || '',
                                 productsCount: prods.length,
                                 products: prods,
                                 createdAt: sStore.createdAt || new Date().toISOString()
@@ -243,6 +247,7 @@ export default function MasterDashboardPage() {
                     if (slug && !isStoreDeleted(rStore.id) && !isStoreDeleted(rStore.username) && !isStoreDeleted(slug) && !seenSlugs.has(slug)) {
                         seenSlugs.add(slug);
                         const prods = await getProductsByStore(rStore.id || slug);
+                        const hasGumroad = Boolean(rStore.gumroadToken || rStore.gumroadProductUrl || (typeof window !== 'undefined' && (localStorage.getItem(`gumroad_token_${slug}`) || localStorage.getItem(`gumroad_url_${slug}`))));
                         found.push({
                             id: rStore.id || `store_${slug}`,
                             name: rStore.name || slug,
@@ -252,6 +257,9 @@ export default function MasterDashboardPage() {
                             themeColor: rStore.themeColor || '#10B981',
                             logo: rStore.logo || '',
                             status: rStore.status || 'active',
+                            hasGumroad,
+                            gumroadToken: rStore.gumroadToken || '',
+                            gumroadProductUrl: rStore.gumroadProductUrl || '',
                             productsCount: prods.length,
                             products: prods,
                             createdAt: rStore.createdAt || new Date().toISOString()
@@ -289,8 +297,6 @@ export default function MasterDashboardPage() {
 
         if (targetStore) {
             setActiveStore(targetStore);
-            setSelectedCatalogStore(targetStore.username);
-            setSelectedOrdersStore(targetStore.username);
         } else {
             setActiveStore(null);
         }
@@ -525,10 +531,6 @@ export default function MasterDashboardPage() {
         if (!shop) return;
         setActiveStoreSlug(shop);
         setActiveStore(shop);
-        if (shop.username) {
-            setSelectedCatalogStore(shop.username);
-            setSelectedOrdersStore(shop.username);
-        }
         if (typeof window !== 'undefined') {
             try {
                 const url = new URL(window.location.href);
@@ -777,20 +779,10 @@ export default function MasterDashboardPage() {
         return matchesQuery && matchesStatus;
     });
 
-    // Compute Metrics & Master Catalog
+    // Compute Metrics
     const totalStores = shops.length;
     const totalProducts = shops.reduce((acc, s) => acc + (s.productsCount || 0), 0);
     const activeStoresCount = shops.filter(s => s.status !== 'archived').length;
-
-    // Aggregated Master Products
-    const allMasterProducts = shops.flatMap(shop => 
-        (shop.products || []).map(p => ({
-            ...p,
-            storeName: shop.name,
-            storeSlug: shop.username,
-            storeTheme: shop.theme
-        }))
-    );
 
     // Active Store Isolated Data & Metrics (Zero Cross-Store Mixing)
     const activeStoreSlugClean = (activeStore?.username || activeStore?.id || '').toLowerCase().replace(/^store_/, '');
@@ -815,26 +807,6 @@ export default function MasterDashboardPage() {
     const activeStoreAOV = activeStoreOrders.length > 0 
         ? (activeStoreRevenue / activeStoreOrders.length) 
         : 0;
-
-    // Filtered Master Catalog by selected store
-    const filteredMasterProducts = allMasterProducts.filter(p => {
-        const activeFilter = selectedCatalogStore === 'active' ? (activeStore?.username || 'all') : selectedCatalogStore;
-        if (activeFilter === 'all') return true;
-        const target = activeFilter.toLowerCase().replace(/^store_/, '');
-        const pSlug = (p.storeSlug || '').toLowerCase();
-        const pStoreId = (p.storeId || '').toLowerCase().replace(/^store_/, '');
-        return pSlug === target || pStoreId === target;
-    });
-
-    // Orders Filtered by selected store
-    const filteredOrders = orders.filter(o => {
-        const activeFilter = selectedOrdersStore === 'active' ? (activeStore?.username || 'all') : selectedOrdersStore;
-        if (activeFilter === 'all') return true;
-        const target = activeFilter.toLowerCase().replace(/^store_/, '');
-        const oStoreId = (o.storeId || '').toLowerCase().replace(/^store_/, '');
-        const oStoreSlug = (o.storeSlug || o.storeName || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
-        return oStoreId === target || oStoreSlug === target;
-    });
 
     // Financial Metrics
     const totalOrdersCount = orders.length;
@@ -975,24 +947,6 @@ export default function MasterDashboardPage() {
                             </div>
                         )}
 
-                        {/* Payout Settlement & Cloud Sync Status Badges */}
-                        {gumroadConnected !== null && (
-                            <Link
-                                href="/settings/integrations/gumroad"
-                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs border transition ${
-                                    gumroadConnected
-                                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
-                                        : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
-                                }`}
-                                title={gumroadConnected ? "Private Gumroad Connected (Direct Settlement)" : "Universal Secure Checkout Gateway Active"}
-                            >
-                                <span className={`size-1.5 rounded-full ${gumroadConnected ? 'bg-emerald-600 animate-pulse' : 'bg-indigo-600'}`} />
-                                <span className="font-semibold">
-                                    {gumroadConnected ? "Payouts: Gumroad Direct" : "Payouts: Universal Gateway"}
-                                </span>
-                            </Link>
-                        )}
-
                         <div 
                             className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600"
                             title="Multi-Store State: Synced with Supabase & Local Edge"
@@ -1019,14 +973,6 @@ export default function MasterDashboardPage() {
                     >
                         <Sparkles size={13} />
                         <span>+ IMPORT STORE</span>
-                    </Link>
-
-                    <Link
-                        href="/store/add-product"
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-200 transition hidden md:flex items-center gap-1.5"
-                    >
-                        <Plus size={13} />
-                        <span>+ ADD PRODUCT</span>
                     </Link>
 
                     <button
@@ -1077,11 +1023,8 @@ export default function MasterDashboardPage() {
             <nav className="border-b border-slate-200 bg-white/70 px-6 overflow-x-auto no-scrollbar sticky top-[65px] z-20 backdrop-blur-md">
                 <div className="max-w-7xl mx-auto flex items-center gap-1 sm:gap-2">
                     {[
-                        { id: 'overview', label: activeStore ? `${activeStore.name} Dashboard` : 'Store Dashboard', icon: LayoutDashboard },
                         { id: 'stores', label: `All Stores (${shops.length})`, icon: Store },
-                        { id: 'products', label: `Master Catalog (${filteredMasterProducts.length})`, icon: ShoppingBag },
                         { id: 'imports', label: `Imports Log (${importHistory.length})`, icon: Sparkles },
-                        { id: 'orders', label: `All Orders (${orders.length})`, icon: Package },
                         { id: 'analytics', label: 'Fleet Analytics', icon: BarChart3 }
                     ].map(tab => {
                         const Icon = tab.icon;
@@ -1368,16 +1311,13 @@ export default function MasterDashboardPage() {
                                             )}
                                         </div>
 
-                                        <button
-                                            onClick={() => {
-                                                setSelectedCatalogStore(activeStore.username);
-                                                setActiveNavTab('products');
-                                            }}
+                                        <Link
+                                            href={`/store/products?store=${activeStore.username || activeStore.id}`}
                                             className="w-full mt-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition flex items-center justify-center gap-1.5 border border-slate-200"
                                         >
-                                            <span>Manage All {activeStoreProducts.length} Products in Catalog</span>
+                                            <span>Manage All {activeStoreProducts.length} Products in Store Catalog</span>
                                             <ArrowRight size={12} />
-                                        </button>
+                                        </Link>
                                     </div>
 
                                     {/* Right Column: Recent Orders for this Store */}
@@ -1430,16 +1370,13 @@ export default function MasterDashboardPage() {
                                             )}
                                         </div>
 
-                                        <button
-                                            onClick={() => {
-                                                setSelectedOrdersStore(activeStore.username);
-                                                setActiveNavTab('orders');
-                                            }}
+                                        <Link
+                                            href={`/store/orders?store=${activeStore.username || activeStore.id}`}
                                             className="w-full mt-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 hover:text-slate-900 transition flex items-center justify-center gap-1.5 border border-slate-200"
                                         >
                                             <span>View All {activeStoreOrders.length} Store Orders</span>
                                             <ArrowRight size={12} />
-                                        </button>
+                                        </Link>
                                     </div>
                                 </div>
                             </>
@@ -1633,118 +1570,6 @@ export default function MasterDashboardPage() {
                     </div>
                 )}
 
-                {/* ─── TAB 3: MASTER PRODUCTS CATALOG (Section 9) ─── */}
-                {activeNavTab === 'products' && (
-                    <div className="space-y-6">
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div>
-                                <h2 className="text-lg font-black text-slate-900">
-                                    {selectedCatalogStore === 'all'
-                                        ? `All Stores Catalog (${filteredMasterProducts.length} items)`
-                                        : `Catalog for "${shops.find(s => s.username === selectedCatalogStore)?.name || selectedCatalogStore}" (${filteredMasterProducts.length} items)`}
-                                </h2>
-                                <p className="text-xs text-slate-400 mt-0.5">
-                                    {selectedCatalogStore === 'all' 
-                                        ? 'Consolidated product directory across all independent stores.' 
-                                        : `Product catalog strictly scoped to store "${shops.find(s => s.username === selectedCatalogStore)?.name || selectedCatalogStore}".`}
-                                </p>
-                            </div>
-
-                            <div className="flex items-center gap-2.5">
-                                <select
-                                    value={selectedCatalogStore === 'active' ? (activeStore?.username || 'all') : selectedCatalogStore}
-                                    onChange={(e) => {
-                                        setSelectedCatalogStore(e.target.value);
-                                        const found = shops.find(s => s.username === e.target.value);
-                                        if (found) handleSetActiveStore(found);
-                                    }}
-                                    className="px-3 py-2 bg-white border border-slate-200 focus:border-emerald-500 rounded-xl text-xs text-slate-900 focus:outline-none transition cursor-pointer"
-                                >
-                                    {shops.map(s => (
-                                        <option key={s.username} value={s.username}>Store: {s.name} ({s.productsCount || 0} items)</option>
-                                    ))}
-                                    <option value="all">All Stores Combined ({allMasterProducts.length} items)</option>
-                                </select>
-
-                                <Link
-                                    href="/store/add-product"
-                                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
-                                >
-                                    <Plus size={13} />
-                                    <span>Add Product</span>
-                                </Link>
-                            </div>
-                        </div>
-
-                        {filteredMasterProducts.length > 0 ? (
-                            <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left text-xs">
-                                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
-                                            <tr>
-                                                <th className="py-3 px-4">Product</th>
-                                                <th className="py-3 px-4">Assigned Store</th>
-                                                <th className="py-3 px-4">Price</th>
-                                                <th className="py-3 px-4">Status</th>
-                                                <th className="py-3 px-4 text-right">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 text-slate-800">
-                                            {filteredMasterProducts.map((p, idx) => (
-                                                <tr key={p.id || idx} className="hover:bg-slate-50 transition">
-                                                    <td className="py-3 px-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="size-10 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200">
-                                                                <img 
-                                                                    src={p.image || p.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100'} 
-                                                                    alt={p.name} 
-                                                                    className="w-full h-full object-cover" 
-                                                                />
-                                                            </div>
-                                                            <div className="min-w-0 max-w-xs">
-                                                                <div className="font-bold text-slate-900 truncate">{typeof p.name === 'string' ? p.name : String(p.name || 'Product')}</div>
-                                                                <div className="text-[10px] text-slate-500 font-mono truncate">{typeof p.category === 'string' ? p.category : (p.category?.name || 'Featured')}</div>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                                                            <Store size={10} />
-                                                            {p.storeName}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3 px-4 font-mono font-bold text-emerald-600">
-                                                        ${(parseFloat(typeof p.price === 'object' ? p.price?.amount : p.price) || 0).toFixed(2)}
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                            Active
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3 px-4 text-right">
-                                                        <Link
-                                                            href={`/store/manage-product`}
-                                                            onClick={() => setActiveStoreSlug({ username: p.storeSlug, name: p.storeName })}
-                                                            className="text-xs font-bold text-slate-700 hover:text-slate-900 transition px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200"
-                                                        >
-                                                            Manage
-                                                        </Link>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="text-center py-16 bg-white border border-slate-200 rounded-3xl p-8 shadow-sm">
-                                <ShoppingBag size={32} className="mx-auto text-slate-400 mb-3" />
-                                <h4 className="text-sm font-bold text-slate-900">No products found for this selection</h4>
-                                <p className="text-xs text-slate-500 mt-1">Import a store or add a new product to this store.</p>
-                            </div>
-                        )}
-                    </div>
-                )}
 
                 {/* ─── TAB 4: MASTER IMPORTS & HISTORY (Section 26) ─── */}
                 {activeNavTab === 'imports' && (
@@ -1854,147 +1679,6 @@ export default function MasterDashboardPage() {
                     </div>
                 )}
 
-                {/* ─── TAB 5: ORDERS (Section 17) ─── */}
-                {activeNavTab === 'orders' && (
-                    <div className="space-y-6">
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div>
-                                <h2 className="text-lg font-black text-slate-900">
-                                    {selectedOrdersStore === 'all'
-                                        ? `All Stores Orders (${filteredOrders.length})`
-                                        : `Customer Orders for "${shops.find(s => s.username === selectedOrdersStore)?.name || selectedOrdersStore}" (${filteredOrders.length})`}
-                                </h2>
-                                <p className="text-xs text-slate-500 mt-0.5">
-                                    {selectedOrdersStore === 'all'
-                                        ? 'Consolidated customer orders across all independent stores.'
-                                        : `Customer orders strictly scoped to store "${shops.find(s => s.username === selectedOrdersStore)?.name || selectedOrdersStore}".`}
-                                </p>
-                            </div>
-
-                            <div className="flex items-center gap-2.5">
-                                <select
-                                    value={selectedOrdersStore === 'active' ? (activeStore?.username || 'all') : selectedOrdersStore}
-                                    onChange={(e) => {
-                                        setSelectedOrdersStore(e.target.value);
-                                        const found = shops.find(s => s.username === e.target.value);
-                                        if (found) handleSetActiveStore(found);
-                                    }}
-                                    className="px-3 py-2 bg-white border border-slate-200 focus:border-emerald-500 rounded-xl text-xs text-slate-900 focus:outline-none transition cursor-pointer"
-                                >
-                                    {shops.map(s => (
-                                        <option key={s.username} value={s.username}>Store: {s.name}</option>
-                                    ))}
-                                    <option value="all">All Stores Combined ({orders.length} orders)</option>
-                                </select>
-
-                                <button
-                                    onClick={loadOrders}
-                                    className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-slate-200 transition"
-                                    title="Refresh Orders"
-                                >
-                                    <RefreshCw size={13} className={loadingOrders ? 'animate-spin' : ''} />
-                                </button>
-
-                                <Link
-                                    href="/store/orders"
-                                    className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs border border-slate-200 shadow-xs transition flex items-center gap-1.5"
-                                >
-                                    <ExternalLink size={13} />
-                                    <span>Store Order Manager</span>
-                                </Link>
-                            </div>
-                        </div>
-
-                        {/* Order Summary Cards */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-                                <div className="text-[11px] font-bold text-slate-500">Total Orders</div>
-                                <div className="text-2xl font-black text-slate-900 mt-1">{filteredOrders.length}</div>
-                            </div>
-                            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-                                <div className="text-[11px] font-bold text-slate-500">Completed Orders</div>
-                                <div className="text-2xl font-black text-emerald-600 mt-1">
-                                    {filteredOrders.filter(o => (o.status || '').toLowerCase() === 'completed' || o.verified).length}
-                                </div>
-                            </div>
-                            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-                                <div className="text-[11px] font-bold text-slate-500">Gross Revenue</div>
-                                <div className="text-2xl font-black text-teal-600 mt-1 font-mono">
-                                    ${filteredOrders.reduce((sum, o) => sum + (parseFloat(o.total || o.amount || o.price || 0) || 0), 0).toFixed(2)}
-                                </div>
-                            </div>
-                        </div>
-
-                        {filteredOrders.length > 0 ? (
-                            <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left text-xs">
-                                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
-                                            <tr>
-                                                <th className="py-3 px-4">Order ID</th>
-                                                <th className="py-3 px-4">Store</th>
-                                                <th className="py-3 px-4">Customer</th>
-                                                <th className="py-3 px-4">Amount</th>
-                                                <th className="py-3 px-4">Status</th>
-                                                <th className="py-3 px-4">Date</th>
-                                                <th className="py-3 px-4 text-right">Fulfillment</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 text-slate-800">
-                                            {filteredOrders.map((ord, idx) => (
-                                                <tr key={ord.id || idx} className="hover:bg-slate-50 transition">
-                                                    <td className="py-3 px-4 font-mono font-bold text-slate-900">
-                                                        {ord.id || `ORD-${idx + 1}`}
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                                                            <Store size={10} />
-                                                            {ord.storeName || ord.storeSlug || ord.storeId || 'Store'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <div className="font-medium text-slate-900">{typeof ord.customer === 'string' ? ord.customer : (ord.customer?.name || ord.name || ord.customerName || 'Customer')}</div>
-                                                        <div className="text-[10px] text-slate-500 font-mono">{typeof ord.customer === 'object' && ord.customer?.email ? ord.customer.email : (ord.customerEmail || ord.email || '—')}</div>
-                                                    </td>
-                                                    <td className="py-3 px-4 font-mono font-bold text-emerald-600">
-                                                        ${(parseFloat(ord.total || ord.amount || ord.price || 0) || 0).toFixed(2)}
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                            <CheckCircle2 size={10} />
-                                                            {ord.status || 'Completed'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3 px-4 text-slate-500 text-[11px]">
-                                                        {new Date(ord.createdAt || Date.now()).toLocaleDateString()}
-                                                    </td>
-                                                    <td className="py-3 px-4 text-right">
-                                                        <Link
-                                                            href={`/track?orderId=${ord.id}`}
-                                                            target="_blank"
-                                                            className="text-xs font-bold text-slate-700 hover:text-slate-900 transition px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 inline-flex items-center gap-1"
-                                                        >
-                                                            <span>Track</span>
-                                                            <ExternalLink size={10} />
-                                                        </Link>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center space-y-3 shadow-sm">
-                                <Package size={36} className="mx-auto text-slate-600" />
-                                <h3 className="text-base font-bold text-slate-900">No customer orders recorded yet</h3>
-                                <p className="text-xs text-slate-500 max-w-md mx-auto">
-                                    When customers place orders via Gumroad checkout on any storefront, verified transactions will populate here automatically.
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                )}
 
                 {/* ─── TAB 6: ANALYTICS (Section 25) ─── */}
                 {activeNavTab === 'analytics' && (
@@ -2377,8 +2061,16 @@ function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onS
                         <div className="text-sm font-bold text-slate-900 mt-0.5">{shop.productsCount}</div>
                     </div>
                     <div className="text-center border-l border-slate-200">
-                        <div className="text-[11px] text-slate-500 font-medium">Checkout</div>
-                        <div className="text-sm font-bold text-emerald-600 mt-0.5">Ready</div>
+                        <div className="text-[11px] text-slate-500 font-medium">Gumroad Payouts</div>
+                        <Link
+                            href={`/store/settings?tab=gumroad&store=${shop.username}`}
+                            className={`text-xs font-bold mt-0.5 inline-flex items-center justify-center gap-1 hover:underline ${
+                                shop.hasGumroad ? 'text-emerald-600' : 'text-amber-600'
+                            }`}
+                            title={shop.hasGumroad ? "Gumroad account configured for this store" : "Click to connect Gumroad for this store"}
+                        >
+                            <span>{shop.hasGumroad ? "✓ Connected" : "Connect"}</span>
+                        </Link>
                     </div>
                 </div>
 

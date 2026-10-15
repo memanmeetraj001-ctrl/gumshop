@@ -81,11 +81,22 @@ export async function POST(req) {
             await markSaleProcessed(saleId, orderId);
         }
 
+        let effectiveStoreId = String(storeId);
+        if ((!effectiveStoreId || effectiveStoreId === 'store_default') && orderId) {
+            try {
+                const { getServerOrder } = await import('@/lib/serverOrderStore');
+                const existing = await getServerOrder(orderId);
+                if (existing?.storeId && existing.storeId !== 'store_default') {
+                    effectiveStoreId = existing.storeId;
+                }
+            } catch {}
+        }
+
         // 2. Verified Paid Order Data (Strict separation of payment, fulfillment, shipment)
         const orderData = {
             id: String(orderId),
             orderId: String(orderId),
-            storeId: String(storeId),
+            storeId: effectiveStoreId,
             customer: {
                 name: payload.full_name || payload.buyer_name || email.split('@')[0],
                 email: email,

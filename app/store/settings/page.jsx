@@ -262,12 +262,15 @@ export default function StoreSettings() {
         }
         setIsVerifyingGumroad(true);
         try {
+            const cleanSlug = (storeInfo.username || storeInfo.id || 'store').toLowerCase().replace(/^store_/, '').trim();
             const res = await fetch('/api/gumroad/sync', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'verify',
-                    accessToken: storeInfo.gumroadToken.trim()
+                    accessToken: storeInfo.gumroadToken.trim(),
+                    storeId: storeInfo.id || `store_${cleanSlug}`,
+                    storeSlug: cleanSlug
                 })
             });
             const data = await res.json();
@@ -276,10 +279,10 @@ export default function StoreSettings() {
             }
             setGumroadAccount(data.user);
 
-            // Auto-persist verified token immediately!
+            // Auto-persist verified token scoped strictly to THIS store!
             if (typeof window !== 'undefined') {
-                localStorage.setItem('gumshop_gumroad_token', storeInfo.gumroadToken.trim());
-                localStorage.setItem('gumroad_access_token', storeInfo.gumroadToken.trim());
+                localStorage.setItem(`gumroad_token_${cleanSlug}`, storeInfo.gumroadToken.trim());
+                localStorage.setItem(`gumroad_token_store_${cleanSlug}`, storeInfo.gumroadToken.trim());
                 const raw = localStorage.getItem('gumshop_active_store');
                 if (raw) {
                     try {
@@ -289,6 +292,17 @@ export default function StoreSettings() {
                     } catch {}
                 }
             }
+
+            // Also vault server-side for this store
+            fetch('/api/gumroad/connect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    token: storeInfo.gumroadToken.trim(),
+                    storeId: storeInfo.id || `store_${cleanSlug}`,
+                    storeSlug: cleanSlug
+                })
+            }).catch(() => {});
             toast.success(`Connected & saved to Gumroad account: ${data.user.name || data.user.email || 'Verified'}!`);
         } catch (err) {
             console.error("Token verification error:", err);

@@ -196,6 +196,31 @@ export default function SuperStorefront() {
     const storeTitle = activeStore?.name || 'GumShop Online';
     const storeDescription = activeStore?.description || 'Independent curated digital commerce storefront. Direct merchant pricing and secure checkout powered by Gumroad.';
 
+    if (!loading && !activeStore) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-center antialiased">
+                <div className="max-w-md w-full bg-white border border-slate-200 rounded-3xl p-8 shadow-sm space-y-4">
+                    <div className="size-16 rounded-3xl bg-slate-100 text-slate-400 border border-slate-200 flex items-center justify-center mx-auto shadow-xs">
+                        <Store size={28} />
+                    </div>
+                    <h1 className="text-xl font-black text-slate-900">No Store Configured</h1>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                        There is currently no active storefront designated for the homepage. Visit your Merchant Dashboard to create a store or set a store as your homepage.
+                    </p>
+                    <div className="pt-2">
+                        <Link
+                            href="/dashboard"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 transition"
+                        >
+                            <span>Open Dashboard</span>
+                            <ArrowRight size={14} />
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 antialiased pb-16 sm:pb-0">
 

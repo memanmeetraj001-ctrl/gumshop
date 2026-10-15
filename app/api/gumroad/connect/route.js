@@ -9,14 +9,15 @@ import { setServerGumroadToken, clearServerGumroadToken } from '@/lib/serverVaul
 export async function POST(req) {
     try {
         const body = await req.json().catch(() => ({}));
-        const { token, action } = body;
+        const { token, action, storeId = '', storeSlug = '', store = '' } = body;
+        const targetStoreKey = (storeSlug || storeId || store || '').toLowerCase().replace(/^store_/, '').trim();
 
         if (action === 'disconnect') {
-            await clearServerGumroadToken();
+            await clearServerGumroadToken(targetStoreKey);
             return NextResponse.json({
                 success: true,
                 connected: false,
-                message: 'Gumroad disconnected successfully.'
+                message: `Gumroad disconnected successfully${targetStoreKey ? ` for store ${targetStoreKey}` : ''}.`
             });
         }
 
@@ -46,8 +47,8 @@ export async function POST(req) {
 
         const data = await testRes.json().catch(() => ({}));
 
-        // Vault the token strictly server-side
-        await setServerGumroadToken(cleanToken);
+        // Vault the token strictly server-side for this specific store
+        await setServerGumroadToken(cleanToken, targetStoreKey);
 
         // Return verified account info without exposing the token
         return NextResponse.json({

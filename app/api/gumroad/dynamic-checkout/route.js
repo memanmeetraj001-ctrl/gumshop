@@ -137,8 +137,9 @@ export async function POST(req) {
             }
         }
 
-        // Try auto-discovering from server-vaulted Gumroad token
-        const serverToken = (await getServerGumroadToken(storeId)) || (!storeId || storeId === 'store_default' ? await getServerGumroadToken() : '');
+        // Try auto-discovering from this specific store's server-vaulted Gumroad token
+        const targetStoreKey = storeSlug || storeId || '';
+        const serverToken = targetStoreKey ? await getServerGumroadToken(targetStoreKey) : '';
         if (!resolvedProductUrl && serverToken) {
             try {
                 const prodRes = await fetch(`https://api.gumroad.com/v2/products?access_token=${encodeURIComponent(serverToken)}`, {
@@ -164,20 +165,22 @@ export async function POST(req) {
         }
 
         // Check if store record in database has configured Gumroad URL
-        if (!resolvedProductUrl && storeId) {
+        if (!resolvedProductUrl && targetStoreKey) {
             try {
                 const { serverGetStore } = await import('@/lib/serverDb');
-                const dbStore = await serverGetStore(storeId);
+                const dbStore = await serverGetStore(targetStoreKey);
                 const sUrl = (dbStore?.gumroadProductUrl || dbStore?.gumroadUrl || '').trim();
-                if (sUrl && !sUrl.includes('gumroad.com/l/gumshop-order')) {
+                if (sUrl && !sUrl.includes('gumroad.com/l/gumshop-order') && !sUrl.includes('gumroad.com/l/gumshop-checkout')) {
                     resolvedProductUrl = sUrl.startsWith('http') ? sUrl : `https://${sUrl}`;
                 }
             } catch {}
         }
 
-        // Guaranteed universal fallback checkout gateway so customer payment is NEVER blocked
+        // Strictly isolated: NO universal fallback payment gateway. Store must connect its own Gumroad.
         if (!resolvedProductUrl) {
-            resolvedProductUrl = 'https://gumroad.com/l/gumshop-checkout';
+            return NextResponse.json({
+                error: `Store "${storeName || targetStoreKey}" has not connected a Gumroad account. Connect Gumroad in Store Settings to enable checkout.`
+            }, { status: 400 });
         }
 
         // 3. Log Checkout Initiation Session (PENDING / CHECKOUT_STARTED, NEVER PAID)
@@ -266,23 +269,9 @@ export async function POST(req) {
                 });
             } catch (urlErr) {
                 console.warn('URL parsing notice:', urlErr.message);
-                const safeUrl = `https://gumroad.com/l/gumshop-checkout?wanted=true&price=${finalTotal.toFixed(2)}&order_id=${encodeURIComponent(orderSessionId)}`;
                 return NextResponse.json({
-                    success: true,
-                    orderId: orderSessionId,
-                    orderSessionId,
-                    total: finalTotal,
-                    checkoutUrl: safeUrl,
-                    pricing: {
-                        subtotal: Math.round(subtotal * 100) / 100,
-                        shippingFee: Math.round(parseFloat(shippingFee || 0) * 100) / 100,
-                        rushFee: Math.round(totalRushFee * 100) / 100,
-                        discountAmount: Math.round(parseFloat(discountAmount || 0) * 100) / 100,
-                        finalTotal: finalTotal,
-                        currency: 'USD'
-                    },
-                    itemsSummary
-                });
+                    error: `Invalid product checkout URL configured for store "${storeName || targetStoreKey}". Please check your Gumroad configuration in Store Settings.`
+                }, { status: 400 });
             }
         }
 

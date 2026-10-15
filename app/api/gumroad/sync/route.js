@@ -11,16 +11,17 @@ import { getServerGumroadToken } from '@/lib/serverVault';
 export async function POST(req) {
     try {
         const body = await req.json().catch(() => ({}));
-        const { storeId, action = 'sync' } = body;
+        const { storeId = '', storeSlug = '', action = 'sync' } = body;
+        const targetStoreKey = (storeSlug || storeId || '').toLowerCase().replace(/^store_/, '').trim();
         let rawToken = body.token || body.accessToken || body.gumroadToken;
 
         if (!rawToken || !rawToken.trim()) {
-            rawToken = await getServerGumroadToken();
+            rawToken = targetStoreKey ? await getServerGumroadToken(targetStoreKey) : await getServerGumroadToken();
         }
 
         if (!rawToken || !rawToken.trim()) {
             return NextResponse.json({ 
-                error: 'Please connect your Gumroad account in Gumroad Settings.' 
+                error: `Please connect your Gumroad account in Store Settings${targetStoreKey ? ` for store ${targetStoreKey}` : ''}.` 
             }, { status: 400 });
         }
 
