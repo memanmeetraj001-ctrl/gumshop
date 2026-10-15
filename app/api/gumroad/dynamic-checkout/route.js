@@ -1,7 +1,4 @@
 import { NextResponse } from 'next/server';
-import { database } from '@/lib/firebase';
-const ref = () => null;
-const set = () => Promise.resolve();
 import { getServerGumroadToken } from '@/lib/serverVault';
 import { getProduct } from '@/lib/firebaseDb';
 import { saveServerOrder } from '@/lib/serverOrderStore';

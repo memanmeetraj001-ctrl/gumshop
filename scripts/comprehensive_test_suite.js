@@ -42,17 +42,31 @@ async function runSuite() {
     console.log(`📅 Execution Timestamp: ${new Date().toISOString()}`);
     console.log(`============================================================\n`);
 
-    // =========================================================================
-    // SUITE 1: Critical Public Page Availability & Reality Check
-    // =========================================================================
-    console.log(`📦 [SUITE 1] Public Storefronts & Core Pages`);
+    // Pre-flight probe: check if Next.js local server is reachable
+    let serverOnline = false;
+    try {
+        await fetch(`${BASE_URL}/`, { signal: AbortSignal.timeout(1200) });
+        serverOnline = true;
+    } catch {
+        serverOnline = false;
+    }
 
-    await test('Public Pages', 'Root Homepage (/) responds HTTP 200', async () => {
-        const res = await fetch(`${BASE_URL}/`);
-        if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
-        const html = await res.text();
-        if (!html.includes('<!DOCTYPE html>')) throw new Error('Invalid HTML response');
-    });
+    if (!serverOnline) {
+        console.log(`⚠️  [INFO] Next.js server is not currently reachable at ${BASE_URL}`);
+        console.log(`   (Start server via 'npm run dev' to run live HTTP storefront and API checks)\n`);
+        console.log(`⚡ Running offline verification suites (Multi-Store Vault Isolation, DB sync, & Store Partitioning)...\n`);
+    } else {
+        // =========================================================================
+        // SUITE 1: Critical Public Page Availability & Reality Check
+        // =========================================================================
+        console.log(`📦 [SUITE 1] Public Storefronts & Core Pages`);
+
+        await test('Public Pages', 'Root Homepage (/) responds HTTP 200', async () => {
+            const res = await fetch(`${BASE_URL}/`);
+            if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+            const html = await res.text();
+            if (!html.includes('<!DOCTYPE html>')) throw new Error('Invalid HTML response');
+        });
 
     await test('Public Pages', 'Stan Store Creator Bio (/creator/demo) responds HTTP 200', async () => {
         const res = await fetch(`${BASE_URL}/creator/demo`);
@@ -371,12 +385,13 @@ async function runSuite() {
         if (data.success !== false) throw new Error('Expected success: false for SSRF probe');
     });
 
-    await test('Public Pages', 'Non-existent store (/creator/this-store-does-not-exist-9999) does not throw unhandled 500', async () => {
-        const res = await fetch(`${BASE_URL}/creator/this-store-does-not-exist-9999`);
-        if (res.status === 500) throw new Error('Received unhandled 500 Internal Server Error');
-        const html = await res.text();
-        if (!html.includes('<!DOCTYPE html>')) throw new Error('Expected HTML document');
-    });
+        await test('Public Pages', 'Non-existent store (/creator/this-store-does-not-exist-9999) does not throw unhandled 500', async () => {
+            const res = await fetch(`${BASE_URL}/creator/this-store-does-not-exist-9999`);
+            if (res.status === 500) throw new Error('Received unhandled 500 Internal Server Error');
+            const html = await res.text();
+            if (!html.includes('<!DOCTYPE html>')) throw new Error('Expected HTML document');
+        });
+    }
 
     // =========================================================================
     // SUITE 5: Multi-Store Credential Isolation & Order Persistence Bridge

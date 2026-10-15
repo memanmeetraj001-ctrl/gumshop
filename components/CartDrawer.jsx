@@ -271,25 +271,43 @@ export default function CartDrawer({ isOpen, onClose }) {
                     {/* Footer / Summary */}
                     {items.length > 0 && (
                         <div className="p-6 border-t border-slate-200 bg-slate-50/50 space-y-4">
-                            {/* Promo Code Input */}
-                            <form onSubmit={handleApplyCoupon} className="flex gap-2">
-                                <div className="relative flex-1">
-                                    <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                    <input 
-                                        type="text"
-                                        placeholder="Promo code (try SAVE20)"
-                                        value={couponCode}
-                                        onChange={(e) => setCouponCode(e.target.value)}
-                                        className="w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-emerald-500 transition"
-                                    />
+                            {/* Promo Code Input / Applied State */}
+                            {appliedDiscount > 0 ? (
+                                <div className="flex items-center justify-between p-2.5 px-3 bg-emerald-50 border border-emerald-200/80 rounded-xl">
+                                    <div className="flex items-center gap-2">
+                                        <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                                        <span className="text-xs font-bold text-emerald-950 uppercase">Coupon Applied ({couponCode || 'PROMO'})</span>
+                                        <span className="text-xs font-extrabold text-emerald-700">-${appliedDiscount.toFixed(2)}</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setAppliedDiscount(0); setCouponCode(''); toast('Coupon removed', { icon: '🗑️' }); }}
+                                        className="text-xs text-slate-400 hover:text-rose-600 font-bold px-1.5 py-0.5 rounded transition cursor-pointer"
+                                        title="Remove discount"
+                                    >
+                                        ✕ Remove
+                                    </button>
                                 </div>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition"
-                                >
-                                    Apply
-                                </button>
-                            </form>
+                            ) : (
+                                <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input 
+                                            type="text"
+                                            placeholder="Promo code (try SAVE20)"
+                                            value={couponCode}
+                                            onChange={(e) => setCouponCode(e.target.value)}
+                                            className="w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-emerald-500 transition"
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+                                    >
+                                        Apply
+                                    </button>
+                                </form>
+                            )}
 
                             {/* Totals */}
                             <div className="space-y-1.5 text-xs text-slate-600">
