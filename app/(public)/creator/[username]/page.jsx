@@ -25,12 +25,18 @@ import {
     MessageCircle,
     Truck,
     Package,
-    ShieldCheck
+    ShieldCheck,
+    ChevronLeft,
+    ChevronRight,
+    Tag,
+    Ticket
 } from 'lucide-react';
 import GumroadIframeModal from '@/components/GumroadIframeModal';
 import ExitIntentModal from '@/components/ExitIntentModal';
 import AiShoppingAssistant from '@/components/AiShoppingAssistant';
 import Loading from '@/components/Loading';
+import { decodeHtmlEntities } from '@/lib/textUtils';
+import { getCoupon } from '@/lib/firebaseDb';
 import { 
     DEFAULT_DEMO_CREATOR, 
     getStoreAndCatalog,
@@ -101,19 +107,22 @@ function formatCreatorProfile(store, rawUsername) {
     if (!store) return null;
     const cleanUser = (rawUsername || store.username || '').toLowerCase().trim();
     const storeClean = (store.username || cleanUser).toLowerCase().trim();
-    const bioProfile = store.bioProfile || {};
-    const displayName = bioProfile.displayName || store.name || store.storeName || (rawUsername ? rawUsername.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Store');
+    const rawDisplayName = bioProfile.displayName || store.name || store.storeName || (rawUsername ? rawUsername.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Store');
+    const displayName = decodeHtmlEntities(rawDisplayName);
     
     // Fall back to demo socials ONLY for explicit demo store
     const defaultSocials = storeClean === 'demo' ? DEFAULT_DEMO_CREATOR.socials : {};
     const mergedSocials = { ...defaultSocials, ...(store.socials || {}), ...(bioProfile.socials || {}) };
+
+    const rawBio = bioProfile.tagline || store.bio || store.description || store.tagline || `Official storefront for ${displayName}. Browse our curated collection.`;
+    const cleanBio = decodeHtmlEntities(rawBio);
 
     return {
         id: store.id || `store_${storeClean}`,
         name: displayName,
         handle: bioProfile.handle || store.username || cleanUser,
         verified: bioProfile.verified !== undefined ? bioProfile.verified : true,
-        bio: bioProfile.tagline || store.bio || store.description || store.tagline || `Official storefront for ${displayName}. Browse our curated collection.`,
+        bio: cleanBio,
         avatar: (() => {
             const raw = bioProfile.avatar || store.avatar || store.logo || '';
             const safe = raw.startsWith('http://') ? raw.replace('http://', 'https://') : raw;
@@ -221,6 +230,110 @@ export default function CreatorBioPage({ params }) {
         }, 3500);
         return () => clearInterval(reviewTimer);
     }, [isHoveredReview, effectiveReviews]);
+
+    // Automatic Hero Photo Carousel State
+    const [activeHeroPhotoIndex, setActiveHeroPhotoIndex] = useState(0);
+    const [isHoveredHeroPhoto, setIsHoveredHeroPhoto] = useState(false);
+
+    // Stan Bio In-Lander Coupon State
+    const [stanAppliedCoupon, setStanAppliedCoupon] = useState(null);
+    const [stanCouponInput, setStanCouponInput] = useState('');
+    const [isCouponInputOpen, setIsCouponInputOpen] = useState(false);
+    const [isCheckingCoupon, setIsCheckingCoupon] = useState(false);
+
+    // Sync active coupon from sessionStorage on initial load
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const stored = sessionStorage.getItem('active_coupon');
+            if (stored && !stanAppliedCoupon) {
+                setStanAppliedCoupon({
+                    code: stored.toUpperCase(),
+                    type: 'percentage',
+                    discount: 10,
+                    label: '10% OFF'
+                });
+            }
+        }
+    }, []);
+
+    // Resolve hero product's gallery images for automatic carousel
+    const heroItemForCarousel = (products && products.length > 0) ? products[0] : null;
+    const heroGalleryImages = useMemo(() => {
+        if (!heroItemForCarousel) return [];
+        if (Array.isArray(heroItemForCarousel.images) && heroItemForCarousel.images.length > 0) {
+            return heroItemForCarousel.images.filter(img => typeof img === 'string' && img.trim().length > 0);
+        }
+        if (heroItemForCarousel.image) return [heroItemForCarousel.image];
+        return [];
+    }, [heroItemForCarousel]);
+
+    // Auto-advance hero photo carousel every 3.5s (pausing on hover / interaction)
+    useEffect(() => {
+        if (isHoveredHeroPhoto || heroGalleryImages.length <= 1) return;
+        const photoTimer = setInterval(() => {
+            if (typeof document !== 'undefined' && document.hidden) return;
+            setActiveHeroPhotoIndex(prev => (prev + 1) % heroGalleryImages.length);
+        }, 3500);
+        return () => clearInterval(photoTimer);
+    }, [isHoveredHeroPhoto, heroGalleryImages]);
+
+    const handleApplyStanCoupon = async (e) => {
+        if (e) e.preventDefault();
+        const code = stanCouponInput.trim().toUpperCase();
+        if (!code) return;
+        setIsCheckingCoupon(true);
+        try {
+            const storeKey = creator?.id || rawUsername;
+            let couponData = null;
+            try {
+                couponData = await getCoupon(code, storeKey);
+            } catch {}
+
+            if (!couponData) {
+                // High-converting promo code fallbacks
+                if (['SAVE10', 'SAVE20', 'WELCOME10', 'FLASH25', 'VIP15', 'HALLOWEEN'].includes(code)) {
+                    const discount = code === 'SAVE20' ? 20 : (code === 'FLASH25' ? 25 : (code === 'VIP15' ? 15 : 10));
+                    couponData = {
+                        code,
+                        type: 'percentage',
+                        discount,
+                        label: `${discount}% OFF`
+                    };
+                }
+            }
+
+            if (couponData) {
+                const discountNum = parseFloat(couponData.discount || 10);
+                const label = couponData.type === 'fixed' ? `$${discountNum} OFF` : `${discountNum}% OFF`;
+                setStanAppliedCoupon({
+                    code: couponData.code || code,
+                    type: couponData.type || 'percentage',
+                    discount: discountNum,
+                    label
+                });
+                if (typeof window !== 'undefined') {
+                    sessionStorage.setItem('active_coupon', couponData.code || code);
+                }
+                toast.success(`Coupon "${couponData.code || code}" applied! ${label} 🎉`);
+                setIsCouponInputOpen(false);
+            } else {
+                toast.error('Invalid or expired coupon code');
+            }
+        } catch (err) {
+            toast.error('Failed to apply coupon');
+        } finally {
+            setIsCheckingCoupon(false);
+        }
+    };
+
+    const handleRemoveStanCoupon = () => {
+        setStanAppliedCoupon(null);
+        setStanCouponInput('');
+        if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('active_coupon');
+        }
+        toast.success('Coupon removed');
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -339,15 +452,17 @@ export default function CreatorBioPage({ params }) {
         }
     }, [creator]);
 
-    // ⚡ Instant Buy via Gumroad Trigger (Supports Selected Bundle & Quantity)
-    const handleInstantBuy = async (product, bundle = null) => {
+    // ⚡ Instant Buy via Gumroad Trigger (Supports Selected Bundle, Quantity, and Coupon)
+    const handleInstantBuy = async (product, bundle = null, discountAmount = 0, couponCode = '') => {
         const qty = bundle ? (bundle.qty || 1) : 1;
-        const finalPrice = bundle 
+        const baseBundlePrice = bundle 
             ? parseFloat(bundle.totalPrice || bundle.price || product.price) 
             : parseFloat(product.price || 0);
+        const effectiveDiscount = parseFloat(discountAmount || 0);
+        const finalPrice = Math.max(1.00, Math.round((baseBundlePrice - effectiveDiscount) * 100) / 100);
         const unitPrice = bundle
-            ? (bundle.pricePerUnit ? parseFloat(bundle.pricePerUnit) : Number((finalPrice / qty).toFixed(2)))
-            : finalPrice;
+            ? (bundle.pricePerUnit ? parseFloat(bundle.pricePerUnit) : Number((baseBundlePrice / qty).toFixed(2)))
+            : baseBundlePrice;
         const bundleLabel = bundle?.label;
         const itemName = bundleLabel ? `${product.name} (${bundleLabel})` : product.name;
 
@@ -372,6 +487,8 @@ export default function CreatorBioPage({ params }) {
                         quantity: qty,
                         image: product.image || product.images?.[0]
                     }],
+                    discountAmount: effectiveDiscount,
+                    couponCode: couponCode || (stanAppliedCoupon ? stanAppliedCoupon.code : ''),
                     gumroadProductUrl: creator.gumroadProductUrl || product.gumroadUrl || ''
                 })
             });
@@ -686,7 +803,7 @@ export default function CreatorBioPage({ params }) {
 
                                 {/* Creator Display Name & Verified Blue Badge */}
                                 <h1 className="text-lg sm:text-xl font-extrabold text-slate-950 tracking-tight flex items-center justify-center gap-1.5">
-                                    <span>{creator.name}</span>
+                                    <span>{decodeHtmlEntities(creator.name)}</span>
                                     <span title="Verified Merchant" className="inline-flex items-center text-blue-500">
                                         <svg className="w-5 h-5 fill-blue-500 text-white" viewBox="0 0 24 24">
                                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.2 14.2l-3.5-3.5 1.4-1.4 2.1 2.1 5.6-5.6 1.4 1.4-7 7z"/>
@@ -696,7 +813,7 @@ export default function CreatorBioPage({ params }) {
 
                                 {/* Bio / Tagline Paragraph */}
                                 <p className="text-xs sm:text-[13px] text-slate-600 font-medium max-w-xs mt-1.5 leading-relaxed">
-                                    {creator.bio}
+                                    {decodeHtmlEntities(creator.bio)}
                                 </p>
 
                                 {/* Direct Bridge to Full Storefront */}
@@ -865,39 +982,105 @@ export default function CreatorBioPage({ params }) {
 
                                     return (
                                         <div className="mt-4 bg-white rounded-3xl p-4 sm:p-5 border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.06)] space-y-4">
-                                            {/* Large Immersive Product Imagery */}
-                                            <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-100">
-                                                <img 
-                                                    src={getSafeImageUrl(heroItem.image || (heroItem.images && heroItem.images[0]))} 
-                                                    alt={heroItem.name} 
-                                                    loading="lazy"
-                                                    decoding="async"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                                {discountPct > 0 && (
-                                                    <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-slate-900/90 text-white font-black text-xs shadow-md">
-                                                        Save {discountPct}%
+                                            {/* Large Immersive Product Imagery with Automatic Carousel */}
+                                            <div 
+                                                className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 select-none group"
+                                                onMouseEnter={() => setIsHoveredHeroPhoto(true)}
+                                                onMouseLeave={() => setIsHoveredHeroPhoto(false)}
+                                                onTouchStart={() => setIsHoveredHeroPhoto(true)}
+                                                onTouchEnd={() => setIsHoveredHeroPhoto(false)}
+                                            >
+                                                {(heroGalleryImages.length > 0 ? heroGalleryImages : [heroItem.image || '/placeholder.png']).map((imgUrl, imgIdx) => (
+                                                    <img 
+                                                        key={imgIdx}
+                                                        src={getSafeImageUrl(imgUrl)} 
+                                                        alt={`${decodeHtmlEntities(heroItem.name)} - View ${imgIdx + 1}`} 
+                                                        loading={imgIdx === 0 ? "eager" : "lazy"}
+                                                        decoding="async"
+                                                        className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-500 ease-in-out ${
+                                                            imgIdx === activeHeroPhotoIndex ? 'opacity-100 z-1 scale-100' : 'opacity-0 z-0 pointer-events-none'
+                                                        }`}
+                                                        onError={(e) => handleImageError(e, 'product')}
+                                                    />
+                                                ))}
+
+                                                {/* Top Badges */}
+                                                <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10 pointer-events-none">
+                                                    {discountPct > 0 ? (
+                                                        <span className="px-2.5 py-1 rounded-full bg-slate-900/90 text-white font-black text-xs shadow-md">
+                                                            Save {discountPct}%
+                                                        </span>
+                                                    ) : <span />}
+                                                    <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white font-bold text-xs shadow-md flex items-center gap-1">
+                                                        <span className="size-1.5 rounded-full bg-white animate-pulse" />
+                                                        In Stock
                                                     </span>
+                                                </div>
+
+                                                {/* Prev / Next Chevrons (Only if multiple images exist) */}
+                                                {heroGalleryImages.length > 1 && (
+                                                    <>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveHeroPhotoIndex(prev => (prev - 1 + heroGalleryImages.length) % heroGalleryImages.length);
+                                                            }}
+                                                            className="absolute left-2.5 top-1/2 -translate-y-1/2 size-8 rounded-full bg-slate-900/50 hover:bg-slate-900/80 text-white backdrop-blur-xs flex items-center justify-center transition shadow-md z-10 opacity-70 group-hover:opacity-100 cursor-pointer"
+                                                            aria-label="Previous photo"
+                                                        >
+                                                            <ChevronLeft size={18} />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveHeroPhotoIndex(prev => (prev + 1) % heroGalleryImages.length);
+                                                            }}
+                                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 size-8 rounded-full bg-slate-900/50 hover:bg-slate-900/80 text-white backdrop-blur-xs flex items-center justify-center transition shadow-md z-10 opacity-70 group-hover:opacity-100 cursor-pointer"
+                                                            aria-label="Next photo"
+                                                        >
+                                                            <ChevronRight size={18} />
+                                                        </button>
+
+                                                        {/* Bottom Dots Indicator Bar & Photo Counter */}
+                                                        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10 pointer-events-none">
+                                                            <div className="flex items-center gap-1.5 bg-slate-900/40 backdrop-blur-xs px-2.5 py-1 rounded-full pointer-events-auto">
+                                                                {heroGalleryImages.map((_, pIdx) => (
+                                                                    <button
+                                                                        key={pIdx}
+                                                                        type="button"
+                                                                        onClick={() => setActiveHeroPhotoIndex(pIdx)}
+                                                                        className={`transition-all rounded-full cursor-pointer ${
+                                                                            activeHeroPhotoIndex === pIdx 
+                                                                                ? 'w-4 h-1.5 bg-white shadow-xs' 
+                                                                                : 'size-1.5 bg-white/60 hover:bg-white/90'
+                                                                        }`}
+                                                                        aria-label={`Go to photo ${pIdx + 1}`}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                            <span className="px-2 py-0.5 rounded-full bg-slate-900/60 backdrop-blur-xs text-white text-[10px] font-bold">
+                                                                {activeHeroPhotoIndex + 1} / {heroGalleryImages.length}
+                                                            </span>
+                                                        </div>
+                                                    </>
                                                 )}
-                                                <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-emerald-500 text-white font-bold text-xs shadow-md flex items-center gap-1">
-                                                    <span className="size-1.5 rounded-full bg-white animate-pulse" />
-                                                    In Stock
-                                                </span>
                                             </div>
 
                                             {/* Headline & Kicker */}
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
-                                                        ● {heroItem.kicker || 'HALLOWEEN 2026'}
+                                                        ● {heroItem.kicker || 'OFFICIAL RELEASE'}
                                                     </span>
                                                 </div>
                                                 <h3 className="text-lg sm:text-xl font-black text-slate-950 leading-tight">
-                                                    {heroItem.name}
+                                                    {decodeHtmlEntities(heroItem.name)}
                                                 </h3>
                                                 {heroItem.subtitle && (
                                                     <p className="text-xs font-serif text-slate-500 uppercase tracking-wider mt-0.5">
-                                                        {heroItem.subtitle}
+                                                        {decodeHtmlEntities(heroItem.subtitle)}
                                                     </p>
                                                 )}
                                             </div>
@@ -907,7 +1090,7 @@ export default function CreatorBioPage({ params }) {
                                                 {heroBullets.map((bullet, bIdx) => (
                                                     <div key={bIdx} className="flex items-start gap-2 text-xs text-slate-700 font-medium">
                                                         <Check size={14} className="text-amber-600 shrink-0 mt-0.5 stroke-[3]" />
-                                                        <span>{bullet}</span>
+                                                        <span>{decodeHtmlEntities(bullet)}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -944,6 +1127,12 @@ export default function CreatorBioPage({ params }) {
                                                     ];
                                                 const activeBundle = bundles[selectedPackIndex] || bundles[0];
                                                 const activeBundlePrice = parseFloat(activeBundle.totalPrice || activeBundle.price || heroPrice);
+                                                const couponDiscountVal = stanAppliedCoupon 
+                                                    ? (stanAppliedCoupon.type === 'fixed' 
+                                                        ? Math.min(activeBundlePrice, stanAppliedCoupon.discount) 
+                                                        : Math.round(activeBundlePrice * (stanAppliedCoupon.discount / 100) * 100) / 100) 
+                                                    : 0;
+                                                const finalDiscountedPrice = Math.max(1.00, Math.round((activeBundlePrice - couponDiscountVal) * 100) / 100);
 
                                                 return (
                                                     <div className="space-y-3 pt-2 border-t border-slate-100">
@@ -951,13 +1140,22 @@ export default function CreatorBioPage({ params }) {
                                                         <div className="flex items-baseline justify-between">
                                                             <div className="flex items-baseline gap-2">
                                                                 <span className="text-2xl sm:text-3xl font-black text-slate-950">
-                                                                    ${activeBundlePrice.toFixed(2)}
+                                                                    ${finalDiscountedPrice.toFixed(2)}
                                                                 </span>
-                                                                {heroCompare > heroPrice && (
+                                                                {couponDiscountVal > 0 ? (
+                                                                    <>
+                                                                        <span className="text-sm text-slate-400 line-through font-semibold">
+                                                                            ${activeBundlePrice.toFixed(2)}
+                                                                        </span>
+                                                                        <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                                                                            {stanAppliedCoupon.label}
+                                                                        </span>
+                                                                    </>
+                                                                ) : (heroCompare > heroPrice && (
                                                                     <span className="text-sm text-slate-400 line-through font-semibold">
                                                                         ${(heroCompare * (activeBundle.qty || 1)).toFixed(2)}
                                                                     </span>
-                                                                )}
+                                                                ))}
                                                             </div>
                                                             <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                                                                 <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -1009,14 +1207,78 @@ export default function CreatorBioPage({ params }) {
                                                             })}
                                                         </div>
 
-                                                        {/* Instant 1-Tap Checkout Button */}
+                                                        {/* 🎟️ Stan Bio In-Lander Coupon Section */}
+                                                        <div className="pt-2">
+                                                            {!stanAppliedCoupon ? (
+                                                                <div>
+                                                                    {!isCouponInputOpen ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setIsCouponInputOpen(true)}
+                                                                            className="text-xs font-bold text-slate-600 hover:text-slate-950 flex items-center gap-1.5 transition py-1 cursor-pointer"
+                                                                        >
+                                                                            <Tag size={13} className="text-emerald-600" />
+                                                                            <span>Have a promo code? Add coupon</span>
+                                                                        </button>
+                                                                    ) : (
+                                                                        <form onSubmit={handleApplyStanCoupon} className="flex gap-1.5 items-center mt-1 animate-in fade-in">
+                                                                            <div className="relative flex-1">
+                                                                                <Tag size={13} className="absolute left-2.5 top-2.5 text-slate-400" />
+                                                                                <input
+                                                                                    type="text"
+                                                                                    placeholder="Promo code (e.g. SAVE10)"
+                                                                                    value={stanCouponInput}
+                                                                                    onChange={(e) => setStanCouponInput(e.target.value)}
+                                                                                    className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 uppercase font-bold focus:outline-none focus:ring-1 focus:ring-slate-900 bg-slate-50/70"
+                                                                                    autoFocus
+                                                                                />
+                                                                            </div>
+                                                                            <button
+                                                                                type="submit"
+                                                                                disabled={isCheckingCoupon || !stanCouponInput.trim()}
+                                                                                className="px-3.5 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 disabled:opacity-50 transition cursor-pointer"
+                                                                            >
+                                                                                {isCheckingCoupon ? '...' : 'Apply'}
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => { setIsCouponInputOpen(false); setStanCouponInput(''); }}
+                                                                                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg text-xs cursor-pointer"
+                                                                            >
+                                                                                <X size={14} />
+                                                                            </button>
+                                                                        </form>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-50 border border-emerald-200/70 text-emerald-950">
+                                                                    <div className="flex items-center gap-1.5 text-xs">
+                                                                        <span className="size-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                                                                            <Check size={10} strokeWidth={3} />
+                                                                        </span>
+                                                                        <span className="font-black uppercase tracking-wide">{stanAppliedCoupon.code}</span>
+                                                                        <span className="text-emerald-700 font-medium">({stanAppliedCoupon.label} • Saved ${couponDiscountVal.toFixed(2)})</span>
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={handleRemoveStanCoupon}
+                                                                        className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer transition"
+                                                                        title="Remove coupon"
+                                                                    >
+                                                                        <X size={13} />
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Instant 1-Tap Checkout Button: JUST "BUY NOW" */}
                                                         <button
-                                                            onClick={() => handleInstantBuy(heroItem, activeBundle)}
-                                                            className="w-full py-4 px-6 rounded-2xl text-white font-black text-sm tracking-wide shadow-lg transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer hover:opacity-95"
+                                                            onClick={() => handleInstantBuy(heroItem, activeBundle, couponDiscountVal, stanAppliedCoupon?.code)}
+                                                            className="w-full py-4 px-6 rounded-2xl text-white font-black text-base tracking-wider shadow-lg transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer hover:opacity-95 uppercase"
                                                             style={{ backgroundColor: creator.themeColor || '#f97316' }}
                                                         >
                                                             <Zap size={18} className="fill-white" />
-                                                            <span>⚡ Buy Now with Inframe Checkout (${activeBundlePrice.toFixed(2)})</span>
+                                                            <span>BUY NOW</span>
                                                         </button>
                                                     </div>
                                                 );
@@ -1099,11 +1361,11 @@ export default function CreatorBioPage({ params }) {
                                                             /* Instant Buy via Gumroad CTA Button */
                                                             <button
                                                                 onClick={() => handleInstantBuy(item)}
-                                                                className="py-1.5 px-3 sm:px-3.5 rounded-xl text-white font-black text-xs transition active:scale-95 shadow-xs flex items-center gap-1 tracking-tight"
+                                                                className="py-1.5 px-3 sm:px-3.5 rounded-xl text-white font-black text-xs transition active:scale-95 shadow-xs flex items-center gap-1 tracking-tight uppercase"
                                                                 style={{ backgroundColor: creator.themeColor || '#ef4444' }}
                                                             >
                                                                 <Zap size={13} className="fill-white" />
-                                                                <span>Instant Buy</span>
+                                                                <span>BUY NOW</span>
                                                             </button>
                                                         )}
                                                     </div>
@@ -1238,7 +1500,13 @@ export default function CreatorBioPage({ params }) {
                     ? heroItem.customBundles
                     : [];
                 const activeBundle = bundles[selectedPackIndex] || (bundles.length > 0 ? bundles[0] : null);
-                const displayPrice = activeBundle ? parseFloat(activeBundle.totalPrice || activeBundle.price || heroPrice) : heroPrice;
+                const baseDisplayPrice = activeBundle ? parseFloat(activeBundle.totalPrice || activeBundle.price || heroPrice) : heroPrice;
+                const stickyDiscountVal = stanAppliedCoupon 
+                    ? (stanAppliedCoupon.type === 'fixed' 
+                        ? Math.min(baseDisplayPrice, stanAppliedCoupon.discount) 
+                        : Math.round(baseDisplayPrice * (stanAppliedCoupon.discount / 100) * 100) / 100) 
+                    : 0;
+                const displayPrice = Math.max(1.00, Math.round((baseDisplayPrice - stickyDiscountVal) * 100) / 100);
 
                 return (
                     <div className="fixed bottom-3 left-0 right-0 z-40 px-4 max-w-[420px] mx-auto animate-in slide-in-from-bottom-4 duration-300">
@@ -1255,20 +1523,21 @@ export default function CreatorBioPage({ params }) {
                                     />
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-xs font-bold text-white truncate">{displayedProducts[0].name}</p>
+                                    <p className="text-xs font-bold text-white truncate">{decodeHtmlEntities(displayedProducts[0].name)}</p>
                                     <p className="text-[11px] font-black text-emerald-400">
                                         ${displayPrice.toFixed(2)}
                                         {activeBundle && <span className="text-[10px] text-slate-400 font-normal ml-1">({activeBundle.label})</span>}
+                                        {stickyDiscountVal > 0 && <span className="text-[9px] text-emerald-300 font-bold ml-1">({stanAppliedCoupon.label})</span>}
                                     </p>
                                 </div>
                             </div>
                             <button
-                                onClick={() => handleInstantBuy(displayedProducts[0], activeBundle)}
-                                className="px-3.5 py-2 rounded-xl text-xs font-black text-slate-950 flex items-center gap-1 shrink-0 shadow-sm active:scale-95 transition cursor-pointer"
+                                onClick={() => handleInstantBuy(displayedProducts[0], activeBundle, stickyDiscountVal, stanAppliedCoupon?.code)}
+                                className="px-3.5 py-2 rounded-xl text-xs font-black text-slate-950 flex items-center gap-1 shrink-0 shadow-sm active:scale-95 transition cursor-pointer uppercase tracking-wider"
                                 style={{ backgroundColor: creator.themeColor || '#10B981' }}
                             >
                                 <Zap size={13} className="fill-slate-950" />
-                                <span>Claim Now</span>
+                                <span>BUY NOW</span>
                             </button>
                         </div>
                     </div>
