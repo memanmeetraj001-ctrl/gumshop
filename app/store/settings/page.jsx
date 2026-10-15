@@ -490,6 +490,7 @@ export default function StoreSettings() {
                         storeId: targetStoreId,
                         storeName: payloadToSave.name,
                         customDomain: payloadToSave.customDomain,
+                        singleProductStore: payloadToSave.singleProductStore,
                         tracking: payloadToSave.tracking
                     })
                 }),

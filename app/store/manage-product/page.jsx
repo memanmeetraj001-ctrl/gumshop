@@ -248,14 +248,14 @@ export default function StoreManageProducts() {
     const handleOpenEditModal = (product) => {
         const retail = parseFloat(product.price || 0);
         const supplier = parseFloat(product.supplierCost || Math.round(retail * 0.35 * 100) / 100);
-        const compareAt = parseFloat(product.compareAtPrice || product.mrp || Math.round(retail * 1.35 * 100) / 100);
+        const compareAtPrice = parseFloat(product.compareAtPrice || product.mrp || Math.round(retail * 1.35 * 100) / 100);
         const img = product.image || (product.images && product.images[0]) || '';
 
         setEditingProduct(product);
         setEditForm({
             name: product.name || '',
             price: retail,
-            compareAtPrice: compareAt,
+            compareAtPrice: compareAtPrice,
             supplierCost: supplier,
             category: product.category || 'Featured',
             image: img,

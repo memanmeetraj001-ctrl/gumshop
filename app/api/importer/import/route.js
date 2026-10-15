@@ -73,7 +73,7 @@ export async function POST(req) {
                 : Boolean(existingStore.singleProductStore || selectedProducts.length === 1),
             categories: Array.from(new Set([...(existingStore.categories || []), ...cleanCategories])),
             banners: Array.from(new Set([...(existingStore.banners || []), ...cleanBanners])),
-            productsCount: (existingStore.productsCount || 0) + selectedProducts.length,
+            productsCount: (existingStore.productsCount ?? (Array.isArray(existingStore.products) ? existingStore.products.length : 0)) + selectedProducts.length,
             updatedAt: new Date().toISOString()
         } : {
             id: storeId,

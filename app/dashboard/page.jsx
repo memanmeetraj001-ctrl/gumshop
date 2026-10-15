@@ -776,7 +776,7 @@ export default function MasterDashboardPage() {
 
     // Compute Metrics
     const totalStores = shops.length;
-    const totalProducts = shops.reduce((acc, s) => acc + (s.productsCount || 0), 0);
+    const totalProducts = shops.reduce((acc, s) => acc + (s.productsCount ?? (Array.isArray(s.products) ? s.products.length : 0)), 0);
     const activeStoresCount = shops.filter(s => s.status !== 'archived').length;
 
     // Active Store Isolated Data & Metrics (Zero Cross-Store Mixing)
@@ -1862,7 +1862,7 @@ export default function MasterDashboardPage() {
                                         onChange={(e) => setDupCopyProducts(e.target.checked)}
                                         className="size-4 rounded text-emerald-500 focus:ring-0"
                                     />
-                                    <span>Copy all catalog products ({duplicatingShop?.productsCount || 0} items)</span>
+                                    <span>Copy all catalog products ({duplicatingShop?.productsCount ?? (Array.isArray(duplicatingShop?.products) ? duplicatingShop.products.length : 0)} items)</span>
                                 </label>
 
                                 <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
@@ -2045,7 +2045,7 @@ function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onS
                 <div className="grid grid-cols-2 gap-2 mt-4 p-3 rounded-2xl bg-slate-50 border border-slate-200">
                     <div className="text-center">
                         <div className="text-[11px] text-slate-500 font-medium">Products</div>
-                        <div className="text-sm font-bold text-slate-900 mt-0.5">{shop.productsCount}</div>
+                        <div className="text-sm font-bold text-slate-900 mt-0.5">{shop.productsCount ?? (Array.isArray(shop.products) ? shop.products.length : 0)}</div>
                     </div>
                     <div className="text-center border-l border-slate-200">
                         <div className="text-[11px] text-slate-500 font-medium">Gumroad Payouts</div>

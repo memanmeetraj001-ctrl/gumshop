@@ -36,7 +36,7 @@ export default function MobileStickyBuyBar({
         ? selectedBundle.totalPrice
         : (product.price || 52.99);
 
-    const compareAt = selectedBundle?.compareAtPrice !== undefined
+    const compareAtPrice = selectedBundle?.compareAtPrice !== undefined
         ? selectedBundle.compareAtPrice
         : (product.compareAtPrice || Math.round(price * 1.35 * 100) / 100);
 
@@ -71,9 +71,9 @@ export default function MobileStickyBuyBar({
                             <span className="text-sm font-bold text-emerald-600">
                                 ${price.toFixed(2)}
                             </span>
-                            {compareAt > price && (
+                            {compareAtPrice > price && (
                                 <span className="text-[11px] text-gray-400 line-through">
-                                    ${compareAt.toFixed(2)}
+                                    ${compareAtPrice.toFixed(2)}
                                 </span>
                             )}
                             {selectedBundle && (

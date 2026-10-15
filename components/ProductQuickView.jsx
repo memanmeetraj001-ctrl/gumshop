@@ -22,8 +22,8 @@ export default function ProductQuickView({ product, isOpen, onClose, onOpenCart 
     const isWishlisted = has(product.id);
     const images = product.images?.length > 0 ? product.images : [product.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'];
     const price = parseFloat(product.price !== undefined && product.price !== null && product.price !== '' ? product.price : 52.99);
-    const compareAt = parseFloat(product.compareAtPrice || (price === 52.99 ? 69.99 : Math.round(price * 1.35 * 100) / 100));
-    const discountPercent = compareAt > price ? Math.round(((compareAt - price) / compareAt) * 100) : 0;
+    const compareAtPrice = parseFloat(product.compareAtPrice || (price === 52.99 ? 69.99 : Math.round(price * 1.35 * 100) / 100));
+    const discountPercent = compareAtPrice > price ? Math.round(((compareAtPrice - price) / compareAtPrice) * 100) : 0;
 
     const handleAddToCart = () => {
         for (let i = 0; i < quantity; i++) {
@@ -180,9 +180,9 @@ export default function ProductQuickView({ product, isOpen, onClose, onOpenCart 
                             {/* Price */}
                             <div className="flex items-baseline gap-3 mt-4">
                                 <span className="text-2xl font-black text-slate-900">${price.toFixed(2)}</span>
-                                {compareAt > price && (
+                                {compareAtPrice > price && (
                                     <span className="text-sm font-semibold text-slate-400 line-through">
-                                        ${compareAt.toFixed(2)}
+                                        ${compareAtPrice.toFixed(2)}
                                     </span>
                                 )}
                             </div>

@@ -53,7 +53,7 @@ const ProductDetails = ({ product, storeInfo }) => {
     const unitPrice = parseFloat(product.price !== undefined && product.price !== null && product.price !== '' ? product.price : 52.99);
     const sizeDelta = parseFloat(selectedSize?.priceDelta || 0);
     const effectiveUnitPrice = unitPrice + sizeDelta;
-    const compareAt = parseFloat(product.compareAtPrice || product.mrp || (unitPrice === 52.99 ? 69.99 : Math.round(unitPrice * 1.35 * 100) / 100)) + sizeDelta;
+    const compareAtPrice = parseFloat(product.compareAtPrice || product.mrp || (unitPrice === 52.99 ? 69.99 : Math.round(unitPrice * 1.35 * 100) / 100)) + sizeDelta;
 
     const colorCode = selectedColor?.name?.substring(0, 3).toUpperCase() || 'DEF';
     const sizeCode = selectedSize?.name?.substring(0, 3).toUpperCase() || 'STD';
@@ -215,9 +215,9 @@ const ProductDetails = ({ product, storeInfo }) => {
                             onError={(e) => handleImageError(e, 'product')}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                         />
-                        {compareAt > unitPrice && (
+                        {compareAtPrice > unitPrice && (
                             <span className="absolute top-4 left-4 px-3 py-1 rounded-full bg-rose-600 text-white font-extrabold text-xs shadow-md">
-                                SAVE {Math.round(((compareAt - unitPrice) / compareAt) * 100)}%
+                                SAVE {Math.round(((compareAtPrice - unitPrice) / compareAtPrice) * 100)}%
                             </span>
                         )}
                     </div>
@@ -387,9 +387,9 @@ const ProductDetails = ({ product, storeInfo }) => {
                             <span className="text-3xl sm:text-4xl font-black text-slate-950">
                                 ${currentTier.pricePerUnit.toFixed(2)}
                             </span>
-                            {compareAt > unitPrice && (
+                            {compareAtPrice > unitPrice && (
                                 <span className="text-lg text-slate-400 line-through font-semibold">
-                                    ${(compareAt * selectedQuantity).toFixed(2)}
+                                    ${(compareAtPrice * selectedQuantity).toFixed(2)}
                                 </span>
                             )}
                             {isOutOfStock ? (

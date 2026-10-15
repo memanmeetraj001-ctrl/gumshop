@@ -101,9 +101,13 @@ export async function POST(req) {
         
         let shippingAddress = {};
         if (payload.shipping_address) {
-            shippingAddress = typeof payload.shipping_address === 'string' 
-                ? JSON.parse(payload.shipping_address) 
-                : payload.shipping_address;
+            try {
+                shippingAddress = typeof payload.shipping_address === 'string' 
+                    ? JSON.parse(payload.shipping_address) 
+                    : payload.shipping_address;
+            } catch (e) {
+                shippingAddress = { raw: payload.shipping_address };
+            }
         }
 
         let items = [];

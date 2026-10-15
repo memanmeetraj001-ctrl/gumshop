@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import assert from 'assert';
-import { saveServerOrder, getServerOrder, getServerOrdersByStore } from '../lib/serverOrderStore.js';
+import { saveServerOrder, getServerOrder, getServerOrdersByStore } from '../lib/db/orders.js';
 
 console.log('======================================================================');
 console.log('⚡ EMPIRICAL CHALLENGER M2_2: ADVERSARIAL STRESS TEST HARNESS');

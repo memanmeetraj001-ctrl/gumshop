@@ -64,7 +64,7 @@ export default function EditProductPage() {
 
                 if (prod) {
                     const retail = parseFloat(prod.price || 0);
-                    const compareAt = parseFloat(prod.compareAtPrice || Math.round(retail * 1.35 * 100) / 100);
+                    const compareAtPrice = parseFloat(prod.compareAtPrice || Math.round(retail * 1.35 * 100) / 100);
                     const supplier = parseFloat(prod.supplierCost || Math.round(retail * 0.35 * 100) / 100);
                     const mainImg = prod.image || (prod.images && prod.images[0]) || '';
                     const allImgs = prod.images && prod.images.length > 0 ? prod.images : [mainImg];
@@ -72,7 +72,7 @@ export default function EditProductPage() {
                     setFormData({
                         name: prod.name || '',
                         price: retail,
-                        compareAtPrice: compareAt,
+                        compareAtPrice: compareAtPrice,
                         supplierCost: supplier,
                         category: prod.category || 'Featured',
                         image: mainImg,
@@ -129,7 +129,7 @@ export default function EditProductPage() {
 
         try {
             const retail = parseFloat(formData.price) || 0;
-            const compareAt = parseFloat(formData.compareAtPrice) || Math.round(retail * 1.35 * 100) / 100;
+            const compareAtPrice = parseFloat(formData.compareAtPrice) || Math.round(retail * 1.35 * 100) / 100;
             const supplier = parseFloat(formData.supplierCost) || 0;
             const cleanedImages = (formData.images || []).filter(img => typeof img === 'string' && img.trim());
 
@@ -138,8 +138,8 @@ export default function EditProductPage() {
             const updatedData = {
                 name: formData.name.trim(),
                 price: retail,
-                compareAtPrice: compareAt,
-                mrp: compareAt,
+                compareAtPrice: compareAtPrice,
+                mrp: compareAtPrice,
                 supplierCost: supplier,
                 category: formData.category,
                 image: formData.image || cleanedImages[0] || '',

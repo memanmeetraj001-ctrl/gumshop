@@ -99,7 +99,7 @@ export async function GET(req) {
 export async function POST(req) {
     try {
         const body = await req.json().catch(() => ({}));
-        const { gumroadToken, gumroadProductUrl, storeId, storeName, customDomain, tracking } = body;
+        const { gumroadToken, gumroadProductUrl, storeId, storeName, customDomain, tracking, singleProductStore } = body;
         const cleanId = normalizeStoreKey(storeId);
 
         const cookieStore = await cookies();
@@ -111,6 +111,7 @@ export async function POST(req) {
                 storeId: storeId || cleanId,
                 storeName: storeName || '',
                 customDomain: customDomain || '',
+                singleProductStore: Boolean(singleProductStore),
                 tracking: tracking || {},
                 updatedAt: new Date().toISOString()
             };

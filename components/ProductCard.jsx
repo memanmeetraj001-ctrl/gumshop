@@ -24,8 +24,8 @@ export default function ProductCard({ product, onOpenCart }) {
     const mainImage = getSafeImageUrl(product.images?.[0] || product.image);
 
     const price = parseFloat(product.price !== undefined && product.price !== null && product.price !== '' ? product.price : 52.99);
-    const compareAt = parseFloat(product.compareAtPrice || (price === 52.99 ? 69.99 : Math.round(price * 1.35 * 100) / 100));
-    const discountPercent = compareAt > price ? Math.round(((compareAt - price) / compareAt) * 100) : 0;
+    const compareAtPrice = parseFloat(product.compareAtPrice || (price === 52.99 ? 69.99 : Math.round(price * 1.35 * 100) / 100));
+    const discountPercent = compareAtPrice > price ? Math.round(((compareAtPrice - price) / compareAtPrice) * 100) : 0;
 
     const handleAddToCart = (e) => {
         e.preventDefault();
@@ -202,9 +202,9 @@ export default function ProductCard({ product, onOpenCart }) {
                                 <span className="text-base sm:text-lg font-black text-slate-900">
                                     {currency}{price.toFixed(2)}
                                 </span>
-                                {compareAt > price && (
+                                {compareAtPrice > price && (
                                     <span className="text-xs text-slate-400 line-through">
-                                        {currency}{compareAt.toFixed(2)}
+                                        {currency}{compareAtPrice.toFixed(2)}
                                     </span>
                                 )}
                             </div>

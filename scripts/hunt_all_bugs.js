@@ -54,7 +54,7 @@ for (const file of allFiles) {
     const lines = content.split('\n');
 
     lines.forEach((lineText, idx) => {
-        const importMatch = lineText.match(/(?:import|from)\s+['"]([^'"]+)['"]/);
+        const importMatch = lineText.match(/^\s*(?:import(?:\s+[\s\S]*?\s+from)?|export(?:\s+[\s\S]*?\s+from)?)\s+['"]([^'"]+)['"]/);
         if (importMatch) {
             const importPath = importMatch[1];
             if (importPath.startsWith('.')) {

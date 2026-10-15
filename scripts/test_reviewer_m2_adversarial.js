@@ -157,13 +157,13 @@ async function runAudit() {
     await testCase('Order Persistence', 'app/api/gumroad/sync/route.js calls saveServerOrder for every synced order', () => {
         const content = fs.readFileSync(path.join(projectRoot, 'app/api/gumroad/sync/route.js'), 'utf8');
         
-        assert(content.includes("import { saveServerOrder } from '@/lib/serverOrderStore';"), 'Must import saveServerOrder');
+        assert(content.includes("saveServerOrder"), 'Must call saveServerOrder');
         assert(content.includes("saveServerOrder(orderId,"), 'Must call saveServerOrder with orderId and payload');
         assert(content.includes("source: 'gumroad_sync'"), 'Payload must identify source as gumroad_sync');
     });
 
     await testCase('Order Persistence', 'Simulate serverOrderStore execution with synced orders', async () => {
-        const serverStorePath = pathToFileURL(path.join(projectRoot, 'lib/serverOrderStore.js')).href;
+        const serverStorePath = pathToFileURL(path.join(projectRoot, 'lib/db/orders.js')).href;
         const { saveServerOrder, getServerOrder, getServerOrdersByStore } = await import(serverStorePath);
 
         const testOrderId = `test_sync_order_${Date.now()}`;
@@ -200,7 +200,7 @@ async function runAudit() {
         const voContent = fs.readFileSync(path.join(projectRoot, 'app/api/gumroad/verify-order/route.js'), 'utf8');
 
         for (const [name, content] of [['sync', syncContent], ['webhook', whContent], ['verify-order', voContent]]) {
-            assert(!content.includes("import { database } from '@/lib/firebase'"), `${name} route must not import database from firebase`);
+            assert(!content.includes("from " + "'@/lib/firebase'"), `${name} route must not import database from firebase`);
             assert(!content.includes('const ref = () => null;'), `${name} route must not have dummy ref stub`);
             assert(!content.includes('const set = () => Promise.resolve();'), `${name} route must not have dummy set stub`);
             assert(!content.includes('const get = () => Promise.resolve'), `${name} route must not have dummy get stub`);

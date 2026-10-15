@@ -2,7 +2,7 @@ import assert from 'assert';
 import { normalizeProductPrice, applyPriceSlash } from '../lib/importer/priceNormalizer.js';
 import { serverSaveStore, serverSaveProducts, serverGetStore, serverGetAllStores, serverDeleteStore } from '../lib/serverDb.js';
 import { createStore, getStore, getAllStores, createProduct, getProduct, getProductsByStore, createCoupon, getCoupon, recordImportHistory, getAllImportHistory } from '../lib/firebaseDb.js';
-import { saveServerOrder, getServerOrder, getServerOrdersByStore } from '../lib/serverOrderStore.js';
+import { createOrder as saveServerOrder, getOrderById as getServerOrder, getOrdersByStore as getServerOrdersByStore } from '../lib/db/orders.js';
 import { setServerGumroadToken, getServerGumroadToken } from '../lib/serverVault.js';
 
 console.log('======================================================================');

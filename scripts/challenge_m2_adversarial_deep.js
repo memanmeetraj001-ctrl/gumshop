@@ -165,7 +165,7 @@ async function runAll() {
             const content = fs.readFileSync(f, 'utf8');
             assert(!content.includes('const ref = () => null;'), `${f} contains dead ref stub`);
             assert(!content.includes('const set = () => Promise.resolve();'), `${f} contains dead set stub`);
-            assert(!content.includes("from '@/lib/firebase'"), `${f} imports dead firebase`);
+            assert(!content.includes("from " + "'@/lib/firebase'"), `${f} imports dead firebase`);
         }
     });
 

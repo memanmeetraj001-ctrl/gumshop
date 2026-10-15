@@ -13,7 +13,7 @@
 import fs from 'fs';
 import path from 'path';
 import assert from 'assert';
-import { getServerOrder, getServerOrdersByStore, saveServerOrder } from '../lib/serverOrderStore.js';
+import { getServerOrder, getServerOrdersByStore, saveServerOrder } from '../lib/db/orders.js';
 import { POST as syncRouteHandler } from '../app/api/gumroad/sync/route.js';
 
 console.log('======================================================================');
