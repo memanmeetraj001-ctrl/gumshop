@@ -13,8 +13,11 @@ export default function Cart() {
 
     const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '$';
     
-    const { cartItems, cartProducts = {} } = useSelector(state => state.cart);
-    const products = useSelector(state => state.product.list);
+    const cartState = useSelector(state => state?.cart) || {};
+    const cartItems = (cartState.cartItems && typeof cartState.cartItems === 'object') ? cartState.cartItems : {};
+    const cartProducts = (cartState.cartProducts && typeof cartState.cartProducts === 'object') ? cartState.cartProducts : {};
+    const reduxProducts = useSelector(state => state?.product?.list);
+    const products = Array.isArray(reduxProducts) ? reduxProducts : [];
 
     const dispatch = useDispatch();
 
@@ -35,11 +38,11 @@ export default function Cart() {
         const resolved = [];
         let calculatedTotal = 0;
 
-        for (const [key, value] of Object.entries(cartItems)) {
+        for (const [key, value] of Object.entries(cartItems || {})) {
             if (!value || value <= 0) continue;
 
             // 1. Check cartProducts stored during addToCart
-            let product = cartProducts[key] || (products || []).find(p => p.id === key);
+            let product = cartProducts[key] || (products || []).find(p => p && p.id === key);
 
 
 

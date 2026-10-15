@@ -360,12 +360,12 @@ const OrderSummary = ({ totalPrice, items }) => {
             <GumroadIframeModal
                 isOpen={checkoutModal.isOpen}
                 onClose={() => setCheckoutModal({ isOpen: false, gumroadUrl: '', orderSessionId: '' })}
-                items={items.map(item => ({
-                    id: item.id,
-                    name: item.name,
-                    price: item.price,
-                    quantity: item.quantity,
-                    image: item.images?.[0] || item.image
+                items={(Array.isArray(items) ? items : []).map(item => ({
+                    id: item?.id,
+                    name: item?.name || 'Store Item',
+                    price: item?.price || 0,
+                    quantity: item?.quantity || 1,
+                    image: item?.images?.[0] || item?.image
                 }))}
                 total={finalSubtotal}
                 gumroadUrl={checkoutModal.gumroadUrl}

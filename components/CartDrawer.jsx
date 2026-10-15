@@ -11,11 +11,70 @@ import GumroadIframeModal from './GumroadIframeModal';
 import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 
 export default function CartDrawer({ isOpen, onClose, products: propProducts }) {
+    if (!isOpen) return null;
+
+    return (
+        <CartDrawerErrorBoundary onClose={onClose}>
+            <CartDrawerInner isOpen={isOpen} onClose={onClose} products={propProducts} />
+        </CartDrawerErrorBoundary>
+    );
+}
+
+// Resilient Error Boundary so cart drawer rendering errors never crash the entire page
+class CartDrawerErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error, errorInfo) {
+        console.error("[CartDrawer Caught Error]:", error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="fixed inset-0 z-50 overflow-hidden animate-in fade-in duration-200">
+                    <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs" onClick={this.props.onClose} />
+                    <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+                        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between p-6">
+                            <div className="flex items-center justify-between border-b pb-4">
+                                <h3 className="text-base font-bold text-slate-900">Your Cart</h3>
+                                <button onClick={this.props.onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl">✕</button>
+                            </div>
+                            <div className="text-center py-12">
+                                <p className="text-sm text-slate-600 mb-4">Cart temporarily re-synced.</p>
+                                <button 
+                                    onClick={() => { this.setState({ hasError: false }); if (this.props.onClose) this.props.onClose(); }} 
+                                    className="px-6 py-2.5 rounded-full bg-emerald-600 text-white font-bold text-xs"
+                                >
+                                    Continue Shopping
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
+function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
     const dispatch = useDispatch();
     const currency = '$';
-    const { cartItems, cartProducts = {}, total } = useSelector(state => state.cart);
-    const reduxProducts = useSelector(state => state.product.list);
-    const products = propProducts && propProducts.length > 0 ? propProducts : reduxProducts;
+    const cartState = useSelector(state => state?.cart) || {};
+    const cartItems = (cartState.cartItems && typeof cartState.cartItems === 'object') ? cartState.cartItems : {};
+    const cartProducts = (cartState.cartProducts && typeof cartState.cartProducts === 'object') ? cartState.cartProducts : {};
+    const total = Number(cartState.total) || 0;
+    const reduxProducts = useSelector(state => state?.product?.list);
+    const products = Array.isArray(propProducts) && propProducts.length > 0 
+        ? propProducts 
+        : (Array.isArray(reduxProducts) ? reduxProducts : []);
 
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [couponCode, setCouponCode] = useState('');
@@ -29,15 +88,18 @@ export default function CartDrawer({ isOpen, onClose, products: propProducts }) 
         let calculatedSubtotal = 0;
 
         for (const [key, qty] of Object.entries(cartItems || {})) {
-            if (!qty || qty <= 0) continue;
+            const numQty = parseInt(qty || 0);
+            if (!numQty || numQty <= 0) continue;
             const strKey = String(key || '');
+            if (!strKey) continue;
             const baseId = strKey.includes('__') ? strKey.split('__')[0] : strKey;
             const variant = strKey.includes('__') ? strKey.split('__')[1] : '';
-            let product = cartProducts[strKey] || cartProducts[baseId] || Object.values(cartProducts).find(p => p?.id === strKey || p?.id === baseId) || (products || []).find(p => p && (p.id === strKey || p.id === baseId));
+            let product = cartProducts[strKey] || cartProducts[baseId] || Object.values(cartProducts).find(p => p && (p.id === strKey || p.id === baseId)) || (products || []).find(p => p && (p.id === strKey || p.id === baseId));
 
-            const price = parseFloat(product?.price !== undefined && product?.price !== null ? product.price : 0);
+            const rawPrice = product?.price !== undefined && product?.price !== null ? product.price : 0;
+            const price = parseFloat(rawPrice) || 0;
             const name = product?.name || 'Featured Item';
-            const image = product?.image || product?.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200';
+            const image = product?.image || (Array.isArray(product?.images) && product.images[0]) || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200';
 
             resolvedItems.push({
                 id: strKey,
@@ -45,20 +107,21 @@ export default function CartDrawer({ isOpen, onClose, products: propProducts }) 
                 variant,
                 price,
                 image,
-                quantity: qty,
-                storeId: product?.storeId || 'store_default'
+                quantity: numQty,
+                storeId: product?.storeId || 'store_default',
+                storeSlug: product?.storeSlug || (product?.storeId ? String(product.storeId).replace(/^store_/, '') : '')
             });
-            calculatedSubtotal += price * qty;
+            calculatedSubtotal += price * numQty;
         }
 
-        return { items: resolvedItems, subtotal: calculatedSubtotal };
+        return { items: resolvedItems, subtotal: Math.round(calculatedSubtotal * 100) / 100 };
     }, [isOpen, cartItems, cartProducts, products]);
 
     // Frequently Bought Together Companion Recommendation
     const crossSellProduct = useMemo(() => {
-        if (!items.length || !products?.length) return null;
+        if (!items.length || !Array.isArray(products) || !products.length) return null;
         const inCartIds = new Set(items.map(i => String(i.id || '').split('__')[0]));
-        return products.find(p => p && !inCartIds.has(String(p.id)) && !inCartIds.has(String(p.id).split('__')[0]) && parseFloat(p.price || 0) > 0) || null;
+        return products.find(p => p && p.id && !inCartIds.has(String(p.id)) && !inCartIds.has(String(p.id).split('__')[0]) && (parseFloat(p.price || 0) || 0) > 0) || null;
     }, [items, products]);
 
     if (!isOpen) return null;
@@ -66,8 +129,8 @@ export default function CartDrawer({ isOpen, onClose, products: propProducts }) 
     // Multi-Tier Milestones: $50 (Free Standard Shipping), $75 (Free Mystery Gift), $100 (Priority VIP Dispatch)
     const freeShippingThreshold = 50;
     const maxTierThreshold = 100;
-    const overallTierProgress = Math.min(100, Math.round((subtotal / maxTierThreshold) * 100));
-    const shippingFee = subtotal >= freeShippingThreshold || subtotal === 0 ? 0 : 4.99;
+    const overallTierProgress = Math.min(100, Math.round(((subtotal || 0) / maxTierThreshold) * 100)) || 0;
+    const shippingFee = (subtotal >= freeShippingThreshold || subtotal === 0) ? 0 : 4.99;
 
     let tierMessage = '';
     if (subtotal === 0) {
@@ -82,7 +145,7 @@ export default function CartDrawer({ isOpen, onClose, products: propProducts }) 
         tierMessage = `🌟 Max VIP Perks Unlocked: FREE Shipping + Mystery Gift + VIP Dispatch!`;
     }
 
-    const finalTotal = Math.max(0, subtotal + shippingFee - appliedDiscount);
+    const finalTotal = Math.max(0, Math.round(((subtotal || 0) + shippingFee - (appliedDiscount || 0)) * 100) / 100);
 
     const handleApplyCoupon = async (e) => {
         e.preventDefault();
@@ -295,7 +358,7 @@ export default function CartDrawer({ isOpen, onClose, products: propProducts }) 
                                         </div>
                                         <div className="flex items-center justify-between mt-2">
                                             <span className="text-sm font-extrabold text-slate-900">
-                                                {currency}{(item.price * item.quantity).toFixed(2)}
+                                                {currency}{(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}
                                             </span>
                                             <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
                                                 <button
@@ -344,17 +407,17 @@ export default function CartDrawer({ isOpen, onClose, products: propProducts }) 
                                         <h5 className="text-xs font-bold text-slate-900 truncate">{crossSellProduct.name}</h5>
                                         <div className="flex items-center gap-1.5 mt-0.5">
                                             <span className="text-xs font-extrabold text-emerald-700">
-                                                ${(parseFloat(crossSellProduct.price || 0) * 0.85).toFixed(2)}
+                                                ${((parseFloat(crossSellProduct.price || 0) || 0) * 0.85).toFixed(2)}
                                             </span>
                                             <span className="text-[11px] text-slate-400 line-through">
-                                                ${parseFloat(crossSellProduct.price || 0).toFixed(2)}
+                                                ${(parseFloat(crossSellProduct.price || 0) || 0).toFixed(2)}
                                             </span>
                                         </div>
                                     </div>
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            const discountedPrice = Number((parseFloat(crossSellProduct.price || 0) * 0.85).toFixed(2));
+                                            const discountedPrice = Number(((parseFloat(crossSellProduct.price || 0) || 0) * 0.85).toFixed(2));
                                             dispatch(addToCart({
                                                 productId: crossSellProduct.id,
                                                 itemKey: crossSellProduct.id,

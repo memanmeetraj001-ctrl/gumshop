@@ -592,16 +592,15 @@ export default function CreatorBioPage({ params }) {
         }
     }, [creator]);
 
-    // 🛒 Add to Cart Redux Trigger
     const handleAddToCart = (product, bundle = null) => {
-        if (!product) return;
+        if (!product || !product.id) return;
         try {
             const qty = bundle ? (parseInt(bundle.qty, 10) || 1) : 1;
             const baseBundlePrice = bundle 
-                ? parseFloat(bundle.totalPrice || bundle.price || product.price) 
-                : parseFloat(product.price || 0);
+                ? (parseFloat(bundle.totalPrice || bundle.price || product.price) || 0)
+                : (parseFloat(product.price || 0) || 0);
             const unitPrice = bundle
-                ? (bundle.pricePerUnit ? parseFloat(bundle.pricePerUnit) : Number((baseBundlePrice / qty).toFixed(2)))
+                ? (bundle.pricePerUnit ? (parseFloat(bundle.pricePerUnit) || 0) : Number((baseBundlePrice / qty).toFixed(2)))
                 : baseBundlePrice;
             const sizeName = hasWearableSizes ? (typeof selectedSize === 'object' ? (selectedSize?.name || selectedSize?.label) : selectedSize) : null;
             const variantStr = [sizeName, bundle?.label].filter(Boolean).join(' • ');
@@ -611,7 +610,7 @@ export default function CreatorBioPage({ params }) {
                 quantity: qty,
                 product: {
                     ...product,
-                    name: product.name,
+                    name: product.name || 'Product',
                     price: unitPrice,
                     variant: variantStr || '',
                     storeId: creator?.id || `store_${cleanUser}`,
@@ -619,7 +618,7 @@ export default function CreatorBioPage({ params }) {
                     image: product.image || (Array.isArray(product.images) && product.images[0]) || ''
                 }
             }));
-            toast.success(`Added ${product.name} to cart! 🛒`);
+            toast.success(`Added ${product.name || 'item'} to cart! 🛒`);
             setIsCartOpen(true);
         } catch (err) {
             console.error('Error adding to cart:', err);
@@ -2017,7 +2016,7 @@ export default function CreatorBioPage({ params }) {
             <CartDrawer
                 isOpen={isCartOpen}
                 onClose={() => setIsCartOpen(false)}
-                products={displayedProducts}
+                products={Array.isArray(displayedProducts) ? displayedProducts : []}
             />
 
             {/* 🔥 Live Sales Pop-up (Social Proof Toaster) */}

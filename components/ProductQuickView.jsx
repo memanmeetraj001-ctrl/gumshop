@@ -26,9 +26,7 @@ export default function ProductQuickView({ product, isOpen, onClose, onOpenCart 
     const discountPercent = compareAtPrice > price ? Math.round(((compareAtPrice - price) / compareAtPrice) * 100) : 0;
 
     const handleAddToCart = () => {
-        for (let i = 0; i < quantity; i++) {
-            dispatch(addToCart({ productId: product.id, product }));
-        }
+        dispatch(addToCart({ productId: product.id, product, quantity }));
         toast.success(`Added ${quantity}x "${product.name}" to cart! 🛍️`);
         onClose();
         if (onOpenCart) onOpenCart();

@@ -122,23 +122,22 @@ const ProductDetails = ({ product, storeInfo }) => {
 
     const handleAddToCart = () => {
         const itemKey = activeVariantLabel ? `${productId}__${activeVariantLabel}` : productId;
-        for (let i = 0; i < selectedQuantity; i++) {
-            dispatch(addToCart({ 
-                productId, 
-                itemKey,
-                product: {
-                    ...product,
-                    name: `${product.name} (${activeVariantLabel})`,
-                    image: images[0],
-                    price: currentTier.pricePerUnit,
-                    variant: activeVariantLabel,
-                    selectedColor: selectedColor?.name,
-                    selectedSize: selectedSize?.name,
-                    storeId: product.storeId || storeInfo?.id,
-                    storeName: storeInfo?.name
-                }
-            }));
-        }
+        dispatch(addToCart({ 
+            productId, 
+            itemKey,
+            quantity: selectedQuantity,
+            product: {
+                ...product,
+                name: `${product.name} (${activeVariantLabel})`,
+                image: images[0],
+                price: currentTier.pricePerUnit,
+                variant: activeVariantLabel,
+                selectedColor: selectedColor?.name,
+                selectedSize: selectedSize?.name,
+                storeId: product.storeId || storeInfo?.id,
+                storeName: storeInfo?.name
+            }
+        }));
         toast.success(`Added ${selectedQuantity}x "${activeVariantLabel}" to your cart!`);
     };
 
