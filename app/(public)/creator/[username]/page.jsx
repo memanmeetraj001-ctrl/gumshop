@@ -29,7 +29,13 @@ import {
     ChevronLeft,
     ChevronRight,
     Tag,
-    Ticket
+    Ticket,
+    Search,
+    ArrowUpDown,
+    SlidersHorizontal,
+    Grid,
+    List,
+    LayoutGrid
 } from 'lucide-react';
 import GumroadIframeModal from '@/components/GumroadIframeModal';
 import CartDrawer from '@/components/CartDrawer';
@@ -278,6 +284,16 @@ export default function CreatorBioPage({ params }) {
         return count;
     }, [cartItems, cartProducts, cleanUser]);
     const [isCartOpen, setIsCartOpen] = useState(false);
+
+    // Stan Storefront Sorting & Options States
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('All');
+    const [sortBy, setSortBy] = useState('featured'); // 'featured' | 'price_asc' | 'price_desc' | 'best_sellers' | 'name_asc' | 'newest'
+    const [layoutView, setLayoutView] = useState('list'); // 'list' | 'grid'
+    const [quickViewProduct, setQuickViewProduct] = useState(null);
+    const [quickViewActivePhoto, setQuickViewActivePhoto] = useState(0);
+    const [quickViewSelectedBundle, setQuickViewSelectedBundle] = useState(0);
+    const [quickViewSelectedVariant, setQuickViewSelectedVariant] = useState('');
 
     // High-Conversion Sales States
     const [showStickyBar, setShowStickyBar] = useState(false);
@@ -966,6 +982,66 @@ export default function CreatorBioPage({ params }) {
     const displayedProducts = creator?.productDisplayMode === 'curated'
         ? products.filter(p => Array.isArray(creator.featuredProductIds) && creator.featuredProductIds.includes(p.id))
         : products;
+
+    // Dynamic Category Extraction across all products in store
+    const storeCategories = useMemo(() => {
+        const cats = new Set();
+        (displayedProducts || []).forEach(p => {
+            const c = typeof p.category === 'string' ? p.category.trim() : (p.category?.name || '');
+            if (c && c.toLowerCase() !== 'general') cats.add(c);
+        });
+        return ['All', ...Array.from(cats)];
+    }, [displayedProducts]);
+
+    // Reactive Filtering & Sorting Pipeline
+    const processedProducts = useMemo(() => {
+        let list = Array.isArray(displayedProducts) ? [...displayedProducts] : [];
+
+        // 1. Category Filter
+        if (selectedCategory && selectedCategory !== 'All') {
+            list = list.filter(p => {
+                const c = typeof p.category === 'string' ? p.category.trim() : (p.category?.name || '');
+                return c.toLowerCase() === selectedCategory.toLowerCase();
+            });
+        }
+
+        // 2. Keyword Search Filter
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase().trim();
+            list = list.filter(p => 
+                (p.name || '').toLowerCase().includes(q) ||
+                (p.description || '').toLowerCase().includes(q) ||
+                (typeof p.category === 'string' ? p.category.toLowerCase() : '').includes(q)
+            );
+        }
+
+        // 3. Sorting Options
+        switch (sortBy) {
+            case 'price_asc':
+                list.sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
+                break;
+            case 'price_desc':
+                list.sort((a, b) => (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0));
+                break;
+            case 'best_sellers':
+                list.sort((a, b) => {
+                    const aScore = a.badge ? 2 : (Array.isArray(a.reviews) ? a.reviews.length : 0);
+                    const bScore = b.badge ? 2 : (Array.isArray(b.reviews) ? b.reviews.length : 0);
+                    return bScore - aScore;
+                });
+                break;
+            case 'name_asc':
+                list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+                break;
+            case 'newest':
+                list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+                break;
+            case 'featured':
+            default:
+                break;
+        }
+        return list;
+    }, [displayedProducts, selectedCategory, searchQuery, sortBy]);
 
     return (
         <div className={`min-h-screen text-slate-900 selection:bg-rose-500 selection:text-white flex flex-col font-sans antialiased ${activePreset.bg}`}>
@@ -1768,96 +1844,325 @@ export default function CreatorBioPage({ params }) {
                                 })()
                             ) : displayedProducts.length > 1 ? (
                                 <div className="mt-4 space-y-3">
-                                    {displayedProducts.map((item, index) => {
-                                        const isFree = parseFloat(item.price || 0) === 0 || item.isFreeDownload;
-                                        const priceNum = parseFloat(item.price || 0);
-                                        const priceDisplay = isFree 
-                                            ? "Free" 
-                                            : `$${priceNum.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-                                        
-                                        return (
-                                            <div 
-                                                key={item.id || index}
-                                                className="bg-white rounded-2xl p-3 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-all flex items-center gap-3 group"
-                                            >
-                                                {/* Square Rounded Thumbnail */}
-                                                <div className="size-16 sm:w-16 sm:h-16 object-cover rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-100 relative">
-                                                    <img 
-                                                        src={getSafeImageUrl(item.image || (item.images && item.images[0]))} 
-                                                        alt={item.name || 'Product'} 
-                                                        loading="lazy"
-                                                        decoding="async"
-                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                        onError={(e) => handleImageError(e, 'product')}
-                                                    />
+                                    {/* ─── Sorting & Options Controls Toolbar ─── */}
+                                    <div className="bg-white/90 backdrop-blur-md rounded-2xl p-3 border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-2.5">
+                                        {/* Top: Live Search Filter */}
+                                        <div className="relative">
+                                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                placeholder="Search in store..."
+                                                className="w-full pl-8 pr-8 py-2 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition"
+                                            />
+                                            {searchQuery && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSearchQuery('')}
+                                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                                                    title="Clear search"
+                                                >
+                                                    <X size={13} />
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Middle: Category Filter Pills */}
+                                        {storeCategories.length > 1 && (
+                                            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+                                                {storeCategories.map(cat => {
+                                                    const isSelected = selectedCategory === cat;
+                                                    return (
+                                                        <button
+                                                            key={cat}
+                                                            type="button"
+                                                            onClick={() => setSelectedCategory(cat)}
+                                                            className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition whitespace-nowrap cursor-pointer shrink-0 ${
+                                                                isSelected
+                                                                    ? 'text-white shadow-xs'
+                                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/50'
+                                                            }`}
+                                                            style={isSelected ? {
+                                                                backgroundColor: resolveCtaTheme(creator.themeColor || '#10b981', false).backgroundColor,
+                                                                color: resolveCtaTheme(creator.themeColor || '#10b981', false).color
+                                                            } : {}}
+                                                        >
+                                                            {cat}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
+                                        {/* Bottom: Item Count, Sort Dropdown & Layout View Toggle */}
+                                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 text-xs">
+                                            <span className="text-[11px] font-bold text-slate-500">
+                                                {processedProducts.length} {processedProducts.length === 1 ? 'item' : 'items'}
+                                            </span>
+
+                                            <div className="flex items-center gap-2">
+                                                {/* Sort Dropdown */}
+                                                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1">
+                                                    <ArrowUpDown size={11} className="text-slate-400 shrink-0" />
+                                                    <select
+                                                        value={sortBy}
+                                                        onChange={(e) => setSortBy(e.target.value)}
+                                                        className="bg-transparent text-[11px] font-bold text-slate-700 outline-none cursor-pointer"
+                                                        aria-label="Sort products"
+                                                    >
+                                                        <option value="featured">Featured</option>
+                                                        <option value="price_asc">Price: Low to High</option>
+                                                        <option value="price_desc">Price: High to Low</option>
+                                                        <option value="best_sellers">Best Sellers</option>
+                                                        <option value="name_asc">Name: A - Z</option>
+                                                        <option value="newest">Newest</option>
+                                                    </select>
                                                 </div>
 
-                                                {/* Product Content Column */}
-                                                <div className="flex-1 min-w-0">
-                                                    {/* High-Converting Physical Badges */}
-                                                    {(item.badge || index === 0 || (item.comparePrice && item.comparePrice > item.price)) && (
-                                                        <div className="mb-1">
-                                                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-500/20">
-                                                                {item.badge || (index === 0 ? '🔥 Best Seller • In Stock' : (item.comparePrice && item.comparePrice > item.price ? '🏷️ Limited Quantity' : '🚚 Ships within 24h'))}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    <h3 className="text-sm font-bold text-slate-900 leading-snug line-clamp-2">
-                                                        {item.name}
-                                                    </h3>
-
-                                                    {/* Category / Tag Pill */}
-                                                    {item.category && (
-                                                        <span className="inline-block mt-0.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                                                            {typeof item.category === 'string' ? item.category : (item.category?.name || 'Featured')}
-                                                        </span>
-                                                    )}
-
-                                                    {/* Bottom Row: Price & High-Converting CTA */}
-                                                    <div className="flex items-center justify-between gap-2 mt-2">
-                                                        <span className="text-sm sm:text-base font-black text-slate-900">
-                                                            {priceDisplay}
-                                                        </span>
-
-                                                        {isFree ? (
-                                                            /* Free Sample CTA Button */
-                                                            <button
-                                                                onClick={() => handleFreeDownloadClick(item)}
-                                                                className="py-1.5 px-3 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs transition active:scale-95 shadow-2xs flex items-center gap-1"
-                                                            >
-                                                                <Package size={13} className="text-emerald-600" />
-                                                                <span>Claim Free Sample</span>
-                                                            </button>
-                                                        ) : (
-                                                            /* Dual Buy & Add-to-Cart Actions */
-                                                            <div className="flex items-center gap-1.5">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleAddToCart(item)}
-                                                                    className="py-1.5 px-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs transition active:scale-95 flex items-center gap-1 cursor-pointer"
-                                                                    title="Add to Cart"
-                                                                >
-                                                                    <ShoppingBag size={12} className="text-slate-600" />
-                                                                    <span>+ Cart</span>
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleInstantBuy(item)}
-                                                                    className="py-1.5 px-3 sm:px-3.5 rounded-xl font-black text-xs transition active:scale-95 shadow-xs flex items-center gap-1 tracking-tight uppercase cursor-pointer"
-                                                                    style={{ 
-                                                                        backgroundColor: resolveCtaTheme(creator.themeColor || '#ef4444', false).backgroundColor, 
-                                                                        color: resolveCtaTheme(creator.themeColor || '#ef4444', false).color 
-                                                                    }}
-                                                                >
-                                                                    <Zap size={13} className={resolveCtaTheme(creator.themeColor || '#ef4444', false).fillClass} style={{ fill: resolveCtaTheme(creator.themeColor || '#ef4444', false).color }} />
-                                                                    <span>BUY NOW</span>
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                {/* Layout View Toggle */}
+                                                <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setLayoutView('list')}
+                                                        className={`p-1.5 rounded-lg transition cursor-pointer ${layoutView === 'list' ? 'bg-white shadow-2xs text-slate-900 font-bold' : 'text-slate-400 hover:text-slate-600'}`}
+                                                        title="List View"
+                                                        aria-label="List View"
+                                                    >
+                                                        <List size={13} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setLayoutView('grid')}
+                                                        className={`p-1.5 rounded-lg transition cursor-pointer ${layoutView === 'grid' ? 'bg-white shadow-2xs text-slate-900 font-bold' : 'text-slate-400 hover:text-slate-600'}`}
+                                                        title="Grid View"
+                                                        aria-label="Grid View"
+                                                    >
+                                                        <LayoutGrid size={13} />
+                                                    </button>
                                                 </div>
                                             </div>
-                                        );
-                                    })}
+                                        </div>
+                                    </div>
+
+                                    {/* Empty Search/Filter State */}
+                                    {processedProducts.length === 0 ? (
+                                        <div className="text-center py-10 bg-white rounded-2xl border border-slate-100 p-6">
+                                            <ShoppingBag size={24} className="mx-auto text-slate-300 mb-2" />
+                                            <p className="text-xs font-bold text-slate-700">No products match your filter</p>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setSelectedCategory('All'); setSearchQuery(''); setSortBy('featured'); }}
+                                                className="mt-3 px-4 py-1.5 rounded-full text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 transition cursor-pointer shadow-xs"
+                                            >
+                                                Reset Filters
+                                            </button>
+                                        </div>
+                                    ) : layoutView === 'grid' ? (
+                                        /* ─── 2-Column Responsive Visual Grid View ─── */
+                                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                            {processedProducts.map((item, index) => {
+                                                const isFree = parseFloat(item.price || 0) === 0 || item.isFreeDownload;
+                                                const priceNum = parseFloat(item.price || 0);
+                                                const priceDisplay = isFree 
+                                                    ? "Free" 
+                                                    : `$${priceNum.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+                                                
+                                                return (
+                                                    <div 
+                                                        key={item.id || index}
+                                                        className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-all flex flex-col justify-between group"
+                                                    >
+                                                        <div>
+                                                            {/* Image with Click for Options */}
+                                                            <div 
+                                                                onClick={() => { setQuickViewProduct(item); setQuickViewActivePhoto(0); setQuickViewSelectedBundle(0); setQuickViewSelectedVariant(''); }}
+                                                                className="aspect-square w-full rounded-xl overflow-hidden bg-slate-100 border border-slate-100 relative cursor-pointer"
+                                                            >
+                                                                <img 
+                                                                    src={getSafeImageUrl(item.image || (item.images && item.images[0]))} 
+                                                                    alt={item.name || 'Product'} 
+                                                                    loading="lazy"
+                                                                    decoding="async"
+                                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                                    onError={(e) => handleImageError(e, 'product')}
+                                                                />
+                                                                {(item.badge || index === 0 || (item.comparePrice && item.comparePrice > item.price)) && (
+                                                                    <span className="absolute top-1.5 left-1.5 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-slate-900/90 text-white shadow-xs">
+                                                                        {item.badge || (index === 0 ? '🔥 Best Seller' : '🏷️ Sale')}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Product Title */}
+                                                            <h3 
+                                                                onClick={() => { setQuickViewProduct(item); setQuickViewActivePhoto(0); setQuickViewSelectedBundle(0); setQuickViewSelectedVariant(''); }}
+                                                                className="text-xs sm:text-sm font-bold text-slate-900 leading-snug line-clamp-2 mt-2 cursor-pointer hover:text-slate-700"
+                                                            >
+                                                                {item.name}
+                                                            </h3>
+
+                                                            {/* Category Pill */}
+                                                            {item.category && (
+                                                                <span className="inline-block text-[9px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
+                                                                    {typeof item.category === 'string' ? item.category : (item.category?.name || 'Featured')}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Price & Action Buttons */}
+                                                        <div className="mt-2.5 pt-2 border-t border-slate-100">
+                                                            <div className="flex items-baseline justify-between mb-2">
+                                                                <span className="text-xs sm:text-sm font-black text-slate-900">
+                                                                    {priceDisplay}
+                                                                </span>
+                                                                {item.compareAtPrice > item.price && (
+                                                                    <span className="text-[10px] text-slate-400 line-through">
+                                                                        ${parseFloat(item.compareAtPrice).toFixed(2)}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            {isFree ? (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleFreeDownloadClick(item)}
+                                                                    className="w-full py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold text-[11px] transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
+                                                                >
+                                                                    <Package size={11} className="text-emerald-600" />
+                                                                    <span>Free Sample</span>
+                                                                </button>
+                                                            ) : (
+                                                                <div className="grid grid-cols-2 gap-1.5">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleAddToCart(item)}
+                                                                        className="py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-[11px] transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
+                                                                        title="Add to Cart"
+                                                                    >
+                                                                        <ShoppingBag size={11} className="text-slate-600" />
+                                                                        <span>+ Cart</span>
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleInstantBuy(item)}
+                                                                        className="py-1.5 rounded-xl font-black text-[11px] transition active:scale-95 shadow-xs flex items-center justify-center gap-1 tracking-tight uppercase cursor-pointer"
+                                                                        style={{ 
+                                                                            backgroundColor: resolveCtaTheme(creator.themeColor || '#ef4444', false).backgroundColor, 
+                                                                            color: resolveCtaTheme(creator.themeColor || '#ef4444', false).color 
+                                                                        }}
+                                                                    >
+                                                                        <Zap size={11} className={resolveCtaTheme(creator.themeColor || '#ef4444', false).fillClass} style={{ fill: resolveCtaTheme(creator.themeColor || '#ef4444', false).color }} />
+                                                                        <span>BUY</span>
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        /* ─── Classic Stan List Layout ─── */
+                                        <div className="space-y-3">
+                                            {processedProducts.map((item, index) => {
+                                                const isFree = parseFloat(item.price || 0) === 0 || item.isFreeDownload;
+                                                const priceNum = parseFloat(item.price || 0);
+                                                const priceDisplay = isFree 
+                                                    ? "Free" 
+                                                    : `$${priceNum.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+                                                
+                                                return (
+                                                    <div 
+                                                        key={item.id || index}
+                                                        className="bg-white rounded-2xl p-3 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-all flex items-center gap-3 group"
+                                                    >
+                                                        {/* Square Rounded Thumbnail with click for options */}
+                                                        <div 
+                                                            onClick={() => { setQuickViewProduct(item); setQuickViewActivePhoto(0); setQuickViewSelectedBundle(0); setQuickViewSelectedVariant(''); }}
+                                                            className="size-16 sm:w-16 sm:h-16 object-cover rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-100 relative cursor-pointer"
+                                                        >
+                                                            <img 
+                                                                src={getSafeImageUrl(item.image || (item.images && item.images[0]))} 
+                                                                alt={item.name || 'Product'} 
+                                                                loading="lazy"
+                                                                decoding="async"
+                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                                onError={(e) => handleImageError(e, 'product')}
+                                                            />
+                                                        </div>
+
+                                                        {/* Product Content Column */}
+                                                        <div className="flex-1 min-w-0">
+                                                            {/* Badges */}
+                                                            {(item.badge || index === 0 || (item.comparePrice && item.comparePrice > item.price)) && (
+                                                                <div className="mb-1">
+                                                                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-500/20">
+                                                                        {item.badge || (index === 0 ? '🔥 Best Seller • In Stock' : (item.comparePrice && item.comparePrice > item.price ? '🏷️ Limited Quantity' : '🚚 Ships within 24h'))}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            <h3 
+                                                                onClick={() => { setQuickViewProduct(item); setQuickViewActivePhoto(0); setQuickViewSelectedBundle(0); setQuickViewSelectedVariant(''); }}
+                                                                className="text-sm font-bold text-slate-900 leading-snug line-clamp-2 cursor-pointer hover:text-slate-700"
+                                                            >
+                                                                {item.name}
+                                                            </h3>
+
+                                                            {/* Category / Tag Pill */}
+                                                            {item.category && (
+                                                                <span className="inline-block mt-0.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                                                                    {typeof item.category === 'string' ? item.category : (item.category?.name || 'Featured')}
+                                                                </span>
+                                                            )}
+
+                                                            {/* Bottom Row: Price & High-Converting CTA */}
+                                                            <div className="flex items-center justify-between gap-2 mt-2">
+                                                                <span className="text-sm sm:text-base font-black text-slate-900">
+                                                                    {priceDisplay}
+                                                                </span>
+
+                                                                {isFree ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleFreeDownloadClick(item)}
+                                                                        className="py-1.5 px-3 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs transition active:scale-95 shadow-2xs flex items-center gap-1 cursor-pointer"
+                                                                    >
+                                                                        <Package size={13} className="text-emerald-600" />
+                                                                        <span>Claim Free Sample</span>
+                                                                    </button>
+                                                                ) : (
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleAddToCart(item)}
+                                                                            className="py-1.5 px-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs transition active:scale-95 flex items-center gap-1 cursor-pointer"
+                                                                            title="Add to Cart"
+                                                                        >
+                                                                            <ShoppingBag size={12} className="text-slate-600" />
+                                                                            <span>+ Cart</span>
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleInstantBuy(item)}
+                                                                            className="py-1.5 px-3 sm:px-3.5 rounded-xl font-black text-xs transition active:scale-95 shadow-xs flex items-center gap-1 tracking-tight uppercase cursor-pointer"
+                                                                            style={{ 
+                                                                                backgroundColor: resolveCtaTheme(creator.themeColor || '#ef4444', false).backgroundColor, 
+                                                                                color: resolveCtaTheme(creator.themeColor || '#ef4444', false).color 
+                                                                            }}
+                                                                        >
+                                                                            <Zap size={13} className={resolveCtaTheme(creator.themeColor || '#ef4444', false).fillClass} style={{ fill: resolveCtaTheme(creator.themeColor || '#ef4444', false).color }} />
+                                                                            <span>BUY NOW</span>
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 /* Clean Empty Store State - Never Shows Ghost Products */
@@ -2435,6 +2740,213 @@ export default function CreatorBioPage({ params }) {
                                 </button>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* ─── Interactive Product Options & Variant Quick-View Sheet ─── */}
+            {quickViewProduct && (
+                <div 
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={quickViewProduct.name || "Product Options"}
+                    className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+                    onClick={() => setQuickViewProduct(null)}
+                >
+                    <div 
+                        className="bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 relative animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header: Title & Close Button */}
+                        <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
+                            <div>
+                                <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 mb-1">
+                                    {quickViewProduct.category || 'Featured Item'}
+                                </span>
+                                <h3 className="text-base sm:text-lg font-black text-slate-900 leading-snug">
+                                    {quickViewProduct.name}
+                                </h3>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setQuickViewProduct(null)}
+                                className="p-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition cursor-pointer shrink-0"
+                                aria-label="Close options"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        {/* Product Photo Gallery */}
+                        {(() => {
+                            const galleryImages = Array.isArray(quickViewProduct.images) && quickViewProduct.images.length > 0
+                                ? quickViewProduct.images
+                                : (quickViewProduct.image ? [quickViewProduct.image] : ['/placeholder.png']);
+                            const activePhoto = galleryImages[quickViewActivePhoto] || galleryImages[0];
+                            
+                            const qvBasePrice = parseFloat(quickViewProduct.price || 0);
+                            const qvComparePrice = parseFloat(quickViewProduct.compareAtPrice || quickViewProduct.comparePrice || (qvBasePrice > 0 ? Math.round(qvBasePrice * 1.35 * 100) / 100 : 0));
+                            
+                            const qvBundles = (Array.isArray(quickViewProduct.customBundles) && quickViewProduct.customBundles.length > 0)
+                                ? quickViewProduct.customBundles
+                                : [
+                                    { qty: 1, label: 'Single Unit (1-Pack)', totalPrice: qvBasePrice, badge: null },
+                                    { qty: 2, label: 'Double Pack (2-Pack)', totalPrice: Math.round(qvBasePrice * 1.4082075 * 100) / 100, badge: 'MOST POPULAR' },
+                                    { qty: 3, label: 'Triple Pack (3-Pack)', totalPrice: Math.round(qvBasePrice * 1.81623 * 100) / 100, badge: 'BEST VALUE' }
+                                ];
+                            const activeBundle = qvBundles[quickViewSelectedBundle] || qvBundles[0];
+                            const effectivePrice = parseFloat(activeBundle.totalPrice || qvBasePrice);
+
+                            // Detect Variants / Sizes
+                            const rawVariants = Array.isArray(quickViewProduct.variants) && quickViewProduct.variants.length > 0
+                                ? quickViewProduct.variants
+                                : (Array.isArray(quickViewProduct.sizes) && quickViewProduct.sizes.length > 0 ? quickViewProduct.sizes : []);
+                            const optionsList = rawVariants.map(v => typeof v === 'string' ? v : (v.name || v.label || v.title || String(v)));
+
+                            return (
+                                <div className="space-y-4 pt-3">
+                                    {/* Main Photo */}
+                                    <div className="aspect-square sm:aspect-4/3 w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 relative">
+                                        <img 
+                                            src={getSafeImageUrl(activePhoto)} 
+                                            alt={quickViewProduct.name || 'Product View'} 
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => handleImageError(e, 'product')}
+                                        />
+                                        <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[10px] shadow-sm flex items-center gap-1">
+                                            <span className="size-1.5 rounded-full bg-white animate-pulse" />
+                                            In Stock & Verified
+                                        </span>
+                                    </div>
+
+                                    {/* Thumbnail strip if multiple photos exist */}
+                                    {galleryImages.length > 1 && (
+                                        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                                            {galleryImages.map((img, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => setQuickViewActivePhoto(idx)}
+                                                    className={`size-12 rounded-xl overflow-hidden border-2 shrink-0 cursor-pointer transition ${quickViewActivePhoto === idx ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-slate-200 opacity-60 hover:opacity-100'}`}
+                                                >
+                                                    <img src={getSafeImageUrl(img)} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Dynamic Pricing Banner */}
+                                    <div className="flex items-baseline justify-between pt-1">
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-2xl font-black text-slate-900">
+                                                ${effectivePrice.toFixed(2)}
+                                            </span>
+                                            {qvComparePrice > qvBasePrice && (
+                                                <span className="text-xs text-slate-400 line-through font-semibold">
+                                                    ${(qvComparePrice * (activeBundle.qty || 1)).toFixed(2)}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span className="text-xs font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full">
+                                            Free US Delivery
+                                        </span>
+                                    </div>
+
+                                    {/* Variant / Option Selector (if variants exist) */}
+                                    {optionsList.length > 0 && (
+                                        <div>
+                                            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                                                Select Option / Model:
+                                            </label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {optionsList.map(opt => {
+                                                    const isSelected = (quickViewSelectedVariant || optionsList[0]) === opt;
+                                                    return (
+                                                        <button
+                                                            key={opt}
+                                                            type="button"
+                                                            onClick={() => setQuickViewSelectedVariant(opt)}
+                                                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${isSelected ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`}
+                                                        >
+                                                            {opt}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Volume Bundle Options */}
+                                    {qvBundles.length > 1 && (
+                                        <div>
+                                            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                                                Package & Volume Options:
+                                            </label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {qvBundles.map((b, bIdx) => {
+                                                    const isSelected = quickViewSelectedBundle === bIdx;
+                                                    return (
+                                                        <button
+                                                            key={bIdx}
+                                                            type="button"
+                                                            onClick={() => setQuickViewSelectedBundle(bIdx)}
+                                                            className={`p-2.5 rounded-xl border text-left transition relative cursor-pointer ${isSelected ? 'border-slate-900 bg-slate-900 text-white shadow-md' : 'border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100'}`}
+                                                        >
+                                                            {b.badge && (
+                                                                <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full block mb-1 ${isSelected ? 'bg-emerald-400 text-slate-950' : 'bg-emerald-600 text-white'}`}>
+                                                                    {b.badge}
+                                                                </span>
+                                                            )}
+                                                            <div className="text-xs font-black">{b.qty}x Unit{b.qty > 1 ? 's' : ''}</div>
+                                                            <div className={`text-[11px] font-bold ${isSelected ? 'text-emerald-300' : 'text-emerald-700'}`}>
+                                                                ${parseFloat(b.totalPrice || qvBasePrice).toFixed(2)}
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Action Buttons */}
+                                    <div className="pt-2 space-y-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const bundleToUse = qvBundles[quickViewSelectedBundle] || null;
+                                                const chosenVariant = quickViewSelectedVariant || optionsList[0] || '';
+                                                const productWithVariant = chosenVariant ? { ...quickViewProduct, variant: chosenVariant } : quickViewProduct;
+                                                handleInstantBuy(productWithVariant, bundleToUse);
+                                                setQuickViewProduct(null);
+                                            }}
+                                            className="w-full py-3 rounded-2xl font-black text-xs sm:text-sm tracking-wider uppercase transition active:scale-98 shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                                            style={{ 
+                                                backgroundColor: resolveCtaTheme(creator.themeColor || '#ef4444', false).backgroundColor, 
+                                                color: resolveCtaTheme(creator.themeColor || '#ef4444', false).color 
+                                            }}
+                                        >
+                                            <Zap size={15} className={resolveCtaTheme(creator.themeColor || '#ef4444', false).fillClass} style={{ fill: resolveCtaTheme(creator.themeColor || '#ef4444', false).color }} />
+                                            <span>BUY NOW WITH INSTANT CHECKOUT</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const bundleToUse = qvBundles[quickViewSelectedBundle] || null;
+                                                const chosenVariant = quickViewSelectedVariant || optionsList[0] || '';
+                                                const productWithVariant = chosenVariant ? { ...quickViewProduct, variant: chosenVariant } : quickViewProduct;
+                                                handleAddToCart(productWithVariant, bundleToUse);
+                                                setQuickViewProduct(null);
+                                            }}
+                                            className="w-full py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs tracking-wider transition active:scale-98 border border-slate-200 flex items-center justify-center gap-1.5 cursor-pointer"
+                                        >
+                                            <ShoppingBag size={14} />
+                                            <span>ADD TO CART</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
             )}
