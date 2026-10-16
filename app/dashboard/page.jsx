@@ -42,7 +42,8 @@ import {
     MousePointer,
     Activity,
     Monitor,
-    Compass
+    Compass,
+    RotateCcw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { isProductDeleted, isStoreDeleted, markStoreDeleted, deleteStore } from '@/lib/firebaseDb';
@@ -241,6 +242,25 @@ export default function MasterDashboardPage() {
             }
         } catch (e) {
             console.warn('Analytics fetch note:', e.message);
+        } finally {
+            setAnalyticsLoading(false);
+        }
+    };
+
+    const handleResetAnalytics = async () => {
+        const storeLabel = analyticsStoreFilter === 'all' ? 'all stores fleet-wide' : `store "${analyticsStoreFilter}"`;
+        if (!window.confirm(`Are you sure you want to reset analytics to zero for ${storeLabel}?`)) return;
+        try {
+            setAnalyticsLoading(true);
+            const res = await fetch(`/api/analytics/reset?store=${encodeURIComponent(analyticsStoreFilter)}`, { method: 'POST' });
+            if (res.ok) {
+                toast.success(`Analytics reset to zero for ${storeLabel}!`);
+                await loadAnalytics();
+            } else {
+                toast.error("Failed to reset analytics");
+            }
+        } catch (err) {
+            toast.error("Error resetting analytics: " + err.message);
         } finally {
             setAnalyticsLoading(false);
         }
@@ -1670,6 +1690,17 @@ export default function MasterDashboardPage() {
                                     className="p-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-slate-600 hover:text-slate-900 transition shadow-xs cursor-pointer disabled:opacity-50"
                                 >
                                     <RefreshCw size={14} className={analyticsLoading ? 'animate-spin text-emerald-600' : ''} />
+                                </button>
+
+                                {/* Reset Analytics to Zero Button */}
+                                <button
+                                    onClick={handleResetAnalytics}
+                                    disabled={analyticsLoading}
+                                    title="Reset analytics metrics to zero"
+                                    className="px-2.5 py-1.5 bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-300 rounded-xl text-slate-500 hover:text-rose-600 transition shadow-xs cursor-pointer flex items-center gap-1.5 text-xs font-bold disabled:opacity-50"
+                                >
+                                    <RotateCcw size={13} className="text-rose-500" />
+                                    <span className="hidden sm:inline">Reset to Zero</span>
                                 </button>
                             </div>
                         </div>

@@ -24,7 +24,8 @@ import {
     Sparkles, 
     Calendar,
     ArrowDownRight,
-    Package
+    Package,
+    RotateCcw
 } from "lucide-react";
 import Loading from "@/components/Loading";
 import { useAuth } from "@/lib/AuthContext";
@@ -323,6 +324,24 @@ export default function StoreAnalyticsDashboard() {
         toast.success(`Exported ${filteredOrders.length} orders to CSV report!`);
     };
 
+    const handleResetStoreAnalytics = async () => {
+        const cleanSid = (currentStore?.username || currentStore?.id || '').toLowerCase().replace(/^store_/, '');
+        if (!cleanSid) return;
+        if (!window.confirm(`Are you sure you want to reset analytics to zero for @${cleanSid}?`)) return;
+        try {
+            const res = await fetch(`/api/analytics/reset?store=${encodeURIComponent(cleanSid)}`, { method: 'POST' });
+            if (res.ok) {
+                toast.success(`Analytics reset to zero for @${cleanSid}!`);
+                setAnalyticsStats(null);
+                await fetchDashboardData();
+            } else {
+                toast.error("Failed to reset store analytics");
+            }
+        } catch (err) {
+            toast.error("Error resetting store analytics: " + err.message);
+        }
+    };
+
     if (loading) return <Loading />;
 
     const storeSlug = currentStore?.username || currentStore?.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '-') || 'store';
@@ -377,6 +396,16 @@ export default function StoreAnalyticsDashboard() {
                     >
                         <Download size={14} />
                         <span>Export CSV</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={handleResetStoreAnalytics}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-300 text-slate-600 hover:text-rose-600 font-bold text-xs shadow-xs transition cursor-pointer"
+                        title="Reset analytics metrics to zero for this store"
+                    >
+                        <RotateCcw size={14} className="text-rose-500" />
+                        <span>Reset to Zero</span>
                     </button>
                 </div>
             </div>
