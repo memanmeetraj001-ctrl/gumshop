@@ -17,8 +17,16 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const mode = searchParams.get('mode');
     const storeId = searchParams.get('store_id') || searchParams.get('store');
-
+    const idParam = searchParams.get('id');
     const storesParam = searchParams.get('stores');
+
+    if (idParam) {
+      const { getProductById } = await import('@/lib/db/products');
+      const singleProduct = await getProductById(idParam);
+      if (singleProduct) {
+        return NextResponse.json({ success: true, product: singleProduct, products: [singleProduct] }, { headers: NO_CACHE_HEADERS });
+      }
+    }
 
     if (mode === 'all' || mode === 'custom' || storesParam) {
       let products = await getAllProductsWithStores();
@@ -46,10 +54,11 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const body = await req.json().catch(() => ({}));
-    if (!body || !body.store_id || !body.title) {
-      return NextResponse.json({ success: false, error: 'store_id and title are required' }, { status: 400, headers: NO_CACHE_HEADERS });
+    const title = body?.title || body?.name;
+    if (!body || !body.store_id || !title) {
+      return NextResponse.json({ success: false, error: 'store_id and title (or name) are required' }, { status: 400, headers: NO_CACHE_HEADERS });
     }
-    const product = await dbCreateProduct(body);
+    const product = await dbCreateProduct({ ...body, title });
     return NextResponse.json({ success: true, product }, { headers: NO_CACHE_HEADERS });
   } catch (err) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500, headers: NO_CACHE_HEADERS });
@@ -62,7 +71,9 @@ export async function PATCH(req) {
     if (!body || !body.id) {
       return NextResponse.json({ success: false, error: 'Product ID required' }, { status: 400, headers: NO_CACHE_HEADERS });
     }
-    const updated = await dbUpdateProduct(body.id, body.updates || {});
+    const updates = body.updates || { ...body };
+    delete updates.id;
+    const updated = await dbUpdateProduct(body.id, updates);
     return NextResponse.json({ success: true, product: updated }, { headers: NO_CACHE_HEADERS });
   } catch (err) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500, headers: NO_CACHE_HEADERS });

@@ -46,30 +46,58 @@ export default function ProductClient({ initialProduct, productId: propProductId
     useEffect(() => {
         let isMounted = true;
         const fetchProductData = async () => {
-            if (product && (product.id === productId || product.slug === productId)) {
+            const isProductValid = product && 
+                (product.id === productId || product.slug === productId) && 
+                product.name && 
+                product.name !== 'Product' && 
+                (product.image || (Array.isArray(product.images) && product.images.length > 0));
+
+            if (isProductValid) {
                 setLoading(false);
                 return;
             }
+
             setLoading(true);
             try {
                 let foundProduct = null;
 
-                // 1. Authoritative: query Supabase via /api/products
+                // 1. Authoritative: query Supabase via /api/products?mode=all
                 try {
-                    const apiRes = await fetch('/api/products');
+                    const apiRes = await fetch(`/api/products?mode=all&id=${encodeURIComponent(productId)}`);
                     if (apiRes.ok) {
                         const apiData = await apiRes.json();
                         if (apiData.success && Array.isArray(apiData.products)) {
                             foundProduct = apiData.products.find(
-                                p => p.id === productId || p.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '-') === productId
+                                p => (p.id === productId || p.slug === productId || p.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '-') === productId) &&
+                                     p.name && p.name !== 'Product'
                             );
                         }
                     }
                 } catch {}
 
-                // 2. Fallback to Redux store
+                // 2. Secondary fallback: Extract store slug and query store data
                 if (!foundProduct) {
-                    foundProduct = productsRef.current?.find(p => p.id === productId);
+                    const storeMatch = productId.match(/^prod_([a-zA-Z0-9-]+?)(?:_\d+.*)?$/);
+                    const storeSlug = storeMatch?.[1];
+                    if (storeSlug) {
+                        try {
+                            const storeRes = await fetch(`/api/store/data?slug=${encodeURIComponent(storeSlug)}`);
+                            if (storeRes.ok) {
+                                const storeData = await storeRes.json();
+                                if (storeData.success && Array.isArray(storeData.products)) {
+                                    foundProduct = storeData.products.find(
+                                        p => (p.id === productId || p.slug === productId || p.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '-') === productId) &&
+                                             p.name && p.name !== 'Product'
+                                    );
+                                }
+                            }
+                        } catch {}
+                    }
+                }
+
+                // 3. Fallback to Redux store
+                if (!foundProduct) {
+                    foundProduct = productsRef.current?.find(p => p.id === productId && p.name && p.name !== 'Product');
                 }
 
                 if (isMounted) {
@@ -92,6 +120,7 @@ export default function ProductClient({ initialProduct, productId: propProductId
             isMounted = false;
         };
     }, [productId, initialProduct]);
+
 
     if (loading) {
         return <Loading />;
