@@ -583,14 +583,14 @@ const ProductDetails = ({ product, storeInfo }) => {
                                 </span>
                             </div>
                         )}
-                        {product.subtitle && (
-                            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight uppercase font-serif mb-2">
-                                {product.subtitle}
-                            </h2>
-                        )}
-                        <h1 className="text-base sm:text-lg font-bold text-slate-700 tracking-tight leading-snug">
+                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
                             {product.name}
                         </h1>
+                        {product.subtitle && (
+                            <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed mt-2">
+                                {product.subtitle}
+                            </p>
+                        )}
                     </div>
 
                     {/* Benefit Checkmarks */}
