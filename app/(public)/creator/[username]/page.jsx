@@ -935,6 +935,73 @@ export default function CreatorBioPage({ params }) {
         toast.success(`Access granted! Sent to ${bioLeadEmail} 🎉`, { duration: 3500 });
     };
 
+    const displayedProducts = creator?.productDisplayMode === 'curated'
+        ? products.filter(p => Array.isArray(creator.featuredProductIds) && creator.featuredProductIds.includes(p.id))
+        : products;
+
+    // Dynamic Category Extraction across all products in store (must be top-level hook)
+    const storeCategories = useMemo(() => {
+        const cats = new Set();
+        (displayedProducts || []).forEach(p => {
+            if (!p) return;
+            const c = typeof p.category === 'string' ? p.category.trim() : (p.category?.name || '');
+            if (c && c.toLowerCase() !== 'general') cats.add(c);
+        });
+        return ['All', ...Array.from(cats)];
+    }, [displayedProducts]);
+
+    // Reactive Filtering & Sorting Pipeline (must be top-level hook)
+    const processedProducts = useMemo(() => {
+        let list = Array.isArray(displayedProducts) ? displayedProducts.filter(Boolean) : [];
+
+        // 1. Category Filter
+        if (selectedCategory && selectedCategory !== 'All') {
+            list = list.filter(p => {
+                if (!p) return false;
+                const c = typeof p.category === 'string' ? p.category.trim() : (p.category?.name || '');
+                return c.toLowerCase() === selectedCategory.toLowerCase();
+            });
+        }
+
+        // 2. Keyword Search Filter
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase().trim();
+            list = list.filter(p => {
+                if (!p) return false;
+                return (p.name || '').toLowerCase().includes(q) ||
+                    (p.description || '').toLowerCase().includes(q) ||
+                    (typeof p.category === 'string' ? p.category.toLowerCase() : '').includes(q);
+            });
+        }
+
+        // 3. Sorting Options
+        switch (sortBy) {
+            case 'price_asc':
+                list.sort((a, b) => (parseFloat(a?.price) || 0) - (parseFloat(b?.price) || 0));
+                break;
+            case 'price_desc':
+                list.sort((a, b) => (parseFloat(b?.price) || 0) - (parseFloat(a?.price) || 0));
+                break;
+            case 'best_sellers':
+                list.sort((a, b) => {
+                    const aScore = a?.badge ? 2 : (Array.isArray(a?.reviews) ? a.reviews.length : 0);
+                    const bScore = b?.badge ? 2 : (Array.isArray(b?.reviews) ? b.reviews.length : 0);
+                    return bScore - aScore;
+                });
+                break;
+            case 'name_asc':
+                list.sort((a, b) => (a?.name || '').localeCompare(b?.name || ''));
+                break;
+            case 'newest':
+                list.sort((a, b) => new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0));
+                break;
+            case 'featured':
+            default:
+                break;
+        }
+        return list;
+    }, [displayedProducts, selectedCategory, searchQuery, sortBy]);
+
     if (loading) return <Loading />;
 
     if (!storeInfo || !creator) {
@@ -979,69 +1046,6 @@ export default function CreatorBioPage({ params }) {
     }
 
     const activePreset = PRESET_STYLES[creator?.backgroundPreset] || PRESET_STYLES.warm_studio;
-    const displayedProducts = creator?.productDisplayMode === 'curated'
-        ? products.filter(p => Array.isArray(creator.featuredProductIds) && creator.featuredProductIds.includes(p.id))
-        : products;
-
-    // Dynamic Category Extraction across all products in store
-    const storeCategories = useMemo(() => {
-        const cats = new Set();
-        (displayedProducts || []).forEach(p => {
-            const c = typeof p.category === 'string' ? p.category.trim() : (p.category?.name || '');
-            if (c && c.toLowerCase() !== 'general') cats.add(c);
-        });
-        return ['All', ...Array.from(cats)];
-    }, [displayedProducts]);
-
-    // Reactive Filtering & Sorting Pipeline
-    const processedProducts = useMemo(() => {
-        let list = Array.isArray(displayedProducts) ? [...displayedProducts] : [];
-
-        // 1. Category Filter
-        if (selectedCategory && selectedCategory !== 'All') {
-            list = list.filter(p => {
-                const c = typeof p.category === 'string' ? p.category.trim() : (p.category?.name || '');
-                return c.toLowerCase() === selectedCategory.toLowerCase();
-            });
-        }
-
-        // 2. Keyword Search Filter
-        if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase().trim();
-            list = list.filter(p => 
-                (p.name || '').toLowerCase().includes(q) ||
-                (p.description || '').toLowerCase().includes(q) ||
-                (typeof p.category === 'string' ? p.category.toLowerCase() : '').includes(q)
-            );
-        }
-
-        // 3. Sorting Options
-        switch (sortBy) {
-            case 'price_asc':
-                list.sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
-                break;
-            case 'price_desc':
-                list.sort((a, b) => (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0));
-                break;
-            case 'best_sellers':
-                list.sort((a, b) => {
-                    const aScore = a.badge ? 2 : (Array.isArray(a.reviews) ? a.reviews.length : 0);
-                    const bScore = b.badge ? 2 : (Array.isArray(b.reviews) ? b.reviews.length : 0);
-                    return bScore - aScore;
-                });
-                break;
-            case 'name_asc':
-                list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-                break;
-            case 'newest':
-                list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-                break;
-            case 'featured':
-            default:
-                break;
-        }
-        return list;
-    }, [displayedProducts, selectedCategory, searchQuery, sortBy]);
 
     return (
         <div className={`min-h-screen text-slate-900 selection:bg-rose-500 selection:text-white flex flex-col font-sans antialiased ${activePreset.bg}`}>
