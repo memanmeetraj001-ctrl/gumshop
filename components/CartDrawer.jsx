@@ -82,6 +82,7 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [couponCode, setCouponCode] = useState('');
     const [appliedDiscount, setAppliedDiscount] = useState(0);
+    const [hasPriorityProtection, setHasPriorityProtection] = useState(true);
     const [checkoutModal, setCheckoutModal] = useState({ isOpen: false, gumroadUrl: '', orderSessionId: '' });
 
     // Memoize resolved items and subtotal to avoid synchronous storage scans on every render
@@ -134,6 +135,7 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
     const maxTierThreshold = 100;
     const overallTierProgress = Math.min(100, Math.round(((subtotal || 0) / maxTierThreshold) * 100)) || 0;
     const shippingFee = (subtotal >= freeShippingThreshold || subtotal === 0) ? 0 : 4.99;
+    const priorityFee = (hasPriorityProtection && items.length > 0) ? 4.99 : 0;
 
     let tierMessage = '';
     if (subtotal === 0) {
@@ -148,7 +150,7 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
         tierMessage = `🌟 Max VIP Perks Unlocked: FREE Shipping + Mystery Gift + VIP Dispatch!`;
     }
 
-    const finalTotal = Math.max(0, Math.round(((subtotal || 0) + shippingFee - (appliedDiscount || 0)) * 100) / 100);
+    const finalTotal = Math.max(0, Math.round(((subtotal || 0) + shippingFee + priorityFee - (appliedDiscount || 0)) * 100) / 100);
 
     const handleApplyCoupon = async (e) => {
         e.preventDefault();
@@ -229,7 +231,8 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                         gumroadUrl: i.gumroadUrl || ''
                     })),
                     discountAmount: appliedDiscount,
-                    shippingFee: shippingFee
+                    shippingFee: shippingFee,
+                    rushFee: priorityFee
                 })
             });
 
@@ -484,30 +487,60 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                             )}
 
                             {/* Totals */}
-                            <div className="space-y-1.5 text-xs text-slate-600">
-                                <div className="flex justify-between">
-                                    <span>Subtotal</span>
-                                    <span className="font-bold text-slate-900">${subtotal.toFixed(2)}</span>
-                                </div>
-                                {appliedDiscount > 0 && (
-                                    <div className="flex justify-between text-emerald-600 font-bold">
-                                        <span>Discount</span>
-                                        <span>-${appliedDiscount.toFixed(2)}</span>
+                            <div className="space-y-2 text-xs text-slate-600">
+                                {/* Priority Safe Transit Protection Checkbox */}
+                                <label className={`p-2.5 rounded-xl border-2 flex items-center justify-between cursor-pointer transition select-none ${
+                                    hasPriorityProtection ? 'border-amber-300 bg-amber-50/70' : 'border-slate-200 bg-white hover:border-slate-300'
+                                }`}>
+                                    <div className="flex items-center gap-2">
+                                        <input 
+                                            type="checkbox"
+                                            checked={hasPriorityProtection}
+                                            onChange={(e) => setHasPriorityProtection(e.target.checked)}
+                                            className="size-4 accent-amber-500 rounded cursor-pointer"
+                                        />
+                                        <div className="text-[11px] leading-tight">
+                                            <span className="font-bold text-slate-900 flex items-center gap-1">
+                                                <ShieldCheck size={13} className="text-amber-600" />
+                                                Priority Dispatch & Protection
+                                            </span>
+                                            <span className="text-slate-500 text-[10px]">Guaranteed safe delivery, lost/damaged reship</span>
+                                        </div>
                                     </div>
-                                )}
-                                <div className="flex justify-between">
-                                    <span>Estimated Shipping</span>
-                                    <span className="font-semibold text-slate-900">
-                                        {subtotal >= freeShippingThreshold ? (
-                                            <span className="text-emerald-600 font-bold">FREE</span>
-                                        ) : (
-                                            '$4.99'
-                                        )}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between text-base font-extrabold text-slate-900 pt-2 border-t border-slate-200">
-                                    <span>Total</span>
-                                    <span className="text-emerald-600">${finalTotal.toFixed(2)}</span>
+                                    <span className="text-xs font-bold text-slate-900 shrink-0">+$4.99</span>
+                                </label>
+
+                                <div className="space-y-1.5 pt-1">
+                                    <div className="flex justify-between">
+                                        <span>Subtotal</span>
+                                        <span className="font-bold text-slate-900">${subtotal.toFixed(2)}</span>
+                                    </div>
+                                    {appliedDiscount > 0 && (
+                                        <div className="flex justify-between text-emerald-600 font-bold">
+                                            <span>Discount</span>
+                                            <span>-${appliedDiscount.toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between">
+                                        <span>Estimated Shipping</span>
+                                        <span className="font-semibold text-slate-900">
+                                            {subtotal >= freeShippingThreshold ? (
+                                                <span className="text-emerald-600 font-bold">FREE</span>
+                                            ) : (
+                                                '$4.99'
+                                            )}
+                                        </span>
+                                    </div>
+                                    {hasPriorityProtection && items.length > 0 && (
+                                        <div className="flex justify-between text-amber-800 font-medium">
+                                            <span className="flex items-center gap-1">⚡ Priority Dispatch</span>
+                                            <span className="font-bold">+$4.99</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between text-base font-extrabold text-slate-900 pt-2 border-t border-slate-200">
+                                        <span>Total</span>
+                                        <span className="text-emerald-600">${finalTotal.toFixed(2)}</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -519,7 +552,7 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                                     className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-98 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer"
                                 >
                                     <Zap size={18} className="fill-white" />
-                                    <span>{isCheckingOut ? 'Opening Secure Checkout...' : '⚡ Buy Now — Instant Checkout'}</span>
+                                    <span>{isCheckingOut ? 'Opening Secure Checkout...' : `⚡ Buy Now • $${finalTotal.toFixed(2)}`}</span>
                                 </button>
                                 <Link
                                     href="/cart"

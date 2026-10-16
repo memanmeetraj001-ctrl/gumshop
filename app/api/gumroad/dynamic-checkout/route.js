@@ -56,7 +56,16 @@ export async function POST(req) {
                                 const baseV0Price = parseFloat(dbProduct.variants[0]?.price || 0);
                                 const discountRatio = (baseV0Price > 0 && baseRetail > 0) ? (baseRetail / baseV0Price) : 1;
                                 const rawVPrice = parseFloat(matchedVariant.price || 0);
-                                if (rawVPrice > 0) {
+                                if (matchedVariant.priceDelta !== undefined && parseFloat(matchedVariant.priceDelta) > 0) {
+                                    sizeDelta = parseFloat(matchedVariant.priceDelta);
+                                } else if (matchedVariant.effectivePrice && parseFloat(matchedVariant.effectivePrice) > baseRetail) {
+                                    sizeDelta = Math.round((parseFloat(matchedVariant.effectivePrice) - baseRetail) * 100) / 100;
+                                } else if (rawVPrice > baseV0Price && baseV0Price > 0) {
+                                    const rawDiff = rawVPrice - baseV0Price;
+                                    sizeDelta = (discountRatio < 0.999 && discountRatio > 0)
+                                        ? Math.round(rawDiff * discountRatio * 100) / 100
+                                        : Math.round(rawDiff * 100) / 100;
+                                } else if (rawVPrice > 0) {
                                     const vEffPrice = (discountRatio < 0.999 && discountRatio > 0)
                                         ? Math.round(rawVPrice * discountRatio * 100) / 100
                                         : rawVPrice;
@@ -125,7 +134,7 @@ export async function POST(req) {
         // If rush fee was already in items, do not double-add it!
         const effectiveRushFee = hasRushItem ? 0 : parsedRushFee;
         const totalRushFee = hasRushItem 
-            ? Math.max(0, validatedItems.find(i => i.productId === 'addon_priority_rush_insurance' || i.id === 'addon_priority_rush_insurance')?.price || parsedRushFee || 3.99)
+            ? Math.max(0, validatedItems.find(i => i.productId === 'addon_priority_rush_insurance' || i.id === 'addon_priority_rush_insurance')?.price || parsedRushFee || 4.99)
             : parsedRushFee;
 
         const validShippingFee = Math.max(0, parseFloat(shippingFee || 0));

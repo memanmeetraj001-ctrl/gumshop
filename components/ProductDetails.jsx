@@ -27,30 +27,36 @@ const ProductDetails = ({ product, storeInfo }) => {
     const router = useRouter();
 
     // Dynamic Color & Size Variant Switcher (ONLY if authentic variants exist)
+    // Dynamic Color, Size & Multi-Option Switcher (ONLY if authentic variants/options exist)
     const hasExplicitColors = Array.isArray(product.colors) && product.colors.length > 0;
     const hasExplicitSizes = Array.isArray(product.sizes) && product.sizes.length > 0;
     const hasVariantsArray = Array.isArray(product.variants) && product.variants.length > 0;
+    const hasProductOptions = Array.isArray(product.options) && product.options.length > 0;
 
     // Detect color/style option from product.options if not explicitly passed
-    const colorOption = !hasExplicitColors && Array.isArray(product.options)
+    const colorOption = !hasExplicitColors && hasProductOptions
         ? product.options.find(o => /color|style|finish/i.test(o.name || ''))
         : null;
+
+    const getColorHex = (val) => {
+        const lower = String(val || '').toLowerCase();
+        if (lower.includes('red')) return '#ef4444';
+        if (lower.includes('white')) return '#f8fafc';
+        if (lower.includes('black')) return '#1e293b';
+        if (lower.includes('blue')) return '#3b82f6';
+        if (lower.includes('tan') || lower.includes('sand') || lower.includes('desert')) return '#d97706';
+        if (lower.includes('green') || lower.includes('camo')) return '#15803d';
+        if (lower.includes('gold') || lower.includes('yellow')) return '#eab308';
+        return '#10b981';
+    };
 
     const availableColors = useMemo(() => {
         if (hasExplicitColors) return product.colors;
         if (colorOption && Array.isArray(colorOption.values) && colorOption.values.length > 1) {
-            return colorOption.values.map(val => {
-                const lower = val.toLowerCase();
-                let hex = '#10b981';
-                if (lower.includes('red')) hex = '#ef4444';
-                else if (lower.includes('white')) hex = '#f8fafc';
-                else if (lower.includes('black')) hex = '#1e293b';
-                else if (lower.includes('blue')) hex = '#3b82f6';
-                else if (lower.includes('tan') || lower.includes('sand') || lower.includes('desert')) hex = '#d97706';
-                else if (lower.includes('green') || lower.includes('camo')) hex = '#15803d';
-                else if (lower.includes('gold') || lower.includes('yellow')) hex = '#eab308';
-                return { name: val, hex };
-            });
+            return colorOption.values.map(val => ({
+                name: val,
+                hex: getColorHex(val)
+            }));
         }
         return [];
     }, [hasExplicitColors, product.colors, colorOption]);
@@ -60,24 +66,52 @@ const ProductDetails = ({ product, storeInfo }) => {
     const discountRatio = (baseVariantPrice > 0 && unitPrice > 0) ? (unitPrice / baseVariantPrice) : 1;
 
     const getVariantPricing = (v) => {
+        if (!v) return { effectivePrice: unitPrice, priceDelta: 0 };
         const rawPrice = parseFloat(v.price || 0);
         let effectivePrice = unitPrice;
         let priceDelta = 0;
 
-        if (rawPrice > 0) {
-            if (discountRatio < 0.999 && discountRatio > 0) {
-                effectivePrice = Math.round(rawPrice * discountRatio * 100) / 100;
-            } else {
-                effectivePrice = rawPrice;
-            }
-            priceDelta = Math.max(0, Math.round((effectivePrice - unitPrice) * 100) / 100);
-        } else if (v.priceDelta !== undefined) {
-            priceDelta = parseFloat(v.priceDelta) || 0;
-            effectivePrice = Math.round((unitPrice + priceDelta) * 100) / 100;
+        if (v.priceDelta !== undefined && parseFloat(v.priceDelta) > 0) {
+            priceDelta = parseFloat(v.priceDelta);
+        } else if (v.effectivePrice && parseFloat(v.effectivePrice) > unitPrice) {
+            priceDelta = Math.round((parseFloat(v.effectivePrice) - unitPrice) * 100) / 100;
+        } else if (rawPrice > baseVariantPrice && baseVariantPrice > 0) {
+            const rawDiff = rawPrice - baseVariantPrice;
+            priceDelta = (discountRatio < 0.999 && discountRatio > 0)
+                ? Math.round(rawDiff * discountRatio * 100) / 100
+                : Math.round(rawDiff * 100) / 100;
+        } else if (rawPrice > 0 && rawPrice > unitPrice) {
+            priceDelta = Math.round((rawPrice - unitPrice) * 100) / 100;
         }
 
+        effectivePrice = Math.round((unitPrice + priceDelta) * 100) / 100;
         return { effectivePrice, priceDelta };
     };
+
+    // Multi-option state for products with options array (e.g. Style, Gel Balls, Battery, Bullets, Magazines)
+    const [selectedOptions, setSelectedOptions] = useState(() => {
+        const initial = {};
+        if (hasProductOptions) {
+            product.options.forEach(opt => {
+                if (opt && opt.name && Array.isArray(opt.values) && opt.values.length > 0) {
+                    initial[opt.name] = opt.values[0];
+                }
+            });
+        }
+        return initial;
+    });
+
+    useEffect(() => {
+        if (Array.isArray(product.options) && product.options.length > 0) {
+            const initial = {};
+            product.options.forEach(opt => {
+                if (opt && opt.name && Array.isArray(opt.values) && opt.values.length > 0) {
+                    initial[opt.name] = opt.values[0];
+                }
+            });
+            setSelectedOptions(initial);
+        }
+    }, [product.id, product.options]);
 
     const allVariantSizes = useMemo(() => {
         if (hasExplicitSizes) {
@@ -142,6 +176,25 @@ const ProductDetails = ({ product, storeInfo }) => {
         }
     }, [selectedColor, availableSizes]);
 
+    // Matched Variant Resolution across multi-options or selected size
+    const matchedVariant = useMemo(() => {
+        if (!hasVariantsArray) return null;
+        const optEntries = Object.entries(selectedOptions);
+        if (optEntries.length > 0) {
+            const selectedVals = optEntries.map(([_, v]) => String(v).toLowerCase().trim());
+            const matched = product.variants.find(v => {
+                const vName = String(v.name || '').toLowerCase();
+                return selectedVals.every(val => vName.includes(val));
+            });
+            if (matched) return matched;
+        }
+        if (selectedSize) {
+            const found = product.variants.find(v => (selectedSize.id && v.id === selectedSize.id) || v.name === selectedSize.name);
+            if (found) return found;
+        }
+        return product.variants[0] || null;
+    }, [hasVariantsArray, product.variants, selectedOptions, selectedSize]);
+
     const [selectedQuantity, setSelectedQuantity] = useState(1);
     const [openFaq, setOpenFaq] = useState(0);
     const [checkoutModal, setCheckoutModal] = useState({ isOpen: false, gumroadUrl: '', orderSessionId: '' });
@@ -154,25 +207,30 @@ const ProductDetails = ({ product, storeInfo }) => {
     
     const [mainImage, setMainImage] = useState(images[0]);
 
-    const sizeDelta = parseFloat(selectedSize?.priceDelta || 0);
+    const activeVariant = matchedVariant || selectedSize || null;
+    const activePricing = getVariantPricing(activeVariant);
+    const sizeDelta = activePricing.priceDelta;
     const effectiveUnitPrice = unitPrice + sizeDelta;
-    const rawCompareAt = parseFloat(selectedSize?.compareAtPrice || product.compareAtPrice || product.mrp || 0);
+    const protectionFee = hasShippingProtection ? 4.99 : 0;
+    const rawCompareAt = parseFloat(activeVariant?.compareAtPrice || selectedSize?.compareAtPrice || product.compareAtPrice || product.mrp || 0);
     const compareAtPrice = rawCompareAt > 0
-        ? ((discountRatio < 0.999 && discountRatio > 0 && selectedSize?.compareAtPrice)
+        ? ((discountRatio < 0.999 && discountRatio > 0 && (activeVariant?.compareAtPrice || selectedSize?.compareAtPrice))
             ? Math.round(rawCompareAt * discountRatio * 100) / 100
             : rawCompareAt + sizeDelta)
         : (unitPrice === 52.99 ? 69.99 : Math.round(effectiveUnitPrice * 1.35 * 100) / 100);
 
     const colorCode = selectedColor?.name?.substring(0, 3).toUpperCase() || 'DEF';
-    const sizeCode = selectedSize?.name?.substring(0, 3).toUpperCase() || 'STD';
+    const sizeCode = (activeVariant?.name || selectedSize?.name || 'STD').substring(0, 3).toUpperCase();
     const baseSku = product.sku || `SKU-${product.id?.substring(0, 6)?.toUpperCase() || 'PROD'}`;
-    const activeSku = selectedSize?.sku || `${baseSku}-${colorCode}-${sizeCode}`;
+    const activeSku = activeVariant?.sku || selectedSize?.sku || `${baseSku}-${colorCode}-${sizeCode}`;
 
     const rawStock = Number(product.stockQuantity !== undefined ? product.stockQuantity : 42);
     const isOutOfStock = product.inStock === false || rawStock <= 0;
     const isLowStock = !isOutOfStock && rawStock <= 12;
 
-    const activeVariantLabel = `${selectedColor && !selectedSize?.name?.toLowerCase().includes(selectedColor.name.toLowerCase()) ? selectedColor.name + ' • ' : ''}${selectedSize?.name || 'Standard Edition'}`;
+    const activeVariantLabel = activeVariant?.name 
+        || (hasProductOptions && Object.values(selectedOptions).length > 0 ? Object.values(selectedOptions).join(' / ') : null)
+        || `${selectedColor && !selectedSize?.name?.toLowerCase().includes(selectedColor.name.toLowerCase()) ? selectedColor.name + ' • ' : ''}${selectedSize?.name || 'Standard Edition'}`;
 
     // Quantity Tier Breaks: Prefer authentic product-specific customBundles if available, scaling if size variant has priceDelta
     const baseItemName = product.name ? product.name.split(' ')[0] : 'Item';
@@ -234,7 +292,9 @@ const ProductDetails = ({ product, storeInfo }) => {
                 price: currentTier.pricePerUnit,
                 variant: activeVariantLabel,
                 selectedColor: selectedColor?.name,
-                selectedSize: selectedSize?.name,
+                selectedSize: activeVariant?.name || selectedSize?.name,
+                selectedOptions,
+                hasShippingProtection,
                 storeId: product.storeId || storeInfo?.id,
                 storeName: storeInfo?.name
             }
@@ -259,13 +319,14 @@ const ProductDetails = ({ product, storeInfo }) => {
                             price: currentTier.pricePerUnit,
                             quantity: currentTier.qty,
                             variant: activeVariantLabel,
-                            selectedSize: selectedSize?.name,
-                            selectedVariantId: selectedSize?.id,
-                            sku: selectedSize?.sku || activeSku,
+                            selectedSize: activeVariant?.name || selectedSize?.name,
+                            selectedVariantId: activeVariant?.id || selectedSize?.id,
+                            sku: activeSku,
                             gumroadUrl: product.gumroadUrl || ''
                         }
                     ],
                     shippingFee: currentTier.qty >= 3 ? 0 : (storeInfo?.shipping?.standardFee || 4.99),
+                    rushFee: hasShippingProtection ? 4.99 : 0,
                     gumroadProductUrl: product?.gumroadUrl || storeInfo?.gumroadProductUrl || (typeof window !== 'undefined' ? ((storeInfo?.username ? localStorage.getItem(`gumroad_url_${storeInfo.username}`) : '') || localStorage.getItem('gumshop_gumroad_url') || localStorage.getItem('gumroad_product_url') || '') : '')
                 })
             });
@@ -493,10 +554,15 @@ const ProductDetails = ({ product, storeInfo }) => {
 
                     {/* Price Header & Real-Time Stock Status */}
                     <div className="space-y-3 pt-2">
-                        <div className="flex items-baseline gap-3">
+                        <div className="flex items-baseline gap-3 flex-wrap">
                             <span className="text-3xl sm:text-4xl font-black text-slate-950">
-                                ${currentTier.pricePerUnit.toFixed(2)}
+                                ${(currentTier.totalPrice + protectionFee).toFixed(2)}
                             </span>
+                            {hasShippingProtection && (
+                                <span className="text-[11px] font-bold text-amber-800 bg-amber-100/80 border border-amber-300 px-2 py-0.5 rounded-full">
+                                    + $4.99 Priority Protection
+                                </span>
+                            )}
                             {compareAtPrice > unitPrice && (
                                 <span className="text-lg text-slate-400 line-through font-semibold">
                                     ${(compareAtPrice * selectedQuantity).toFixed(2)}
@@ -533,94 +599,159 @@ const ProductDetails = ({ product, storeInfo }) => {
                         )}
                     </div>
 
-                    {/* Interactive Color & Size Variant Switcher */}
+                    {/* Interactive Multi-Option & Variant Switcher */}
                     <div className="space-y-4 pt-1 pb-1">
-                        {/* 1. Color Swatches */}
-                        {availableColors.length > 0 && (
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                                    <span className="uppercase tracking-wider text-[11px] text-slate-500">Color / Finish</span>
-                                    <span className="text-emerald-600 font-extrabold">{selectedColor?.name}</span>
-                                </div>
-                                <div className="flex flex-wrap gap-2.5 items-center">
-                                    {availableColors.map((col, idx) => (
-                                        <button
-                                            key={idx}
-                                            type="button"
-                                            aria-pressed={selectedColor?.name === col.name}
-                                            onClick={() => setSelectedColor(col)}
-                                            className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 transition text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer ${
-                                                selectedColor?.name === col.name
-                                                    ? 'border-emerald-600 bg-emerald-50/60 text-slate-900 shadow-xs'
-                                                    : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
-                                            }`}
-                                        >
-                                            <span 
-                                                className="size-4 rounded-full border border-slate-300/80 shadow-xs shrink-0 flex items-center justify-center"
-                                                style={{ backgroundColor: col.hex || '#10b981' }}
-                                            >
-                                                {selectedColor?.name === col.name && (
-                                                    <Check size={10} className={col.hex === '#ffffff' || col.hex === '#fff' ? 'text-slate-900 stroke-[3]' : 'text-white stroke-[3]'} />
-                                                )}
-                                            </span>
-                                            <span>{col.name}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                        {hasProductOptions ? (
+                            product.options.map((opt, optIdx) => {
+                                const isColorLike = /color|style|finish/i.test(opt.name || '');
+                                const selectedVal = selectedOptions[opt.name] || opt.values?.[0] || '';
+                                return (
+                                    <div key={optIdx} className="space-y-2">
+                                        <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                                            <span className="uppercase tracking-wider text-[11px] text-slate-500">{opt.name}</span>
+                                            <span className="text-emerald-600 font-extrabold">{selectedVal}</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2.5 items-center">
+                                            {opt.values.map((val, vIdx) => {
+                                                const isSelected = selectedVal === val;
+                                                const candidateOpts = { ...selectedOptions, [opt.name]: val };
+                                                const candidateVals = Object.values(candidateOpts).map(v => String(v).toLowerCase().trim());
+                                                const candVariant = hasVariantsArray ? product.variants.find(v => {
+                                                    const vName = String(v.name || '').toLowerCase();
+                                                    return candidateVals.every(cv => vName.includes(cv));
+                                                }) : null;
+                                                const candDelta = candVariant ? getVariantPricing(candVariant).priceDelta : 0;
 
-                        {/* 2. Size / Bundle Options */}
-                        {availableSizes.length > 0 && (
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                                    <span className="uppercase tracking-wider text-[11px] text-slate-500">Edition / Package</span>
-                                    <span className="text-emerald-600 font-extrabold">{selectedSize?.name}</span>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                    {availableSizes.map((sz, idx) => {
-                                        const isSelected = selectedSize?.name === sz.name;
-                                        const delta = parseFloat(sz.priceDelta || 0);
-                                        const cardEffectivePrice = sz.effectivePrice || (unitPrice + delta);
-                                        return (
-                                            <button
-                                                key={idx}
-                                                type="button"
-                                                aria-pressed={isSelected}
-                                                onClick={() => setSelectedSize(sz)}
-                                                className={`p-3 rounded-2xl border-2 text-left transition flex flex-col justify-between outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer ${
-                                                    isSelected
-                                                        ? 'border-emerald-600 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-500/20'
-                                                        : 'border-slate-200 bg-white hover:border-slate-300'
-                                                }`}
-                                            >
-                                                <div className="flex items-start justify-between gap-1.5">
-                                                    <span className="text-xs font-bold text-slate-900 leading-snug">{sz.name}</span>
-                                                    {isSelected && (
-                                                        <span className="size-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
-                                                            <Check size={10} className="stroke-[3]" />
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="text-[11px] font-semibold mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between">
-                                                    <span className="text-emerald-700 font-black font-mono">
-                                                        ${cardEffectivePrice.toFixed(2)}
-                                                    </span>
-                                                    <span>
-                                                        {delta > 0 ? (
-                                                            <span className="text-amber-800 bg-amber-100/80 border border-amber-300/80 px-2 py-0.5 rounded-md text-[10px] font-black tracking-tight">
-                                                                +${delta.toFixed(2)}
+                                                return (
+                                                    <button
+                                                        key={vIdx}
+                                                        type="button"
+                                                        aria-pressed={isSelected}
+                                                        onClick={() => setSelectedOptions(prev => ({ ...prev, [opt.name]: val }))}
+                                                        className={`group relative flex items-center gap-2 px-3.5 py-2 rounded-xl border-2 transition text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer ${
+                                                            isSelected
+                                                                ? 'border-emerald-600 bg-emerald-50/70 text-slate-900 shadow-xs ring-1 ring-emerald-500/20'
+                                                                : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+                                                        }`}
+                                                    >
+                                                        {isColorLike && (
+                                                            <span 
+                                                                className="size-3.5 rounded-full border border-slate-300/80 shadow-xs shrink-0 flex items-center justify-center"
+                                                                style={{ backgroundColor: getColorHex(val) }}
+                                                            >
+                                                                {isSelected && (
+                                                                    <Check size={9} className={val.toLowerCase().includes('white') ? 'text-slate-900 stroke-[3]' : 'text-white stroke-[3]'} />
+                                                                )}
                                                             </span>
-                                                        ) : (
-                                                            <span className="text-slate-400 text-[10px] font-semibold">Standard Price</span>
+                                                        )}
+                                                        <span>{val}</span>
+                                                        {candDelta > 0 && !isSelected && (
+                                                            <span className="text-[10px] font-bold text-amber-700 bg-amber-100/80 px-1.5 py-0.5 rounded">
+                                                                +${candDelta.toFixed(2)}
+                                                            </span>
+                                                        )}
+                                                        {isSelected && !isColorLike && (
+                                                            <span className="size-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                                                                <Check size={10} className="stroke-[3]" />
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <>
+                                {/* 1. Color Swatches */}
+                                {availableColors.length > 0 && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                                            <span className="uppercase tracking-wider text-[11px] text-slate-500">Color / Finish</span>
+                                            <span className="text-emerald-600 font-extrabold">{selectedColor?.name}</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2.5 items-center">
+                                            {availableColors.map((col, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    aria-pressed={selectedColor?.name === col.name}
+                                                    onClick={() => setSelectedColor(col)}
+                                                    className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 transition text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer ${
+                                                        selectedColor?.name === col.name
+                                                            ? 'border-emerald-600 bg-emerald-50/60 text-slate-900 shadow-xs'
+                                                            : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+                                                    }`}
+                                                >
+                                                    <span 
+                                                        className="size-4 rounded-full border border-slate-300/80 shadow-xs shrink-0 flex items-center justify-center"
+                                                        style={{ backgroundColor: col.hex || '#10b981' }}
+                                                    >
+                                                        {selectedColor?.name === col.name && (
+                                                            <Check size={10} className={col.hex === '#ffffff' || col.hex === '#fff' ? 'text-slate-900 stroke-[3]' : 'text-white stroke-[3]'} />
                                                         )}
                                                     </span>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
+                                                    <span>{col.name}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 2. Size / Bundle Options */}
+                                {availableSizes.length > 0 && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                                            <span className="uppercase tracking-wider text-[11px] text-slate-500">Edition / Package</span>
+                                            <span className="text-emerald-600 font-extrabold">{selectedSize?.name}</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                            {availableSizes.map((sz, idx) => {
+                                                const isSelected = selectedSize?.name === sz.name;
+                                                const delta = parseFloat(sz.priceDelta || 0);
+                                                const cardEffectivePrice = sz.effectivePrice || (unitPrice + delta);
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        type="button"
+                                                        aria-pressed={isSelected}
+                                                        onClick={() => setSelectedSize(sz)}
+                                                        className={`p-3 rounded-2xl border-2 text-left transition flex flex-col justify-between outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer ${
+                                                            isSelected
+                                                                ? 'border-emerald-600 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-500/20'
+                                                                : 'border-slate-200 bg-white hover:border-slate-300'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-start justify-between gap-1.5">
+                                                            <span className="text-xs font-bold text-slate-900 leading-snug">{sz.name}</span>
+                                                            {isSelected && (
+                                                                <span className="size-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                                                                    <Check size={10} className="stroke-[3]" />
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-[11px] font-semibold mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between">
+                                                            <span className="text-emerald-700 font-black font-mono">
+                                                                ${cardEffectivePrice.toFixed(2)}
+                                                            </span>
+                                                            <span>
+                                                                {delta > 0 ? (
+                                                                    <span className="text-amber-800 bg-amber-100/80 border border-amber-300/80 px-2 py-0.5 rounded-md text-[10px] font-black tracking-tight">
+                                                                        +${delta.toFixed(2)}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-slate-400 text-[10px] font-semibold">Standard Price</span>
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
 
@@ -718,7 +849,7 @@ const ProductDetails = ({ product, storeInfo }) => {
                                     ? "Sold Out" 
                                     : isCheckingOut 
                                         ? "Preparing Checkout..." 
-                                        : `⚡ Buy Now • $${currentTier.totalPrice.toFixed(2)}`}
+                                        : `⚡ Buy Now • $${(currentTier.totalPrice + protectionFee).toFixed(2)}`}
                             </span>
                         </button>
 
@@ -808,7 +939,7 @@ const ProductDetails = ({ product, storeInfo }) => {
                     <div className="min-w-0">
                         <p className="text-xs font-bold text-slate-900 truncate max-w-[130px]">{product.name}</p>
                         <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-black text-emerald-600">${currentTier.totalPrice.toFixed(2)}</span>
+                            <span className="text-sm font-black text-emerald-600">${(currentTier.totalPrice + protectionFee).toFixed(2)}</span>
                             {compareAtPrice > unitPrice && (
                                 <span className="text-[10px] text-slate-400 line-through">${(compareAtPrice * currentTier.qty).toFixed(2)}</span>
                             )}
@@ -846,7 +977,8 @@ const ProductDetails = ({ product, storeInfo }) => {
                     quantity: currentTier.qty,
                     image: (product.images && product.images[0]) || product.image
                 }]}
-                total={currentTier.totalPrice + (currentTier.qty >= 3 ? 0 : (storeInfo?.shipping?.standardFee || 4.99))}
+                total={currentTier.totalPrice + protectionFee + (currentTier.qty >= 3 ? 0 : (storeInfo?.shipping?.standardFee || 4.99))}
+                shippingFee={currentTier.qty >= 3 ? 0 : (storeInfo?.shipping?.standardFee || 4.99)}
                 gumroadUrl={checkoutModal.gumroadUrl}
                 orderSessionId={checkoutModal.orderSessionId}
             />

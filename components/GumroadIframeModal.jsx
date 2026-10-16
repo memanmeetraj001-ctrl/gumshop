@@ -29,6 +29,7 @@ export default function GumroadIframeModal({
     items = [],
     total,
     shippingFee = 0,
+    rushFee = 0,
     gumroadUrl,
     orderSessionId,
     storeId: passedStoreId,
@@ -110,7 +111,8 @@ export default function GumroadIframeModal({
         gumroadUrl: product.gumroadUrl || ''
     }] : []);
 
-    const alreadyHasRush = orderItems.some(i => 
+    const hasRushFeePassed = parseFloat(rushFee || 0) > 0;
+    const alreadyHasRush = hasRushFeePassed || orderItems.some(i => 
         i.id === 'addon_priority_rush_insurance' || 
         i.productId === 'addon_priority_rush_insurance' ||
         (i.name && (i.name.toLowerCase().includes('priority rush') || i.name.toLowerCase().includes('rush processing')))
@@ -119,7 +121,7 @@ export default function GumroadIframeModal({
     const itemsSubtotal = orderItems.reduce((acc, item) => acc + (parseFloat(item.price || 0) * (item.quantity || 1)), 0);
     const baseOrderTotal = total !== undefined 
         ? parseFloat(total) 
-        : Math.round((itemsSubtotal + parseFloat(shippingFee || 0)) * 100) / 100;
+        : Math.round((itemsSubtotal + parseFloat(shippingFee || 0) + (hasRushFeePassed ? 4.99 : 0)) * 100) / 100;
     const orderTotal = Math.round((baseOrderTotal + (!alreadyHasRush && hasOrderBump ? 4.99 : 0)) * 100) / 100;
 
     const activeStore = getActiveStoreSync();
@@ -476,33 +478,50 @@ export default function GumroadIframeModal({
                                 </div>
                             </div>
 
-                            {/* ⚡ High-Converting 1-Click Priority Express Shipping Bump Checkbox */}
-                            <div className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${hasOrderBump ? 'bg-amber-50/90 border-amber-400 shadow-sm ring-2 ring-amber-400/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
-                                <label className="flex items-start gap-3 cursor-pointer select-none">
-                                    <input
-                                        type="checkbox"
-                                        checked={hasOrderBump}
-                                        onChange={(e) => setHasOrderBump(e.target.checked)}
-                                        className="mt-0.5 size-4 rounded accent-black text-black cursor-pointer"
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                            <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full">
-                                                🚀 PRIORITY DISPATCH & SAFE TRANSIT
-                                            </span>
-                                            <span className="text-xs font-bold text-slate-900">
-                                                Upgrade to Priority Express Courier Shipping & Transit Insurance
-                                            </span>
-                                            <span className="text-xs font-black text-emerald-600">
-                                                +$4.99 <span className="line-through text-slate-400 font-normal text-[11px]">$12.00</span>
-                                            </span>
+                            {/* ⚡ Priority Express Shipping Bump Checkbox or Active Indicator */}
+                            {alreadyHasRush ? (
+                                <div className="p-3.5 rounded-2xl bg-emerald-50 border-2 border-emerald-300 flex items-center justify-between text-xs">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="size-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                                            <ShieldCheck size={14} className="stroke-[2.5]" />
                                         </div>
-                                        <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-                                            Skip the fulfillment queue! Your parcel is prioritized at our warehouse, packed with heavy-duty transit protection, and dispatched within 24 hours with real-time courier tracking sent via SMS & email.
-                                        </p>
+                                        <div>
+                                            <p className="font-extrabold text-slate-900 leading-tight">Priority Dispatch & Safe Transit Active</p>
+                                            <p className="text-[11px] text-slate-500">Warehouse expedited fulfillment + transit insurance included</p>
+                                        </div>
                                     </div>
-                                </label>
-                            </div>
+                                    <span className="text-xs font-black text-emerald-700 bg-white px-2 py-0.5 rounded-md border border-emerald-200">
+                                        Included
+                                    </span>
+                                </div>
+                            ) : (
+                                <div className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${hasOrderBump ? 'bg-amber-50/90 border-amber-400 shadow-sm ring-2 ring-amber-400/20' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
+                                    <label className="flex items-start gap-3 cursor-pointer select-none">
+                                        <input
+                                            type="checkbox"
+                                            checked={hasOrderBump}
+                                            onChange={(e) => setHasOrderBump(e.target.checked)}
+                                            className="mt-0.5 size-4 rounded accent-black text-black cursor-pointer"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full">
+                                                    🚀 PRIORITY DISPATCH & SAFE TRANSIT
+                                                </span>
+                                                <span className="text-xs font-bold text-slate-900">
+                                                    Upgrade to Priority Express Courier Shipping & Transit Insurance
+                                                </span>
+                                                <span className="text-xs font-black text-emerald-600">
+                                                    +$4.99 <span className="line-through text-slate-400 font-normal text-[11px]">$12.00</span>
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                                                Skip the fulfillment queue! Your parcel is prioritized at our warehouse, packed with heavy-duty transit protection, and dispatched within 24 hours with real-time courier tracking sent via SMS & email.
+                                            </p>
+                                        </div>
+                                    </label>
+                                </div>
+                            )}
 
                             <button
                                 type="submit"

@@ -186,7 +186,7 @@ export default function StoreMarketingLaunchKit() {
 
                 <div className="p-2.5 px-4 bg-emerald-50 rounded-2xl border border-emerald-200/60 text-xs font-semibold text-emerald-800 flex items-center gap-2">
                     <Share2 size={16} className="text-emerald-600 shrink-0" />
-                    <span suppressHydrationWarning className="truncate max-w-xs">{bioLink}</span>
+                    <span suppressHydrationWarning className="truncate max-w-xs">{storeLink}</span>
                 </div>
             </div>
 

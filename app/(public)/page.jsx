@@ -203,6 +203,8 @@ export default async function HomePage() {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
             />
+            <div id="special-deals" className="scroll-mt-24" />
+            <div id="catalog" className="scroll-mt-24" />
             <HomeClient
                 initialStore={initialStore}
                 initialMode={cookieMode}
