@@ -583,6 +583,7 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                 items={items}
                 total={finalTotal}
                 shippingFee={shippingFee}
+                rushFee={priorityFee}
                 gumroadUrl={checkoutModal.gumroadUrl}
                 orderSessionId={checkoutModal.orderSessionId}
                 storeId={items[0]?.storeId}

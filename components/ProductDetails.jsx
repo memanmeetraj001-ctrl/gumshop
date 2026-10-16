@@ -798,7 +798,14 @@ const ProductDetails = ({ product, storeInfo }) => {
                                                 {tier.badge}
                                             </span>
                                         )}
-                                        <p className="text-sm font-black text-slate-900">${tier.totalPrice.toFixed(2)}</p>
+                                        <p className="text-sm font-black text-slate-900">
+                                            ${(tier.totalPrice + (selectedQuantity === tier.qty ? protectionFee : 0)).toFixed(2)}
+                                        </p>
+                                        {selectedQuantity === tier.qty && hasShippingProtection && (
+                                            <span className="text-[10px] font-bold text-amber-700 block">
+                                                +$4.99 Protection
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -831,19 +838,48 @@ const ProductDetails = ({ product, storeInfo }) => {
                         </label>
                     </div>
 
+                    {/* Live Order Total Summary Breakdown */}
+                    <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-4 space-y-2 text-xs select-none">
+                        <div className="flex justify-between items-center text-slate-600 font-medium">
+                            <span>Package ({currentTier.label}):</span>
+                            <span className="font-bold text-slate-900">${currentTier.totalPrice.toFixed(2)}</span>
+                        </div>
+                        {hasShippingProtection && (
+                            <div className="flex justify-between items-center text-amber-800 font-bold">
+                                <span className="flex items-center gap-1.5">
+                                    <ShieldCheck size={14} className="text-amber-600 shrink-0" />
+                                    Shipping Protection & Rush Handling:
+                                </span>
+                                <span className="font-mono text-amber-900">+$4.99</span>
+                            </div>
+                        )}
+                        <div className="border-t border-slate-200 pt-2 flex justify-between items-baseline font-black">
+                            <span className="text-slate-800 text-sm font-extrabold">Total Due:</span>
+                            <div className="text-right">
+                                <span className="text-2xl font-black text-slate-950 font-mono tracking-tight">
+                                    ${(currentTier.totalPrice + protectionFee).toFixed(2)}
+                                </span>
+                                {hasShippingProtection && (
+                                    <span className="block text-[11px] text-amber-700 font-bold">
+                                        (includes $4.99 protection)
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
                     {/* The Primary "⚡ Buy Now" & "Add to Cart" Actions */}
                     <div className="space-y-3 pt-2">
                         {/* Primary "⚡ Buy Now" Button */}
                         <button
                             onClick={handleInstantBuyNow}
                             disabled={isCheckingOut || isOutOfStock}
-                            className={`w-full py-4 px-8 rounded-2xl font-black text-base flex items-center justify-center gap-2 transition focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
+                            className={`w-full py-4 px-6 rounded-2xl font-black text-base flex items-center justify-center gap-2 transition focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
                                 isOutOfStock
                                     ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
                                     : 'bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white shadow-xl shadow-emerald-600/30 hover:scale-[1.01] cursor-pointer'
                             }`}
                         >
-                            <Zap size={20} className={isOutOfStock ? "fill-slate-400 text-slate-400" : "fill-white"} />
                             <span>
                                 {isOutOfStock 
                                     ? "Sold Out" 
@@ -979,6 +1015,7 @@ const ProductDetails = ({ product, storeInfo }) => {
                 }]}
                 total={currentTier.totalPrice + protectionFee + (currentTier.qty >= 3 ? 0 : (storeInfo?.shipping?.standardFee || 4.99))}
                 shippingFee={currentTier.qty >= 3 ? 0 : (storeInfo?.shipping?.standardFee || 4.99)}
+                rushFee={protectionFee}
                 gumroadUrl={checkoutModal.gumroadUrl}
                 orderSessionId={checkoutModal.orderSessionId}
             />
