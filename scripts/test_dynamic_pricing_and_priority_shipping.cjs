@@ -24,7 +24,7 @@ function test(title, fn) {
 test('dynamic-checkout respects matchedVariant.priceDelta and rawDiff without collapsing to 0', () => {
     const routeCode = fs.readFileSync('app/api/gumroad/dynamic-checkout/route.js', 'utf8');
     assert.ok(
-        routeCode.includes('if (matchedVariant.priceDelta !== undefined && parseFloat(matchedVariant.priceDelta) > 0)'),
+        routeCode.includes('if (matchedVariant.priceDelta !== undefined && matchedVariant.priceDelta !== null && !isNaN(parseFloat(matchedVariant.priceDelta)))'),
         'Must check matchedVariant.priceDelta first'
     );
     assert.ok(

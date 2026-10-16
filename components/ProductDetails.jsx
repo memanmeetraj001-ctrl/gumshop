@@ -72,16 +72,24 @@ const ProductDetails = ({ product, storeInfo }) => {
         let effectivePrice = unitPrice;
         let priceDelta = 0;
 
-        if (v.priceDelta !== undefined && parseFloat(v.priceDelta) > 0) {
-            priceDelta = parseFloat(v.priceDelta);
-        } else if (v.effectivePrice && parseFloat(v.effectivePrice) > unitPrice) {
-            priceDelta = Math.round((parseFloat(v.effectivePrice) - unitPrice) * 100) / 100;
-        } else if (rawPrice > baseVariantPrice && baseVariantPrice > 0) {
+        // 1. Explicit priceDelta takes precedence (including 0 for base variant)
+        if (v.priceDelta !== undefined && v.priceDelta !== null && !isNaN(parseFloat(v.priceDelta))) {
+            priceDelta = Math.max(0, parseFloat(v.priceDelta));
+        } 
+        // 2. Explicit effectivePrice if stored on variant
+        else if (v.effectivePrice !== undefined && v.effectivePrice !== null && !isNaN(parseFloat(v.effectivePrice))) {
+            const eff = parseFloat(v.effectivePrice);
+            priceDelta = Math.max(0, Math.round((eff - unitPrice) * 100) / 100);
+        } 
+        // 3. Proportional difference if variant price is higher than the base variant
+        else if (rawPrice > baseVariantPrice && baseVariantPrice > 0) {
             const rawDiff = rawPrice - baseVariantPrice;
             priceDelta = (discountRatio < 0.999 && discountRatio > 0)
                 ? Math.round(rawDiff * discountRatio * 100) / 100
                 : Math.round(rawDiff * 100) / 100;
-        } else if (rawPrice > 0 && rawPrice > unitPrice) {
+        } 
+        // 4. Fallback only if baseVariantPrice is missing/zero and rawPrice exceeds unitPrice
+        else if (rawPrice > 0 && rawPrice > unitPrice && (!baseVariantPrice || baseVariantPrice === 0)) {
             priceDelta = Math.round((rawPrice - unitPrice) * 100) / 100;
         }
 
@@ -178,14 +186,15 @@ const ProductDetails = ({ product, storeInfo }) => {
     }, [selectedColor, availableSizes]);
 
     // Matched Variant Resolution across multi-options or selected size
+    const normOptStr = (str) => String(str || '').toLowerCase().replace(/[\s\-_/×x]+/g, ' ').trim();
     const matchedVariant = useMemo(() => {
         if (!hasVariantsArray) return null;
         const optEntries = Object.entries(selectedOptions);
         if (optEntries.length > 0) {
-            const selectedVals = optEntries.map(([_, v]) => String(v).toLowerCase().trim());
+            const selectedVals = optEntries.map(([_, v]) => normOptStr(v));
             const matched = product.variants.find(v => {
-                const vName = String(v.name || '').toLowerCase();
-                return selectedVals.every(val => vName.includes(val));
+                const vNorm = normOptStr(v.name);
+                return selectedVals.every(val => vNorm.includes(val));
             });
             if (matched) return matched;
         }
@@ -644,10 +653,10 @@ const ProductDetails = ({ product, storeInfo }) => {
                                             {opt.values.map((val, vIdx) => {
                                                 const isSelected = selectedVal === val;
                                                 const candidateOpts = { ...selectedOptions, [opt.name]: val };
-                                                const candidateVals = Object.values(candidateOpts).map(v => String(v).toLowerCase().trim());
+                                                const candidateVals = Object.values(candidateOpts).map(v => normOptStr(v));
                                                 const candVariant = hasVariantsArray ? product.variants.find(v => {
-                                                    const vName = String(v.name || '').toLowerCase();
-                                                    return candidateVals.every(cv => vName.includes(cv));
+                                                    const vNorm = normOptStr(v.name);
+                                                    return candidateVals.every(cv => vNorm.includes(cv));
                                                 }) : null;
                                                 const candDelta = candVariant ? getVariantPricing(candVariant).priceDelta : 0;
 

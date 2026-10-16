@@ -56,22 +56,20 @@ export async function POST(req) {
                                 const baseV0Price = parseFloat(dbProduct.variants[0]?.price || 0);
                                 const discountRatio = (baseV0Price > 0 && baseRetail > 0) ? (baseRetail / baseV0Price) : 1;
                                 const rawVPrice = parseFloat(matchedVariant.price || 0);
-                                if (matchedVariant.priceDelta !== undefined && parseFloat(matchedVariant.priceDelta) > 0) {
-                                    sizeDelta = parseFloat(matchedVariant.priceDelta);
-                                } else if (matchedVariant.effectivePrice && parseFloat(matchedVariant.effectivePrice) > baseRetail) {
-                                    sizeDelta = Math.round((parseFloat(matchedVariant.effectivePrice) - baseRetail) * 100) / 100;
+                                if (matchedVariant.priceDelta !== undefined && matchedVariant.priceDelta !== null && !isNaN(parseFloat(matchedVariant.priceDelta))) {
+                                    sizeDelta = Math.max(0, parseFloat(matchedVariant.priceDelta));
+                                } else if (matchedVariant.effectivePrice && parseFloat(matchedVariant.effectivePrice) >= baseRetail) {
+                                    sizeDelta = Math.max(0, Math.round((parseFloat(matchedVariant.effectivePrice) - baseRetail) * 100) / 100);
                                 } else if (rawVPrice > baseV0Price && baseV0Price > 0) {
                                     const rawDiff = rawVPrice - baseV0Price;
                                     sizeDelta = (discountRatio < 0.999 && discountRatio > 0)
                                         ? Math.round(rawDiff * discountRatio * 100) / 100
                                         : Math.round(rawDiff * 100) / 100;
-                                } else if (rawVPrice > 0) {
+                                } else if (rawVPrice > 0 && (!baseV0Price || baseV0Price === 0)) {
                                     const vEffPrice = (discountRatio < 0.999 && discountRatio > 0)
                                         ? Math.round(rawVPrice * discountRatio * 100) / 100
                                         : rawVPrice;
                                     sizeDelta = Math.max(0, Math.round((vEffPrice - baseRetail) * 100) / 100);
-                                } else if (matchedVariant.priceDelta) {
-                                    sizeDelta = parseFloat(matchedVariant.priceDelta) || 0;
                                 }
                             }
                         } else if (Array.isArray(dbProduct.sizes) && variantStr) {
