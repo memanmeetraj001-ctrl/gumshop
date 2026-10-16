@@ -68,7 +68,29 @@ export async function POST(req) {
 export async function PATCH(req) {
   try {
     const body = await req.json().catch(() => ({}));
-    if (!body || !body.id) {
+    if (!body) {
+      return NextResponse.json({ success: false, error: 'Payload required' }, { status: 400, headers: NO_CACHE_HEADERS });
+    }
+
+    // Support batch updates: { products: [...] } or { batch: [...] } or raw array [...]
+    const items = Array.isArray(body) 
+      ? body 
+      : (Array.isArray(body.products) ? body.products : (Array.isArray(body.batch) ? body.batch : null));
+
+    if (items && items.length > 0) {
+      const results = [];
+      for (const item of items) {
+        if (!item || !item.id) continue;
+        const updates = item.updates || { ...item };
+        delete updates.id;
+        const updated = await dbUpdateProduct(item.id, updates);
+        results.push(updated);
+      }
+      return NextResponse.json({ success: true, count: results.length, products: results }, { headers: NO_CACHE_HEADERS });
+    }
+
+    // Single product update
+    if (!body.id) {
       return NextResponse.json({ success: false, error: 'Product ID required' }, { status: 400, headers: NO_CACHE_HEADERS });
     }
     const updates = body.updates || { ...body };

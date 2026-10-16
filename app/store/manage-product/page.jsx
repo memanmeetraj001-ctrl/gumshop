@@ -3,9 +3,9 @@ import { useEffect, useState, useMemo } from "react";
 import { toast } from "react-hot-toast";
 import Loading from "@/components/Loading";
 import { useAuth } from "@/lib/AuthContext";
-import { getProductsByStore, updateProduct, deleteProduct, createProduct, isProductDeleted, isJunkProductName } from "@/lib/firebaseDb";
+import { getProductsByStore, updateProduct, updateProductsBatch, deleteProduct, createProduct, isProductDeleted, isJunkProductName } from "@/lib/firebaseDb";
 import { getActiveStore, getActiveStoreSync } from "@/lib/activeStore";
-import { generateContextualBundles } from "@/lib/importer/productEnhancer";
+import { generateContextualBundles, roundPriceStrategy } from "@/lib/importer/productEnhancer";
 import { useRouter } from "next/navigation";
 import { 
     Trash2, 
@@ -14,13 +14,22 @@ import {
     Sparkles, 
     Plus, 
     TrendingUp, 
+    TrendingDown,
     X, 
     Save, 
     Search, 
     Copy, 
     Eye, 
     SlidersHorizontal,
-    Tag
+    Tag,
+    Zap,
+    Percent,
+    DollarSign,
+    Layers,
+    ArrowRight,
+    RefreshCw,
+    Check,
+    Minus
 } from "lucide-react";
 import Link from "next/link";
 
@@ -74,6 +83,23 @@ export default function StoreManageProducts() {
         inStock: true
     });
     const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+    // Bulk Price & Margin Studio Modal State
+    const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
+    const [bulkPriceConfig, setBulkPriceConfig] = useState({
+        scope: 'selected', // 'selected' | 'filtered' | 'all'
+        mode: 'percent', // 'percent' | 'dollar' | 'flat' | 'margin' | 'msrp'
+        percentType: 'markup', // 'markup' | 'discount'
+        percentValue: 15,
+        dollarType: 'add', // 'add' | 'subtract'
+        dollarValue: 5,
+        flatPrice: 39.99,
+        targetMargin: 65,
+        charmRounding: 'charm99', // 'charm99' | 'charm95' | 'whole' | 'none'
+        msrpStrategy: 'auto35', // 'auto35' | 'auto30' | 'auto50' | 'custom' | 'preserve'
+        customMsrpPercent: 35
+    });
+    const [isApplyingBulkPrice, setIsApplyingBulkPrice] = useState(false);
 
     const fetchProducts = async () => {
         try {
@@ -241,30 +267,242 @@ export default function StoreManageProducts() {
         }
     };
 
-    // Bulk Price Markup (e.g. +10%, +20%)
+    // Pure calculation engine for bulk pricing, charm rounding, and profit margins
+    const calculateBulkItemPrice = (product, config) => {
+        if (!product) return null;
+        const currentPrice = parseFloat(product.price !== undefined && product.price !== null ? product.price : 52.99);
+        const supplierCost = parseFloat(product.supplierCost || (currentPrice * 0.35).toFixed(2));
+        
+        let rawPrice = currentPrice;
+        
+        if (config.mode === 'percent') {
+            const pct = Math.max(0, parseFloat(config.percentValue) || 0);
+            rawPrice = config.percentType === 'markup' 
+                ? currentPrice * (1 + pct / 100)
+                : currentPrice * (1 - pct / 100);
+        } else if (config.mode === 'dollar') {
+            const amt = Math.max(0, parseFloat(config.dollarValue) || 0);
+            rawPrice = config.dollarType === 'add'
+                ? currentPrice + amt
+                : currentPrice - amt;
+        } else if (config.mode === 'flat') {
+            rawPrice = Math.max(1, parseFloat(config.flatPrice) || 29.99);
+        } else if (config.mode === 'margin') {
+            const targetMargin = Math.min(95, Math.max(5, parseFloat(config.targetMargin) || 60));
+            rawPrice = supplierCost / (1 - (targetMargin / 100));
+        } else if (config.mode === 'msrp') {
+            rawPrice = currentPrice;
+        }
+        
+        // Safety price floor ($1.00 minimum)
+        rawPrice = Math.max(1.00, rawPrice);
+        
+        // Apply Charm Rounding
+        let finalPrice = rawPrice;
+        if (config.charmRounding === 'charm99') {
+            finalPrice = Math.floor(rawPrice) + 0.99;
+        } else if (config.charmRounding === 'charm95') {
+            finalPrice = Math.floor(rawPrice) + 0.95;
+        } else if (config.charmRounding === 'whole') {
+            finalPrice = Math.round(rawPrice);
+        } else {
+            finalPrice = Math.round(rawPrice * 100) / 100;
+        }
+        finalPrice = Math.round(finalPrice * 100) / 100;
+        
+        // Compare-At MSRP Anchor
+        let compareAtPrice = parseFloat(product.compareAtPrice || product.mrp || 0);
+        if (config.msrpStrategy === 'auto35') {
+            compareAtPrice = Math.round(finalPrice * 1.35 * 100) / 100;
+        } else if (config.msrpStrategy === 'auto30') {
+            compareAtPrice = Math.round(finalPrice * 1.30 * 100) / 100;
+        } else if (config.msrpStrategy === 'auto50') {
+            compareAtPrice = Math.round(finalPrice * 1.50 * 100) / 100;
+        } else if (config.msrpStrategy === 'custom') {
+            const msrpPct = Math.max(0, parseFloat(config.customMsrpPercent) || 35);
+            compareAtPrice = Math.round(finalPrice * (1 + msrpPct / 100) * 100) / 100;
+        } else if (config.msrpStrategy === 'preserve') {
+            compareAtPrice = Math.max(compareAtPrice, Math.round(finalPrice * 1.25 * 100) / 100);
+        }
+        
+        // Guarantee compareAtPrice > finalPrice for authentic discount badges
+        if (compareAtPrice <= finalPrice) {
+            compareAtPrice = Math.round(finalPrice * 1.35 * 100) / 100;
+        }
+
+        const currentMargin = currentPrice > 0 ? Math.round(((currentPrice - supplierCost) / currentPrice) * 100) : 0;
+        const newMargin = finalPrice > 0 ? Math.round(((finalPrice - supplierCost) / finalPrice) * 100) : 0;
+        const newProfit = Math.max(0, Math.round((finalPrice - supplierCost) * 100) / 100);
+
+        const customBundles = generateContextualBundles(
+            product.name || product.title || 'Product', 
+            finalPrice, 
+            config.charmRounding === 'charm99' ? 'charm99' : 'exact'
+        );
+
+        return {
+            id: product.id,
+            name: product.name || product.title || 'Product',
+            category: typeof product.category === 'string' ? product.category : (product.category?.name || 'Featured'),
+            currentPrice,
+            finalPrice,
+            compareAtPrice,
+            supplierCost,
+            currentMargin,
+            newMargin,
+            newProfit,
+            customBundles
+        };
+    };
+
+    // Bulk Price Studio Full Execution
+    const handleApplyBulkPricing = async () => {
+        if (targetBulkProducts.length === 0) return;
+        setIsApplyingBulkPrice(true);
+        try {
+            const updatesList = targetBulkProducts.map(p => {
+                const calc = calculateBulkItemPrice(p, bulkPriceConfig);
+                return {
+                    id: p.id,
+                    price: calc.finalPrice,
+                    compareAtPrice: calc.compareAtPrice,
+                    mrp: calc.compareAtPrice,
+                    margin: calc.newMargin,
+                    estimatedProfit: calc.newProfit,
+                    customBundles: calc.customBundles
+                };
+            });
+
+            await updateProductsBatch(updatesList);
+
+            setProducts(prev => prev.map(p => {
+                const match = updatesList.find(u => u.id === p.id);
+                return match ? { ...p, ...match } : p;
+            }));
+
+            toast.success(`Successfully updated ${updatesList.length} products! 🚀`);
+            setShowBulkPriceModal(false);
+            setSelectedIds([]);
+        } catch (err) {
+            console.error("Bulk price update error:", err);
+            toast.error("Failed to update products in bulk");
+        } finally {
+            setIsApplyingBulkPrice(false);
+        }
+    };
+
+    // Quick 1-Click Markup (+10%, +20%)
     const handleBulkMarkup = async (percentMultiplier) => {
-        if (selectedIds.length === 0) return;
+        const targets = selectedIds.length > 0 ? products.filter(p => selectedIds.includes(p.id)) : filteredProducts;
+        if (targets.length === 0) return;
         setIsBulkActing(true);
         try {
-            const updates = selectedIds.map(async (id) => {
-                const p = products.find(prod => prod.id === id);
-                if (!p) return;
-                const newPrice = Math.round((parseFloat(p.price || 0) * (1 + percentMultiplier)) * 100) / 100;
-                const currentCompare = parseFloat(p.compareAtPrice || p.mrp || 0);
-                const updatedCompare = currentCompare > newPrice ? currentCompare : Math.round(newPrice * 1.3 * 100) / 100;
-                const customBundles = generateContextualBundles(p.name || 'Product', newPrice, 'exact');
-                await updateProduct(id, { price: newPrice, compareAtPrice: updatedCompare, mrp: updatedCompare, customBundles });
-                return { id, newPrice, compareAtPrice: updatedCompare, customBundles };
+            const config = {
+                mode: 'percent',
+                percentType: 'markup',
+                percentValue: Math.round(percentMultiplier * 100),
+                charmRounding: 'charm99',
+                msrpStrategy: 'auto35'
+            };
+            const updatesList = targets.map(p => {
+                const calc = calculateBulkItemPrice(p, config);
+                return {
+                    id: p.id,
+                    price: calc.finalPrice,
+                    compareAtPrice: calc.compareAtPrice,
+                    mrp: calc.compareAtPrice,
+                    margin: calc.newMargin,
+                    estimatedProfit: calc.newProfit,
+                    customBundles: calc.customBundles
+                };
             });
-            const results = await Promise.all(updates);
+            await updateProductsBatch(updatesList);
             setProducts(prev => prev.map(p => {
-                const match = results.find(r => r?.id === p.id);
-                return match ? { ...p, price: match.newPrice, compareAtPrice: match.compareAtPrice, mrp: match.compareAtPrice, customBundles: match.customBundles } : p;
+                const match = updatesList.find(u => u.id === p.id);
+                return match ? { ...p, ...match } : p;
             }));
-            toast.success(`Applied +${Math.round(percentMultiplier * 100)}% markup to ${selectedIds.length} products! 🚀`);
+            toast.success(`Applied +${Math.round(percentMultiplier * 100)}% markup (.99) to ${updatesList.length} products! 🚀`);
             setSelectedIds([]);
         } catch (err) {
             toast.error("Bulk price markup failed");
+        } finally {
+            setIsBulkActing(false);
+        }
+    };
+
+    // Quick 1-Click Flash Discount (-15%)
+    const handleBulkDiscount = async (discountPercent) => {
+        const targets = selectedIds.length > 0 ? products.filter(p => selectedIds.includes(p.id)) : filteredProducts;
+        if (targets.length === 0) return;
+        setIsBulkActing(true);
+        try {
+            const config = {
+                mode: 'percent',
+                percentType: 'discount',
+                percentValue: discountPercent,
+                charmRounding: 'charm99',
+                msrpStrategy: 'preserve'
+            };
+            const updatesList = targets.map(p => {
+                const calc = calculateBulkItemPrice(p, config);
+                return {
+                    id: p.id,
+                    price: calc.finalPrice,
+                    compareAtPrice: calc.compareAtPrice,
+                    mrp: calc.compareAtPrice,
+                    margin: calc.newMargin,
+                    estimatedProfit: calc.newProfit,
+                    customBundles: calc.customBundles
+                };
+            });
+            await updateProductsBatch(updatesList);
+            setProducts(prev => prev.map(p => {
+                const match = updatesList.find(u => u.id === p.id);
+                return match ? { ...p, ...match } : p;
+            }));
+            toast.success(`Applied -${discountPercent}% flash discount to ${updatesList.length} products! ⚡`);
+            setSelectedIds([]);
+        } catch (err) {
+            toast.error("Bulk discount failed");
+        } finally {
+            setIsBulkActing(false);
+        }
+    };
+
+    // Quick 1-Click End in .99
+    const handleBulkCharm99 = async () => {
+        const targets = selectedIds.length > 0 ? products.filter(p => selectedIds.includes(p.id)) : filteredProducts;
+        if (targets.length === 0) return;
+        setIsBulkActing(true);
+        try {
+            const config = {
+                mode: 'percent',
+                percentType: 'markup',
+                percentValue: 0,
+                charmRounding: 'charm99',
+                msrpStrategy: 'auto35'
+            };
+            const updatesList = targets.map(p => {
+                const calc = calculateBulkItemPrice(p, config);
+                return {
+                    id: p.id,
+                    price: calc.finalPrice,
+                    compareAtPrice: calc.compareAtPrice,
+                    mrp: calc.compareAtPrice,
+                    margin: calc.newMargin,
+                    estimatedProfit: calc.newProfit,
+                    customBundles: calc.customBundles
+                };
+            });
+            await updateProductsBatch(updatesList);
+            setProducts(prev => prev.map(p => {
+                const match = updatesList.find(u => u.id === p.id);
+                return match ? { ...p, ...match } : p;
+            }));
+            toast.success(`Formatted ${updatesList.length} prices to end cleanly in .99! ✨`);
+            setSelectedIds([]);
+        } catch (err) {
+            toast.error("Bulk charm rounding failed");
         } finally {
             setIsBulkActing(false);
         }
@@ -374,6 +612,27 @@ export default function StoreManageProducts() {
             return matchesSearch && matchesCategory && matchesStock;
         });
     }, [products, searchTerm, categoryFilter, stockFilter]);
+
+    // Bulk Studio Target Products & Preview Items
+    const targetBulkProducts = useMemo(() => {
+        if (bulkPriceConfig.scope === 'selected' && selectedIds.length > 0) {
+            return products.filter(p => selectedIds.includes(p.id));
+        }
+        if (bulkPriceConfig.scope === 'filtered') {
+            return filteredProducts;
+        }
+        return products;
+    }, [bulkPriceConfig.scope, selectedIds, filteredProducts, products]);
+
+    const bulkPreviewItems = useMemo(() => {
+        return targetBulkProducts.slice(0, 5).map(prod => {
+            const calc = calculateBulkItemPrice(prod, bulkPriceConfig);
+            return {
+                product: prod,
+                calc
+            };
+        });
+    }, [targetBulkProducts, bulkPriceConfig]);
 
     if (loading) return <Loading />;
 
@@ -486,6 +745,23 @@ export default function StoreManageProducts() {
                                 <option value="OUT_OF_STOCK">Out of Stock Only</option>
                             </select>
                         </div>
+
+                        {/* Standalone Bulk Price Studio Trigger */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setBulkPriceConfig(prev => ({ 
+                                    ...prev, 
+                                    scope: selectedIds.length > 0 ? 'selected' : (filteredProducts.length < products.length ? 'filtered' : 'all') 
+                                }));
+                                setShowBulkPriceModal(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-sm hover:shadow transition active:scale-95 cursor-pointer shrink-0"
+                            title="Open Bulk Price & Margin Studio"
+                        >
+                            <Zap size={14} className="fill-white" />
+                            <span>Bulk Price Studio</span>
+                        </button>
                     </div>
                 </div>
 
@@ -498,45 +774,92 @@ export default function StoreManageProducts() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
+                            {/* Primary Bulk Price Studio Button */}
                             <button
+                                type="button"
+                                onClick={() => {
+                                    setBulkPriceConfig(prev => ({ ...prev, scope: 'selected' }));
+                                    setShowBulkPriceModal(true);
+                                }}
+                                disabled={isBulkActing}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition flex items-center gap-1 shadow-sm shadow-emerald-500/20 cursor-pointer active:scale-95"
+                            >
+                                <Zap size={13} className="fill-slate-950" />
+                                <span>Bulk Price Studio</span>
+                            </button>
+
+                            {/* Quick 1-Click Markup Pills */}
+                            <button
+                                type="button"
+                                onClick={() => handleBulkMarkup(0.10)}
+                                disabled={isBulkActing}
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-sky-400 hover:text-sky-300 transition cursor-pointer"
+                                title="Mark up selected products by 10% (.99)"
+                            >
+                                +10%
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleBulkMarkup(0.20)}
+                                disabled={isBulkActing}
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-sky-400 hover:text-sky-300 transition cursor-pointer"
+                                title="Mark up selected products by 20% (.99)"
+                            >
+                                +20%
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleBulkDiscount(15)}
+                                disabled={isBulkActing}
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-400 hover:text-amber-300 transition cursor-pointer"
+                                title="Discount selected products by 15% for promotion"
+                            >
+                                -15% Sale
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleBulkCharm99}
+                                disabled={isBulkActing}
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-purple-400 hover:text-purple-300 transition cursor-pointer"
+                                title="Round all prices to end in .99"
+                            >
+                                .99 Charm
+                            </button>
+
+                            <span className="h-4 w-px bg-slate-700 mx-0.5" />
+
+                            <button
+                                type="button"
                                 onClick={() => handleBulkStock(true)}
                                 disabled={isBulkActing}
-                                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-emerald-400 transition"
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-emerald-400 transition cursor-pointer"
                             >
                                 In Stock
                             </button>
                             <button
+                                type="button"
                                 onClick={() => handleBulkStock(false)}
                                 disabled={isBulkActing}
-                                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-400 transition"
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-400 transition cursor-pointer"
                             >
                                 Out of Stock
                             </button>
+
+                            <span className="h-4 w-px bg-slate-700 mx-0.5" />
+
                             <button
-                                onClick={() => handleBulkMarkup(0.10)}
-                                disabled={isBulkActing}
-                                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-sky-400 transition"
-                            >
-                                +10% Price
-                            </button>
-                            <button
-                                onClick={() => handleBulkMarkup(0.20)}
-                                disabled={isBulkActing}
-                                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-sky-400 transition"
-                            >
-                                +20% Price
-                            </button>
-                            <button
+                                type="button"
                                 onClick={handleBulkDelete}
                                 disabled={isBulkActing}
-                                className="px-3 py-1.5 rounded-lg bg-rose-600/30 hover:bg-rose-600 text-xs font-bold text-rose-300 hover:text-white transition flex items-center gap-1"
+                                className="px-2.5 py-1.5 rounded-lg bg-rose-600/30 hover:bg-rose-600 text-xs font-bold text-rose-300 hover:text-white transition flex items-center gap-1 cursor-pointer"
                             >
                                 <Trash2 size={13} />
                                 <span>Delete ({selectedIds.length})</span>
                             </button>
                             <button
+                                type="button"
                                 onClick={() => setSelectedIds([])}
-                                className="px-2.5 py-1.5 text-xs text-slate-400 hover:text-white"
+                                className="px-2.5 py-1.5 text-xs text-slate-400 hover:text-white cursor-pointer"
                             >
                                 Clear
                             </button>
@@ -943,6 +1266,528 @@ export default function StoreManageProducts() {
                                 </div>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Price & Margin Studio Modal */}
+            {showBulkPriceModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
+                    <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-2xl overflow-hidden my-8 animate-in zoom-in-95 duration-200">
+                        {/* Modal Header */}
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+                            <div className="flex items-center gap-3">
+                                <div className="size-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-600/20">
+                                    <Zap size={20} className="fill-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                                        <span>Bulk Price & Margin Studio</span>
+                                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                            Pro Suite
+                                        </span>
+                                    </h2>
+                                    <p className="text-xs text-slate-500">
+                                        Apply bulk percentage adjustments, target profit margins, and format charm endings.
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowBulkPriceModal(false)}
+                                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-200/50 transition cursor-pointer"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+                            {/* 1. Scope Selector */}
+                            <div>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                                    1. Apply To (Target Scope)
+                                </label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button
+                                        type="button"
+                                        disabled={selectedIds.length === 0}
+                                        onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, scope: 'selected' })}
+                                        className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
+                                            bulkPriceConfig.scope === 'selected'
+                                                ? 'border-emerald-500 bg-emerald-50/50 text-slate-900 ring-2 ring-emerald-500/20'
+                                                : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                                        } ${selectedIds.length === 0 ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                    >
+                                        <div className="flex items-center justify-between text-xs font-bold">
+                                            <span>Selected</span>
+                                            <span className="font-mono text-emerald-700 bg-emerald-100/80 px-1.5 py-0.5 rounded">
+                                                {selectedIds.length}
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-500 mt-0.5">Checked products</p>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, scope: 'filtered' })}
+                                        className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
+                                            bulkPriceConfig.scope === 'filtered'
+                                                ? 'border-emerald-500 bg-emerald-50/50 text-slate-900 ring-2 ring-emerald-500/20'
+                                                : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                                        }`}
+                                    >
+                                        <div className="flex items-center justify-between text-xs font-bold">
+                                            <span>Filtered</span>
+                                            <span className="font-mono text-emerald-700 bg-emerald-100/80 px-1.5 py-0.5 rounded">
+                                                {filteredProducts.length}
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-500 mt-0.5">Current search/filter</p>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, scope: 'all' })}
+                                        className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
+                                            bulkPriceConfig.scope === 'all'
+                                                ? 'border-emerald-500 bg-emerald-50/50 text-slate-900 ring-2 ring-emerald-500/20'
+                                                : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                                        }`}
+                                    >
+                                        <div className="flex items-center justify-between text-xs font-bold">
+                                            <span>Entire Store</span>
+                                            <span className="font-mono text-emerald-700 bg-emerald-100/80 px-1.5 py-0.5 rounded">
+                                                {products.length}
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-500 mt-0.5">All catalog items</p>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* 2. Adjustment Mode Tabs */}
+                            <div>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                                    2. Price Adjustment Mode
+                                </label>
+                                <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl overflow-x-auto text-xs font-bold text-slate-600">
+                                    <button
+                                        type="button"
+                                        onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, mode: 'percent' })}
+                                        className={`flex-1 py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                                            bulkPriceConfig.mode === 'percent' ? 'bg-white text-slate-900 shadow-xs' : 'hover:text-slate-900'
+                                        }`}
+                                    >
+                                        <Percent size={13} />
+                                        <span>Percentage (+ / - %)</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, mode: 'dollar' })}
+                                        className={`flex-1 py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                                            bulkPriceConfig.mode === 'dollar' ? 'bg-white text-slate-900 shadow-xs' : 'hover:text-slate-900'
+                                        }`}
+                                    >
+                                        <DollarSign size={13} />
+                                        <span>Fixed Dollar ($)</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, mode: 'flat' })}
+                                        className={`flex-1 py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                                            bulkPriceConfig.mode === 'flat' ? 'bg-white text-slate-900 shadow-xs' : 'hover:text-slate-900'
+                                        }`}
+                                    >
+                                        <Tag size={13} />
+                                        <span>Flat Price</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, mode: 'margin' })}
+                                        className={`flex-1 py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                                            bulkPriceConfig.mode === 'margin' ? 'bg-white text-slate-900 shadow-xs' : 'hover:text-slate-900'
+                                        }`}
+                                    >
+                                        <TrendingUp size={13} />
+                                        <span>Target Margin %</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, mode: 'msrp' })}
+                                        className={`flex-1 py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                                            bulkPriceConfig.mode === 'msrp' ? 'bg-white text-slate-900 shadow-xs' : 'hover:text-slate-900'
+                                        }`}
+                                    >
+                                        <Layers size={13} />
+                                        <span>MSRP Anchor</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* 3. Parameter Controls Based on Mode */}
+                            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
+                                {/* PERCENT MODE */}
+                                {bulkPriceConfig.mode === 'percent' && (
+                                    <div>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, percentType: 'markup' })}
+                                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                                                        bulkPriceConfig.percentType === 'markup'
+                                                            ? 'bg-emerald-600 text-white shadow-xs'
+                                                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    <TrendingUp size={13} />
+                                                    <span>Increase (Markup)</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, percentType: 'discount' })}
+                                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                                                        bulkPriceConfig.percentType === 'discount'
+                                                            ? 'bg-rose-600 text-white shadow-xs'
+                                                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    <TrendingDown size={13} />
+                                                    <span>Discount / Sale</span>
+                                                </button>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max="500"
+                                                    value={bulkPriceConfig.percentValue}
+                                                    onChange={(e) => setBulkPriceConfig({ ...bulkPriceConfig, percentValue: Math.max(0, parseFloat(e.target.value) || 0) })}
+                                                    className="w-20 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-black text-slate-900 text-right outline-none focus:border-emerald-500"
+                                                />
+                                                <span className="text-xs font-bold text-slate-500">%</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Quick Percent Presets */}
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            <span className="text-[11px] font-bold text-slate-400 mr-1">Presets:</span>
+                                            {[5, 10, 15, 20, 25, 30, 50].map(val => (
+                                                <button
+                                                    key={val}
+                                                    type="button"
+                                                    onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, percentValue: val })}
+                                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                                        bulkPriceConfig.percentValue === val
+                                                            ? 'bg-slate-900 text-white'
+                                                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    {bulkPriceConfig.percentType === 'markup' ? `+${val}%` : `-${val}%`}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* DOLLAR MODE */}
+                                {bulkPriceConfig.mode === 'dollar' && (
+                                    <div>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, dollarType: 'add' })}
+                                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                                                        bulkPriceConfig.dollarType === 'add'
+                                                            ? 'bg-emerald-600 text-white shadow-xs'
+                                                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    <Plus size={13} />
+                                                    <span>Add Dollars (+$)</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, dollarType: 'subtract' })}
+                                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                                                        bulkPriceConfig.dollarType === 'subtract'
+                                                            ? 'bg-rose-600 text-white shadow-xs'
+                                                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    <Minus size={13} />
+                                                    <span>Subtract Dollars (-$)</span>
+                                                </button>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-xs font-bold text-slate-500">$</span>
+                                                <input
+                                                    type="number"
+                                                    step="0.50"
+                                                    min="0.50"
+                                                    value={bulkPriceConfig.dollarValue}
+                                                    onChange={(e) => setBulkPriceConfig({ ...bulkPriceConfig, dollarValue: Math.max(0, parseFloat(e.target.value) || 0) })}
+                                                    className="w-24 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-black text-slate-900 text-right outline-none focus:border-emerald-500"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            <span className="text-[11px] font-bold text-slate-400 mr-1">Presets:</span>
+                                            {[2, 3, 5, 10, 15, 20].map(val => (
+                                                <button
+                                                    key={val}
+                                                    type="button"
+                                                    onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, dollarValue: val })}
+                                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                                        bulkPriceConfig.dollarValue === val
+                                                            ? 'bg-slate-900 text-white'
+                                                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    {bulkPriceConfig.dollarType === 'add' ? `+$${val}` : `-$${val}`}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* FLAT PRICE MODE */}
+                                {bulkPriceConfig.mode === 'flat' && (
+                                    <div>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div>
+                                                <p className="text-xs font-bold text-slate-800">Set Uniform Retail Price</p>
+                                                <p className="text-[11px] text-slate-500">Every targeted product will be set to this exact price.</p>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-xs font-bold text-slate-500">$</span>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="1.00"
+                                                    value={bulkPriceConfig.flatPrice}
+                                                    onChange={(e) => setBulkPriceConfig({ ...bulkPriceConfig, flatPrice: Math.max(1, parseFloat(e.target.value) || 1) })}
+                                                    className="w-28 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-black text-slate-900 text-right outline-none focus:border-emerald-500"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            <span className="text-[11px] font-bold text-slate-400 mr-1">Quick Values:</span>
+                                            {[14.99, 19.99, 24.99, 29.99, 39.99, 44.99, 49.99, 69.99].map(val => (
+                                                <button
+                                                    key={val}
+                                                    type="button"
+                                                    onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, flatPrice: val })}
+                                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                                        bulkPriceConfig.flatPrice === val
+                                                            ? 'bg-slate-900 text-white'
+                                                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    ${val.toFixed(2)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* TARGET PROFIT MARGIN MODE */}
+                                {bulkPriceConfig.mode === 'margin' && (
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div>
+                                                <p className="text-xs font-bold text-slate-800">Cost-Plus Target Profit Margin</p>
+                                                <p className="text-[11px] text-slate-500">
+                                                    Formula: <code className="text-emerald-700 font-mono font-bold">Price = SupplierCost / (1 - Margin%)</code>
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <input
+                                                    type="number"
+                                                    min="10"
+                                                    max="90"
+                                                    value={bulkPriceConfig.targetMargin}
+                                                    onChange={(e) => setBulkPriceConfig({ ...bulkPriceConfig, targetMargin: Math.min(90, Math.max(10, parseFloat(e.target.value) || 50)) })}
+                                                    className="w-20 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-black text-slate-900 text-right outline-none focus:border-emerald-500"
+                                                />
+                                                <span className="text-xs font-bold text-slate-500">%</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                            <span className="text-[11px] font-bold text-slate-400 mr-1">Margin Targets:</span>
+                                            {[45, 50, 55, 60, 65, 70, 75, 80].map(val => (
+                                                <button
+                                                    key={val}
+                                                    type="button"
+                                                    onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, targetMargin: val })}
+                                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                                        bulkPriceConfig.targetMargin === val
+                                                            ? 'bg-emerald-600 text-white shadow-xs'
+                                                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    {val}% Net Margin
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* COMPARE-AT MSRP ANCHOR MODE */}
+                                {bulkPriceConfig.mode === 'msrp' && (
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-800 mb-1">MSRP Anchor Strikethrough Strategy</p>
+                                        <p className="text-[11px] text-slate-500 mb-3">
+                                            Keeps retail prices unchanged while recalculating compareAtPrice to display high-converting discount badges.
+                                        </p>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                            {[
+                                                { id: 'auto35', label: '+35% MSRP', desc: 'Standard 26% discount' },
+                                                { id: 'auto30', label: '+30% MSRP', desc: 'Subtle anchor' },
+                                                { id: 'auto50', label: '+50% MSRP', desc: 'Heavy 33% discount' },
+                                                { id: 'preserve', label: 'Preserve', desc: 'Keep existing MSRP' },
+                                            ].map(opt => (
+                                                <button
+                                                    key={opt.id}
+                                                    type="button"
+                                                    onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, msrpStrategy: opt.id })}
+                                                    className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
+                                                        bulkPriceConfig.msrpStrategy === opt.id
+                                                            ? 'border-emerald-500 bg-emerald-50 text-slate-900 ring-2 ring-emerald-500/20'
+                                                            : 'border-slate-200 bg-white hover:border-slate-300 text-slate-600'
+                                                    }`}
+                                                >
+                                                    <p className="text-xs font-bold">{opt.label}</p>
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">{opt.desc}</p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 4. Psychological Charm Rounding Formatter */}
+                            <div>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                                    3. Psychological Charm Price Ending
+                                </label>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    {[
+                                        { id: 'charm99', label: '.99 Endings', example: '$44.99' },
+                                        { id: 'charm95', label: '.95 Endings', example: '$44.95' },
+                                        { id: 'whole', label: '.00 Whole', example: '$45.00' },
+                                        { id: 'none', label: 'Exact Cents', example: '$44.42' }
+                                    ].map(charm => (
+                                        <button
+                                            key={charm.id}
+                                            type="button"
+                                            onClick={() => setBulkPriceConfig({ ...bulkPriceConfig, charmRounding: charm.id })}
+                                            className={`p-2.5 rounded-2xl border text-center transition cursor-pointer ${
+                                                bulkPriceConfig.charmRounding === charm.id
+                                                    ? 'border-emerald-500 bg-emerald-50 text-slate-900 font-bold ring-2 ring-emerald-500/20'
+                                                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                                            }`}
+                                        >
+                                            <p className="text-xs">{charm.label}</p>
+                                            <p className="text-[10px] font-mono text-slate-400 mt-0.5">{charm.example}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 5. Live Interactive Preview Table */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                        4. Live Preview (First 5 of {targetBulkProducts.length} items)
+                                    </label>
+                                    <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                        Updating {targetBulkProducts.length} items in {activeStore?.name || 'Store'}
+                                    </span>
+                                </div>
+
+                                <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs">
+                                    <table className="w-full text-left text-xs border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                <th className="py-2.5 px-3">Product</th>
+                                                <th className="py-2.5 px-3">Current</th>
+                                                <th className="py-2.5 px-3">New Price</th>
+                                                <th className="py-2.5 px-3">Compare MSRP</th>
+                                                <th className="py-2.5 px-3 text-right">Margin Change</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {bulkPreviewItems.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={5} className="py-6 text-center text-slate-400">
+                                                        No products found in target scope.
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                bulkPreviewItems.map(({ product, calc }) => (
+                                                    <tr key={product.id} className="hover:bg-slate-50/50">
+                                                        <td className="py-2.5 px-3 font-semibold text-slate-800 max-w-[180px] truncate">
+                                                            {product.name}
+                                                        </td>
+                                                        <td className="py-2.5 px-3 text-slate-500 font-mono">
+                                                            ${calc.currentPrice.toFixed(2)}
+                                                        </td>
+                                                        <td className="py-2.5 px-3 font-mono font-black text-emerald-600 bg-emerald-50/50">
+                                                            ${calc.finalPrice.toFixed(2)}
+                                                        </td>
+                                                        <td className="py-2.5 px-3 font-mono text-slate-400 line-through">
+                                                            ${calc.compareAtPrice.toFixed(2)}
+                                                        </td>
+                                                        <td className="py-2.5 px-3 text-right font-semibold">
+                                                            <span className="text-slate-400 text-[11px]">{calc.currentMargin}%</span>
+                                                            <span className="text-slate-400 mx-1">➔</span>
+                                                            <span className={`font-bold ${calc.newMargin >= 50 ? 'text-emerald-600' : 'text-slate-800'}`}>
+                                                                {calc.newMargin}%
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer Actions */}
+                        <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                            <button
+                                type="button"
+                                onClick={() => setShowBulkPriceModal(false)}
+                                className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-200/60 transition cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleApplyBulkPricing}
+                                disabled={isApplyingBulkPrice || targetBulkProducts.length === 0}
+                                className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-600/25 transition disabled:opacity-50 cursor-pointer"
+                            >
+                                {isApplyingBulkPrice ? (
+                                    <>
+                                        <RefreshCw size={14} className="animate-spin" />
+                                        <span>Applying to {targetBulkProducts.length} Items...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Zap size={14} className="fill-white" />
+                                        <span>Apply & Save {targetBulkProducts.length} Products</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
