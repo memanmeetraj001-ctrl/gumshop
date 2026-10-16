@@ -344,13 +344,24 @@ const ProductDetails = ({ product, storeInfo }) => {
     // White-Labeled "⚡ Buy Now" Handler (Gumroad In-Page Iframe)
     const handleInstantBuyNow = async () => {
         setIsCheckingOut(true);
+        let activeCoupon = '';
+        let discountAmount = 0;
+        if (typeof window !== 'undefined') {
+            const storedCoupon = sessionStorage.getItem('active_coupon');
+            if (storedCoupon) {
+                activeCoupon = storedCoupon.trim().toUpperCase();
+                const pct = activeCoupon === 'SAVE20' ? 20 : (activeCoupon === 'FLASH25' ? 25 : (activeCoupon === 'SAVE10' ? 10 : 20));
+                discountAmount = Math.round((currentTier.totalPrice * (pct / 100)) * 100) / 100;
+            }
+        }
+
         trackEvent('initiate_checkout', {
             productId: product.id,
             productName: product.name,
             storeId: product.storeId || storeInfo?.id,
             storeSlug: storeInfo?.username || (product.storeId ? String(product.storeId).replace(/^store_/, '') : ''),
             quantity: currentTier.qty,
-            price: currentTier.totalPrice + protectionFee
+            price: Math.max(1, currentTier.totalPrice + protectionFee - discountAmount)
         });
         try {
             const res = await fetch('/api/gumroad/dynamic-checkout', {
@@ -372,6 +383,8 @@ const ProductDetails = ({ product, storeInfo }) => {
                             gumroadUrl: product.gumroadUrl || ''
                         }
                     ],
+                    couponCode: activeCoupon,
+                    discountAmount: discountAmount,
                     shippingFee: currentTier.qty >= 3 ? 0 : (storeInfo?.shipping?.standardFee || 4.99),
                     rushFee: hasShippingProtection ? 4.99 : 0,
                     gumroadProductUrl: product?.gumroadUrl || storeInfo?.gumroadProductUrl || (typeof window !== 'undefined' ? ((storeInfo?.username ? localStorage.getItem(`gumroad_url_${storeInfo.username}`) : '') || localStorage.getItem('gumshop_gumroad_url') || localStorage.getItem('gumroad_product_url') || '') : '')
@@ -385,7 +398,8 @@ const ProductDetails = ({ product, storeInfo }) => {
             setCheckoutModal({
                 isOpen: true,
                 gumroadUrl: data.checkoutUrl || fallbackGumroadUrl || '',
-                orderSessionId: data.orderSessionId || `ord_${Date.now()}`
+                orderSessionId: data.orderSessionId || `ord_${Date.now()}`,
+                discountAmount
             });
         } catch (err) {
             console.error('Checkout error:', err);

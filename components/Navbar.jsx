@@ -13,8 +13,11 @@ import {
     ShieldCheck, 
     Truck, 
     Store,
-    ChevronDown
+    ChevronDown,
+    Copy,
+    Check
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useSelector } from 'react-redux';
 import { useWishlist } from '@/lib/wishlist';
 import { getAllLocalStores } from '@/lib/activeStore';
@@ -38,7 +41,23 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
         return [];
     });
     const [storesMenuOpen, setStoresMenuOpen] = useState(false);
+    const [copiedFlashDeal, setCopiedFlashDeal] = useState(false);
     const storesMenuRef = useRef(null);
+
+    const handleApplyFlashDeal = () => {
+        if (typeof window !== 'undefined') {
+            try {
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText('SAVE20');
+                }
+                sessionStorage.setItem('active_coupon', 'SAVE20');
+                window.dispatchEvent(new CustomEvent('gumshop_coupon_applied', { detail: { code: 'SAVE20', discount: 20 } }));
+            } catch {}
+        }
+        setCopiedFlashDeal(true);
+        setTimeout(() => setCopiedFlashDeal(false), 2500);
+        toast.success("Coupon 'SAVE20' activated! Extra 20% OFF applied at checkout 🎉");
+    };
 
     useEffect(() => {
         setMounted(true);
@@ -63,11 +82,13 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
         if (storedToken && (storedToken.startsWith('gumshop_') || storedToken === 'authenticated' || storedToken.includes('superadmin') || storedToken.includes('meetminal'))) {
             setIsOwner(true);
         }
-        const headers = storedToken ? { 'Authorization': `Bearer ${storedToken}` } : {};
-        fetch('/api/admin/auth', { headers, credentials: 'include' })
-            .then(r => r.json())
-            .then(d => { if (d.authenticated) setIsOwner(true); })
-            .catch(() => {});
+        if (storedToken) {
+            const headers = { 'Authorization': `Bearer ${storedToken}` };
+            fetch('/api/admin/auth', { headers, credentials: 'include' })
+                .then(r => r.json())
+                .then(d => { if (d.authenticated) setIsOwner(true); })
+                .catch(() => {});
+        }
 
         const loadStores = async () => {
             const local = getAllLocalStores().filter(s => s && !isStoreDeleted(s.id) && !isStoreDeleted(s.username));
@@ -140,11 +161,20 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                         <span>Tracked Worldwide Express Delivery</span>
                     </div>
 
-                    <div className="mx-auto sm:mx-0 flex items-center gap-2">
+                    <div 
+                        onClick={handleApplyFlashDeal}
+                        className="mx-auto sm:mx-0 flex items-center gap-2 cursor-pointer hover:opacity-90 transition group select-none py-0.5"
+                        title="Click to copy & activate 20% OFF"
+                    >
                         <span className="text-emerald-400 font-extrabold uppercase tracking-wider">⚡ FLASH DEALS:</span>
                         <span>Extra 20% OFF Everything With Code</span>
-                        <span className="bg-emerald-500/20 text-emerald-300 font-mono font-bold px-1.5 py-0.2 rounded border border-emerald-500/30">
+                        <span className="bg-emerald-500/20 text-emerald-300 font-mono font-bold px-2 py-0.5 rounded border border-emerald-500/40 group-hover:bg-emerald-500/40 group-hover:scale-105 transition flex items-center gap-1.5 shadow-xs">
                             SAVE20
+                            {copiedFlashDeal ? (
+                                <Check size={11} className="text-emerald-300" />
+                            ) : (
+                                <Copy size={11} className="opacity-70 group-hover:opacity-100" />
+                            )}
                         </span>
                     </div>
 

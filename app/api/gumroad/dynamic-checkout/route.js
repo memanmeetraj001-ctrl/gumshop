@@ -268,6 +268,10 @@ export async function POST(req) {
                 urlObj.searchParams.set('wanted', 'true');
                 urlObj.searchParams.set('price', finalTotal.toFixed(2));
                 
+                if (couponCode) {
+                    urlObj.searchParams.set('offer_code', String(couponCode).toUpperCase().trim());
+                }
+                
                 if (customer.email) {
                     urlObj.searchParams.set('email', customer.email);
                 }

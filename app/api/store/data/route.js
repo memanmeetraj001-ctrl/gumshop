@@ -37,13 +37,9 @@ export async function GET(req) {
         }
 
         const store = await serverGetStore(slug);
-        let products = [];
-        if (store && store.id) {
-            products = await serverGetProducts(store.id);
-        }
-        if (products.length === 0 && Array.isArray(store?.products) && store.products.length > 0) {
-            products = store.products;
-        }
+        let products = (Array.isArray(store?.products) && store.products.length > 0)
+            ? store.products
+            : (store && store.id ? await serverGetProducts(store.id) : []);
 
         return NextResponse.json({
             success: true,

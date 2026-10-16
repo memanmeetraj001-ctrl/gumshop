@@ -86,6 +86,18 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
     const [hasPriorityProtection, setHasPriorityProtection] = useState(true);
     const [checkoutModal, setCheckoutModal] = useState({ isOpen: false, gumroadUrl: '', orderSessionId: '' });
 
+    // Auto-detect and activate stored coupon (e.g. SAVE20 from Flash Deals)
+    useEffect(() => {
+        if (!isOpen) return;
+        if (typeof window !== 'undefined') {
+            const activeCoupon = sessionStorage.getItem('active_coupon');
+            if (activeCoupon && !couponCode) {
+                const code = activeCoupon.trim().toUpperCase();
+                setCouponCode(code);
+            }
+        }
+    }, [isOpen, couponCode]);
+
     // Memoize resolved items and subtotal to avoid synchronous storage scans on every render
     const { items, subtotal } = useMemo(() => {
         if (!isOpen) return { items: [], subtotal: 0 };
@@ -151,6 +163,33 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
         tierMessage = `🌟 Max VIP Perks Unlocked: FREE Shipping + Mystery Gift + VIP Dispatch!`;
     }
 
+    // Auto-calculate discount if couponCode is active and subtotal changes
+    useEffect(() => {
+        if (!couponCode || subtotal <= 0) {
+            if (!couponCode) setAppliedDiscount(0);
+            return;
+        }
+        const code = couponCode.trim().toUpperCase();
+        if (['SAVE20', 'SAVE10', 'FLASH25', 'NEW20', 'VIP15'].includes(code)) {
+            const pct = code === 'FLASH25' ? 25 : (code === 'SAVE10' ? 10 : (code === 'VIP15' ? 15 : 20));
+            const calculated = Math.round(subtotal * (pct / 100) * 100) / 100;
+            setAppliedDiscount(calculated);
+        }
+    }, [couponCode, subtotal]);
+
+    // Listen for custom coupon applied events from navbar or modals
+    useEffect(() => {
+        const handleCouponEvent = (e) => {
+            const { code } = e.detail || {};
+            if (code) {
+                const cleanCode = String(code).trim().toUpperCase();
+                setCouponCode(cleanCode);
+            }
+        };
+        window.addEventListener('gumshop_coupon_applied', handleCouponEvent);
+        return () => window.removeEventListener('gumshop_coupon_applied', handleCouponEvent);
+    }, []);
+
     const finalTotal = Math.max(0, Math.round(((subtotal || 0) + shippingFee + priorityFee - (appliedDiscount || 0)) * 100) / 100);
 
     const handleApplyCoupon = async (e) => {
@@ -162,6 +201,9 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
             if (couponData && (!couponData.expiresAt || new Date(couponData.expiresAt) > new Date())) {
                 if (couponData.minSpend && subtotal < Number(couponData.minSpend)) {
                     return toast.error(`Minimum spend of $${couponData.minSpend} required`);
+                }
+                if (typeof window !== 'undefined') {
+                    sessionStorage.setItem('active_coupon', code);
                 }
                 if (couponData.type === 'fixed') {
                     const discount = Math.min(subtotal, Number(couponData.discount || 0));
@@ -177,6 +219,9 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                     toast.success(`Coupon applied: ${pct}% off! 🎉`);
                 }
             } else if (['SAVE20', 'SAVE10', 'FLASH25', 'NEW20', 'VIP15'].includes(code)) {
+                if (typeof window !== 'undefined') {
+                    sessionStorage.setItem('active_coupon', code);
+                }
                 const pct = code === 'FLASH25' ? 25 : (code === 'SAVE10' ? 10 : (code === 'VIP15' ? 15 : 20));
                 const discount = Math.round(subtotal * (pct / 100) * 100) / 100;
                 setAppliedDiscount(discount);
@@ -238,6 +283,7 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                         variant: i.variant || '',
                         gumroadUrl: i.gumroadUrl || ''
                     })),
+                    couponCode: couponCode || (typeof window !== 'undefined' ? sessionStorage.getItem('active_coupon') : '') || '',
                     discountAmount: appliedDiscount,
                     shippingFee: shippingFee,
                     rushFee: priorityFee
@@ -464,7 +510,14 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                                     </div>
                                     <button
                                         type="button"
-                                        onClick={() => { setAppliedDiscount(0); setCouponCode(''); toast('Coupon removed', { icon: '🗑️' }); }}
+                                        onClick={() => { 
+                                            setAppliedDiscount(0); 
+                                            setCouponCode(''); 
+                                            if (typeof window !== 'undefined') {
+                                                sessionStorage.removeItem('active_coupon');
+                                            }
+                                            toast('Coupon removed', { icon: '🗑️' }); 
+                                        }}
                                         className="text-xs text-slate-400 hover:text-rose-600 font-bold px-1.5 py-0.5 rounded transition cursor-pointer"
                                         title="Remove discount"
                                     >
