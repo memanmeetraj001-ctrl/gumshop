@@ -57,10 +57,87 @@ const checkHasLocalSession = () => {
     return false;
 };
 
+const getInitialDashboardStores = () => {
+    if (typeof window !== 'undefined') {
+        try {
+            const cached = localStorage.getItem('gumshop_cached_dashboard_stores');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+        } catch {}
+        try {
+            const local = getAllLocalStores();
+            if (Array.isArray(local) && local.length > 0) {
+                const filtered = local.filter(s => {
+                    const slug = (s.username || s.slug || s.id || '').toLowerCase();
+                    return !isStoreDeleted(s.id) && !isStoreDeleted(slug) && !slug.includes('test');
+                });
+                if (filtered.length > 0) return filtered;
+            }
+        } catch {}
+    }
+    return [
+        {
+            id: 'store_rubber-couch-toys-official-store',
+            name: 'Rubber Couch Toys Official Store',
+            username: 'rubber-couch-toys-official-store',
+            description: 'We Sell Gel Ball Launcher (Toy Guns) which is a superior alternative to Airsoft.',
+            theme: 'viral_lander',
+            themeColor: '#10B981',
+            logo: '',
+            status: 'active',
+            hasGumroad: false,
+            gumroadToken: '',
+            gumroadProductUrl: '',
+            productsCount: 174,
+            products: [],
+            createdAt: '2026-10-15T00:00:00.000Z'
+        },
+        {
+            id: 'store_phantompaws-headless-horseman-pet-costume',
+            name: 'PhantomPaws Headless Horseman Pet Costume',
+            username: 'phantompaws-headless-horseman-pet-costume',
+            description: "A headless horseman rider with a glowing jack-o'-lantern that straps onto your cat or small dog in seconds. Free tracked US shipping.",
+            theme: 'clean_beauty',
+            themeColor: '#F43F5E',
+            logo: '',
+            status: 'active',
+            hasGumroad: true,
+            gumroadToken: '',
+            gumroadProductUrl: '',
+            productsCount: 1,
+            products: [],
+            createdAt: '2026-10-15T00:00:00.000Z'
+        }
+    ];
+};
+
 export default function MasterDashboardPage() {
     const router = useRouter();
-    const [shops, setShops] = useState([]);
-    const [activeStore, setActiveStore] = useState(null);
+    const [shops, setShops] = useState(getInitialDashboardStores);
+    const [activeStore, setActiveStore] = useState(() => {
+        const initShops = getInitialDashboardStores();
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            const requestedSlug = urlParams.get('store');
+            if (requestedSlug) {
+                const match = initShops.find(s => 
+                    (s.username && s.username.toLowerCase() === requestedSlug.toLowerCase()) ||
+                    (s.id && s.id.toLowerCase() === requestedSlug.toLowerCase()) ||
+                    (s.id && s.id.toLowerCase() === `store_${requestedSlug.toLowerCase()}`)
+                );
+                if (match) return match;
+            }
+            const hpSlug = getHomepageStoreSlug();
+            if (hpSlug) {
+                const match = initShops.find(s => s.username === hpSlug || s.id === hpSlug || s.id === `store_${hpSlug}`);
+                if (match) return match;
+            }
+        }
+        return initShops[0] || null;
+    });
+    const isFetchingShopsRef = useRef(false);
     const [homepageStoreSlug, setHomepageStoreSlugState] = useState('');
     const [homepageMode, setHomepageModeState] = useState('single');
     const [selectedHomepageStores, setSelectedHomepageStores] = useState([]);
@@ -70,7 +147,7 @@ export default function MasterDashboardPage() {
     const [inPageShow, setInPageShow] = useState(false);
     const [inPageSubmitting, setInPageSubmitting] = useState(false);
     const inPageSubmittingRef = useRef(false);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'archived'
 
@@ -150,17 +227,16 @@ export default function MasterDashboardPage() {
                     }
                 }
             }
-            // Firebase orders
+            // Supabase server orders via fast /api/store/orders
             try {
-                const { getAllOrders } = await import('@/lib/firebaseDb');
-                const dbOrders = await Promise.race([
-                    getAllOrders(),
-                    new Promise(res => setTimeout(() => res([]), 8000))
-                ]);
-                if (Array.isArray(dbOrders)) {
-                    dbOrders.forEach(o => {
-                        if (o && o.id && !ordersMap.has(o.id)) ordersMap.set(o.id, o);
-                    });
+                const res = await fetch('/api/store/orders');
+                if (res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    if (Array.isArray(data.orders)) {
+                        data.orders.forEach(o => {
+                            if (o && o.id && !ordersMap.has(o.id)) ordersMap.set(o.id, o);
+                        });
+                    }
                 }
             } catch {}
 
@@ -173,8 +249,10 @@ export default function MasterDashboardPage() {
         }
     };
 
-    // Load Stores from Dedicated Server APIs (/api/stores & /api/store/data)
+    // Load Stores from Dedicated Server API (/api/store/data)
     const loadShops = async () => {
+        if (isFetchingShopsRef.current) return;
+        isFetchingShopsRef.current = true;
         try {
             const found = [];
             const seenSlugs = new Set();
@@ -188,43 +266,32 @@ export default function MasterDashboardPage() {
             const fetchOpts = { cache: 'no-store', headers: { 'Pragma': 'no-cache' } };
             let rawStores = [];
 
-            // 1. Fetch lightweight stores list first (/api/stores)
-            try {
-                const storesRes = await fetch(`/api/stores?t=${Date.now()}`, fetchOpts).catch(() => null);
-                if (storesRes && storesRes.ok) {
-                    const storesData = await storesRes.json().catch(() => ({}));
-                    if (Array.isArray(storesData.stores) && storesData.stores.length > 0) {
-                        rawStores = storesData.stores;
-                    }
-                }
-            } catch (err) {
-                console.warn("Stores API fetch warning:", err);
-            }
-
-            // 2. Enrich or populate with rich store data (/api/store/data)
+            // 1. Fetch complete store data in a single fast call (/api/store/data)
             try {
                 const apiRes = await fetch(`/api/store/data?t=${Date.now()}`, fetchOpts).catch(() => null);
                 if (apiRes && apiRes.ok) {
                     const apiData = await apiRes.json().catch(() => ({}));
                     if (Array.isArray(apiData.stores) && apiData.stores.length > 0) {
-                        if (rawStores.length === 0) {
-                            rawStores = apiData.stores;
-                        } else {
-                            const richMap = new Map();
-                            for (const s of apiData.stores) {
-                                const slug = String(s.username || s.slug || '').toLowerCase();
-                                if (slug) richMap.set(slug, s);
-                            }
-                            rawStores = rawStores.map(s => {
-                                const slug = String(s.username || s.slug || '').toLowerCase();
-                                const rich = richMap.get(slug);
-                                return rich ? { ...rich, ...s, products: rich.products || s.products, productsCount: rich.productsCount ?? rich.products?.length ?? s.productsCount } : s;
-                            });
-                        }
+                        rawStores = apiData.stores;
                     }
                 }
             } catch (err) {
                 console.warn("Server store/data fetch warning:", err);
+            }
+
+            // 2. Fallback to /api/stores only if /api/store/data returned no stores
+            if (rawStores.length === 0) {
+                try {
+                    const storesRes = await fetch(`/api/stores?t=${Date.now()}`, fetchOpts).catch(() => null);
+                    if (storesRes && storesRes.ok) {
+                        const storesData = await storesRes.json().catch(() => ({}));
+                        if (Array.isArray(storesData.stores) && storesData.stores.length > 0) {
+                            rawStores = storesData.stores;
+                        }
+                    }
+                } catch (err) {
+                    console.warn("Stores API fallback fetch warning:", err);
+                }
             }
 
             // 3. Fallback to local edge stores if network failed
@@ -246,7 +313,9 @@ export default function MasterDashboardPage() {
                     slug === 'live-test' ||
                     slug === 'store_live_test' ||
                     slug.startsWith('m2-hp-') ||
-                    slug.startsWith('test-')
+                    slug.startsWith('test-') ||
+                    slug.includes('test_alpha') ||
+                    slug.includes('test_beta')
                 ) continue;
 
                 seenSlugs.add(slug);
@@ -300,7 +369,7 @@ export default function MasterDashboardPage() {
                     hasGumroad: false,
                     gumroadToken: '',
                     gumroadProductUrl: '',
-                    productsCount: 1,
+                    productsCount: 174,
                     products: [],
                     createdAt: new Date().toISOString()
                 });
@@ -323,6 +392,11 @@ export default function MasterDashboardPage() {
             }
 
             setShops(found);
+            if (typeof window !== 'undefined' && found.length > 0) {
+                try {
+                    localStorage.setItem('gumshop_cached_dashboard_stores', JSON.stringify(found));
+                } catch {}
+            }
 
             let targetStore = null;
             if (typeof window !== 'undefined') {
@@ -363,6 +437,7 @@ export default function MasterDashboardPage() {
         } catch (err) {
             console.error("Dashboard store resolution error:", err);
         } finally {
+            isFetchingShopsRef.current = false;
             setLoading(false);
         }
     };
@@ -418,9 +493,11 @@ export default function MasterDashboardPage() {
                     }
                     setIsAuthenticated(true);
                     setAuthChecking(false);
-                    loadShops();
-                    loadImportHistory();
-                    loadOrders();
+                    if (!hasLocal) {
+                        loadShops();
+                        loadImportHistory();
+                        loadOrders();
+                    }
                     fetch('/api/gumroad/status')
                         .then(r => r.json())
                         .then(d => { if (isMounted) setGumroadConnected(Boolean(d?.connected)); })
