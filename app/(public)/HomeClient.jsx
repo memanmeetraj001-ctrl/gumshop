@@ -24,6 +24,27 @@ import { getActiveStoreSync, getHomepageStoreSync, getHomepageStoreSlug, getHome
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts } from '@/lib/features/product/productSlice';
 
+const PRIMARY_FALLBACK_STORE = {
+    id: 'store_rubber-couch-toys-official-store',
+    name: 'Rubber Couch Toys Official Store',
+    slug: 'rubber-couch-toys-official-store',
+    username: 'rubber-couch-toys-official-store',
+    description: 'We Sell Gel Ball Launcher (Toy Guns) which is a superior alternative to Airsoft.',
+    theme: 'viral_lander',
+    themeColor: '#18181B',
+    logo: 'https://theluckylk.com/cdn/shop/files/30kb.webp?crop=center&height=32&v=1792057646&width=32',
+    avatar: 'https://theluckylk.com/cdn/shop/files/30kb.webp?crop=center&height=32&v=1792057646&width=32',
+    banner: 'https://theluckylk.com/cdn/shop/files/bannder_desk.webp?v=1787998207&width=1672',
+    banners: [
+        'https://theluckylk.com/cdn/shop/files/bannder_desk.webp?v=1787998207&width=1672',
+        'https://theluckylk.com/cdn/shop/files/LKCJ_banner_desktop_2560x1440_orange_tip.webp?v=1787921834&width=2560'
+    ],
+    status: 'active',
+    is_homepage: true,
+    isHomepage: true,
+    productsCount: 174
+};
+
 export default function HomeClient({ initialStore = null, initialMode = 'single', initialProducts = [] }) {
     const dispatch = useDispatch();
     const reduxProducts = useSelector(state => state.product.list);
@@ -51,9 +72,9 @@ export default function HomeClient({ initialStore = null, initialMode = 'single'
                     description: 'Explore featured products across our selected creator stores with direct merchant checkout.'
                 };
             }
-            return getHomepageStoreSync() || getActiveStoreSync() || null;
+            return getHomepageStoreSync() || getActiveStoreSync() || PRIMARY_FALLBACK_STORE;
         }
-        return null;
+        return PRIMARY_FALLBACK_STORE;
     });
 
     const [products, setProducts] = useState(() => {
@@ -217,6 +238,11 @@ export default function HomeClient({ initialStore = null, initialMode = 'single'
                     if (localStores && localStores.length > 0) {
                         store = localStores[0];
                     }
+                }
+
+                // 5. Authoritative primary fallback store
+                if (!store) {
+                    store = PRIMARY_FALLBACK_STORE;
                 }
 
                 if (store) {

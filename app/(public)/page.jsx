@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { resolveHomepageStore } from '@/lib/serverDb';
+import { resolveHomepageStore, PRIMARY_FALLBACK_STORE } from '@/lib/serverDb';
 import { getAllProductsWithStores } from '@/lib/db/products';
 import HomeClient from './HomeClient';
 
@@ -62,7 +62,11 @@ export default async function HomePage() {
         }
     } catch {}
 
-    const resolved = await resolveHomepageStore(cookieSlug).catch(() => ({ homepageStore: null, homepageSlug: '' }));
+    const resolved = await resolveHomepageStore(cookieSlug).catch(() => ({ 
+        homepageStore: PRIMARY_FALLBACK_STORE, 
+        homepageSlug: 'rubber-couch-toys-official-store' 
+    }));
+    const resolvedStore = resolved.homepageStore || PRIMARY_FALLBACK_STORE;
     let products = [];
 
     if (cookieMode === 'all') {
@@ -72,7 +76,7 @@ export default async function HomePage() {
         const allowed = new Set(selectedStores.map(s => String(s).toLowerCase().replace(/^store_/, '')));
         products = all.filter(p => allowed.has((p.storeSlug || p.storeId || '').toLowerCase().replace(/^store_/, '')));
     } else {
-        products = resolved.homepageStore?.products || [];
+        products = resolvedStore?.products || [];
         if (products.length === 0) {
             const all = await getAllProductsWithStores().catch(() => []);
             products = all;
@@ -93,7 +97,7 @@ export default async function HomePage() {
             isMarketplace: true,
             description: 'Explore featured products across our selected creator stores with direct merchant checkout.'
         }
-        : resolved.homepageStore;
+        : resolvedStore;
 
     // Structured Data: WebSite with SearchAction
     const websiteSchema = {
