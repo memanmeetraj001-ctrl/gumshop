@@ -341,8 +341,10 @@ export default function MasterDashboardPage() {
                 const slug = String(rawSlug).toLowerCase().replace(/^store_/, '').replace(/[^a-z0-9-]+/g, '-');
                 if (!slug || isStoreDeleted(sStore.id) || isStoreDeleted(slug) || seenSlugs.has(slug)) continue;
 
-                // Skip automated temporary test harness stores from dashboard display
+                // Skip automated temporary test harness stores and system state from dashboard display
                 if (
+                    slug.startsWith('system') ||
+                    sStore.id?.startsWith('system_') ||
                     slug.startsWith('price-test-store-') || 
                     slug.startsWith('price_test_store_') ||
                     slug === 'live-test' ||
