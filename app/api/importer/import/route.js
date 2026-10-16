@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createStore, createProduct, recordImportHistory, getStore, getStoreByUsername } from '@/lib/firebaseDb';
+import { createStore, createProduct, createProductsBatch, recordImportHistory, getStore, getStoreByUsername } from '@/lib/firebaseDb';
 import { serverSaveStore, serverSaveProducts } from '@/lib/serverDb';
 import { normalizeProductPrice, applyPriceSlash } from '@/lib/importer/priceNormalizer.js';
 import { generateContextualBundles } from '@/lib/importer/productEnhancer.js';
@@ -108,7 +108,10 @@ export async function POST(req) {
 
         // 2. Prepare and sanitize products scoped strictly to this storeId
         const savedProducts = selectedProducts.map((p, idx) => {
-            const prodId = `prod_${cleanSlug}_${idx}_${Math.random().toString(36).substring(2, 6)}`;
+            const cleanProdSlug = (p.slug || p.name || `item-${idx}`).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+            const prodId = p.id && p.id.startsWith(`prod_${cleanSlug}_`) 
+                ? p.id 
+                : `prod_${cleanSlug}_${cleanProdSlug || idx}`;
             const rawPrice = normalizeProductPrice(p.price, { isCents, autoConvert: autoConvertCurrency });
             const rawCompareAt = p.compareAtPrice 
                 ? normalizeProductPrice(p.compareAtPrice, { isCents, autoConvert: autoConvertCurrency }) 
@@ -198,8 +201,8 @@ export async function POST(req) {
                 await serverSaveProducts(storeId, savedProducts);
             }
             await createStore(storeRecord);
-            for (const prod of savedProducts) {
-                await createProduct(prod).catch(() => {});
+            if (savedProducts.length > 0) {
+                await createProductsBatch(savedProducts).catch(err => console.warn('createProductsBatch warning:', err?.message));
             }
             await recordImportHistory({
                 sourceUrl: destinationStore.sourceUrl || '',
