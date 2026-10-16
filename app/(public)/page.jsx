@@ -20,7 +20,7 @@ import WishlistDrawer from '@/components/WishlistDrawer';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import LiveSalesToaster from '@/components/LiveSalesToaster';
 import { getAllProducts, getProductsByStore } from '@/lib/firebaseDb';
-import { getActiveStoreSync, getHomepageStoreSync, getHomepageStoreSlug, getHomepageSelectedStores } from '@/lib/activeStore';
+import { getActiveStoreSync, getHomepageStoreSync, getHomepageStoreSlug, getHomepageSelectedStores, getHomepageMode } from '@/lib/activeStore';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts } from '@/lib/features/product/productSlice';
 
@@ -28,8 +28,28 @@ export default function SuperStorefront() {
     const dispatch = useDispatch();
     const reduxProducts = useSelector(state => state.product.list);
 
+    const initialMode = typeof window !== 'undefined' ? getHomepageMode() : 'single';
+    const [homepageMode, setHomepageModeState] = useState(initialMode);
+
     const [activeStore, setActiveStore] = useState(() => {
         if (typeof window !== 'undefined') {
+            const mode = getHomepageMode();
+            if (mode === 'all') {
+                return {
+                    name: 'All Shops Marketplace',
+                    username: 'marketplace',
+                    isMarketplace: true,
+                    description: 'Browse verified top-selling products across our creator fleet.'
+                };
+            }
+            if (mode === 'custom') {
+                return {
+                    name: 'Combined Stores Showcase',
+                    username: 'showcase',
+                    isMarketplace: true,
+                    description: 'Explore featured products across our selected creator stores with direct merchant checkout.'
+                };
+            }
             return getHomepageStoreSync() || getActiveStoreSync() || null;
         }
         return null;
@@ -37,6 +57,15 @@ export default function SuperStorefront() {
 
     const [products, setProducts] = useState(() => {
         if (typeof window !== 'undefined') {
+            const mode = getHomepageMode();
+            try {
+                const cached = localStorage.getItem(`gumshop_homepage_prods_${mode}`);
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                }
+            } catch {}
+
             const s = getHomepageStoreSync() || getActiveStoreSync();
             if (Array.isArray(s?.products) && s.products.length > 0) {
                 return s.products;
@@ -46,7 +75,6 @@ export default function SuperStorefront() {
     });
 
     const [loading, setLoading] = useState(false);
-    const [homepageMode, setHomepageModeState] = useState('single');
     const [viewMode, setViewMode] = useState('by-store'); // 'by-store' | 'combined'
     const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
     const [wishlistDrawerOpen, setWishlistDrawerOpen] = useState(false);
@@ -67,8 +95,10 @@ export default function SuperStorefront() {
                 // 1. Resolve designated homepage store & mode directly from server (Highest priority)
                 let store = null;
                 let targetSlug = null;
-                let mode = 'single';
+                let mode = getHomepageMode();
                 let selectedStores = [];
+                let resolvedProducts = null;
+
                 try {
                     const hpRes = await fetch('/api/store/homepage', { cache: 'no-store' });
                     if (hpRes.ok) {
@@ -77,6 +107,9 @@ export default function SuperStorefront() {
                         if (hpData.homepageStore) store = hpData.homepageStore;
                         if (hpData.homepageSlug) targetSlug = hpData.homepageSlug;
                         if (Array.isArray(hpData.selectedStores)) selectedStores = hpData.selectedStores;
+                        if (Array.isArray(hpData.products) && hpData.products.length > 0) {
+                            resolvedProducts = hpData.products;
+                        }
                     }
                 } catch {}
 
@@ -84,56 +117,76 @@ export default function SuperStorefront() {
                     selectedStores = getHomepageSelectedStores();
                 }
 
-                // Offline fallback if server API is unavailable
-                if (!store) {
-                    store = getHomepageStoreSync();
-                    targetSlug = targetSlug || getHomepageStoreSlug();
-                }
+                setHomepageModeState(mode);
 
                 // 1. If in All Shops Marketplace Mode
                 if (mode === 'all') {
-                    setHomepageModeState('all');
+                    setActiveStore({
+                        name: 'All Shops Marketplace',
+                        username: 'marketplace',
+                        isMarketplace: true,
+                        description: 'Browse verified top-selling products across our creator fleet.'
+                    });
+                    if (Array.isArray(resolvedProducts) && resolvedProducts.length > 0) {
+                        setProducts(resolvedProducts);
+                        try {
+                            localStorage.setItem('gumshop_homepage_prods_all', JSON.stringify(resolvedProducts));
+                        } catch {}
+                        return;
+                    }
                     try {
                         const allProdsRes = await fetch('/api/products?mode=all', { cache: 'no-store' });
                         if (allProdsRes.ok) {
                             const pData = await allProdsRes.json();
                             if (pData.success && Array.isArray(pData.products) && pData.products.length > 0) {
-                                setActiveStore({
-                                    name: 'All Shops Marketplace',
-                                    username: 'marketplace',
-                                    isMarketplace: true,
-                                    description: 'Browse verified top-selling products across our creator fleet.'
-                                });
                                 setProducts(pData.products);
+                                try {
+                                    localStorage.setItem('gumshop_homepage_prods_all', JSON.stringify(pData.products));
+                                } catch {}
                                 return;
                             }
                         }
                     } catch {}
+                    return;
                 }
 
                 // 2. If in Custom Multi-Store Selection Mode
                 if (mode === 'custom') {
-                    setHomepageModeState('custom');
+                    setActiveStore({
+                        name: 'Combined Stores Showcase',
+                        username: 'showcase',
+                        isMarketplace: true,
+                        description: 'Explore featured products across our selected creator stores with direct merchant checkout.'
+                    });
+                    if (Array.isArray(resolvedProducts) && resolvedProducts.length > 0) {
+                        setProducts(resolvedProducts);
+                        try {
+                            localStorage.setItem('gumshop_homepage_prods_custom', JSON.stringify(resolvedProducts));
+                        } catch {}
+                        return;
+                    }
                     try {
                         const storesParam = selectedStores.length > 0 ? `&stores=${encodeURIComponent(selectedStores.join(','))}` : '';
                         const customProdsRes = await fetch(`/api/products?mode=custom${storesParam}`, { cache: 'no-store' });
                         if (customProdsRes.ok) {
                             const pData = await customProdsRes.json();
                             if (pData.success && Array.isArray(pData.products)) {
-                                setActiveStore({
-                                    name: 'Combined Stores Showcase',
-                                    username: 'showcase',
-                                    isMarketplace: true,
-                                    description: 'Explore featured products across our selected creator stores with direct merchant checkout.'
-                                });
                                 setProducts(pData.products);
+                                try {
+                                    localStorage.setItem('gumshop_homepage_prods_custom', JSON.stringify(pData.products));
+                                } catch {}
                                 return;
                             }
                         }
                     } catch {}
+                    return;
                 }
 
-                setHomepageModeState('single');
+                // 3. Single Store Mode
+                if (!store) {
+                    store = getHomepageStoreSync();
+                    targetSlug = targetSlug || getHomepageStoreSlug();
+                }
 
                 // If targetSlug exists but store object not hydrated yet, resolve via direct API
                 if (!store && targetSlug) {
@@ -144,7 +197,7 @@ export default function SuperStorefront() {
                             if (sData.success && sData.store) {
                                 store = sData.store;
                                 if (Array.isArray(sData.products) && sData.products.length > 0) {
-                                    setProducts(sData.products);
+                                    resolvedProducts = sData.products;
                                 }
                             }
                         }
@@ -167,12 +220,16 @@ export default function SuperStorefront() {
 
                 if (store) {
                     setActiveStore(store);
-                    let storeProducts = Array.isArray(store.products) && store.products.length > 0 ? store.products : null;
-                    if (!storeProducts) {
-                        storeProducts = await getProductsByStore(store.id || store.username);
-                    }
-                    if (storeProducts && storeProducts.length > 0) {
-                        setProducts(storeProducts);
+                    const prods = (Array.isArray(resolvedProducts) && resolvedProducts.length > 0)
+                        ? resolvedProducts
+                        : (Array.isArray(store.products) && store.products.length > 0
+                            ? store.products
+                            : await getProductsByStore(store.id || store.username));
+                    if (prods && prods.length > 0) {
+                        setProducts(prods);
+                        try {
+                            localStorage.setItem('gumshop_homepage_prods_single', JSON.stringify(prods));
+                        } catch {}
                     } else {
                         // Store catalog is clean and empty (0 products)
                         setProducts([]);

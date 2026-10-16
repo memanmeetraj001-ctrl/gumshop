@@ -36,10 +36,24 @@ export async function GET() {
         } catch {}
 
         const result = await resolveHomepageStore(cookieSlug);
+        let products = [];
+        if (cookieMode === 'all') {
+            const { getAllProductsWithStores } = await import('@/lib/db/products');
+            products = await getAllProductsWithStores();
+        } else if (cookieMode === 'custom' && selectedStores.length > 0) {
+            const { getAllProductsWithStores } = await import('@/lib/db/products');
+            const all = await getAllProductsWithStores();
+            const allowed = new Set(selectedStores.map(s => String(s).toLowerCase().replace(/^store_/, '')));
+            products = all.filter(p => allowed.has((p.storeSlug || p.storeId || '').toLowerCase().replace(/^store_/, '')));
+        } else {
+            products = result.homepageStore?.products || [];
+        }
+
         return NextResponse.json({
             ...result,
             homepageMode: (cookieMode === 'all' || cookieMode === 'custom') ? cookieMode : 'single',
-            selectedStores: Array.isArray(selectedStores) && selectedStores.length > 0 ? selectedStores : ['rubber-couch-toys-official-store', 'phantompaws-headless-horseman-pet-costume']
+            selectedStores: Array.isArray(selectedStores) && selectedStores.length > 0 ? selectedStores : ['rubber-couch-toys-official-store', 'phantompaws-headless-horseman-pet-costume'],
+            products
         }, { status: result.status || 200, headers: NO_CACHE_HEADERS });
     } catch (e) {
         return NextResponse.json({ success: false, error: e.message }, { status: 500, headers: NO_CACHE_HEADERS });
@@ -89,6 +103,8 @@ export async function POST(req) {
             }
 
             const current = await resolveHomepageStore();
+            const { getAllProductsWithStores } = await import('@/lib/db/products');
+            const products = await getAllProductsWithStores();
             return NextResponse.json({
                 success: true,
                 status: 200,
@@ -97,6 +113,7 @@ export async function POST(req) {
                 homepageStore: current.homepageStore,
                 totalStores: current.totalStores,
                 selectedStores: incomingStores || ['rubber-couch-toys-official-store', 'phantompaws-headless-horseman-pet-costume'],
+                products,
                 message: 'All shops combined marketplace mode enabled for homepage'
             }, { status: 200, headers: NO_CACHE_HEADERS });
         }
@@ -110,6 +127,10 @@ export async function POST(req) {
             }
 
             const current = await resolveHomepageStore();
+            const { getAllProductsWithStores } = await import('@/lib/db/products');
+            const all = await getAllProductsWithStores();
+            const allowed = new Set((incomingStores || []).map(s => String(s).toLowerCase().replace(/^store_/, '')));
+            const products = all.filter(p => allowed.has((p.storeSlug || p.storeId || '').toLowerCase().replace(/^store_/, '')));
             return NextResponse.json({
                 success: true,
                 status: 200,
@@ -118,6 +139,7 @@ export async function POST(req) {
                 homepageStore: current.homepageStore,
                 totalStores: current.totalStores,
                 selectedStores: incomingStores || [],
+                products,
                 message: 'Custom multi-store selection enabled for homepage'
             }, { status: 200, headers: NO_CACHE_HEADERS });
         }

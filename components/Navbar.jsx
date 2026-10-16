@@ -28,7 +28,15 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isOwner, setIsOwner] = useState(false);
     const [searchInput, setSearchInput] = useState(searchTerm);
-    const [availableStores, setAvailableStores] = useState([]);
+    const [availableStores, setAvailableStores] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const local = getAllLocalStores().filter(s => s && !isStoreDeleted(s.id) && !isStoreDeleted(s.username));
+                if (local.length > 0) return local;
+            } catch {}
+        }
+        return [];
+    });
     const [storesMenuOpen, setStoresMenuOpen] = useState(false);
     const storesMenuRef = useRef(null);
 
