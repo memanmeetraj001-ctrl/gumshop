@@ -20,6 +20,7 @@ import toast from "react-hot-toast";
 import GumroadIframeModal from "./GumroadIframeModal";
 import LiveSalesToaster from "./LiveSalesToaster";
 import { getSafeImageUrl, handleImageError } from "@/lib/imageUtils";
+import { trackEvent } from "./AnalyticsTracker";
 
 const ProductDetails = ({ product, storeInfo }) => {
     const productId = product.id;
@@ -207,6 +208,18 @@ const ProductDetails = ({ product, storeInfo }) => {
     
     const [mainImage, setMainImage] = useState(images[0]);
 
+    // Track product view for analytics
+    useEffect(() => {
+        if (product && product.id) {
+            trackEvent('product_view', {
+                productId: product.id,
+                productName: product.name,
+                storeId: product.storeId || storeInfo?.id,
+                storeSlug: storeInfo?.username || (product.storeId ? String(product.storeId).replace(/^store_/, '') : '')
+            });
+        }
+    }, [product?.id]);
+
     const activeVariant = matchedVariant || selectedSize || null;
     const activePricing = getVariantPricing(activeVariant);
     const sizeDelta = activePricing.priceDelta;
@@ -299,12 +312,28 @@ const ProductDetails = ({ product, storeInfo }) => {
                 storeName: storeInfo?.name
             }
         }));
+        trackEvent('add_to_cart', {
+            productId: product.id,
+            productName: product.name,
+            storeId: product.storeId || storeInfo?.id,
+            storeSlug: storeInfo?.username || (product.storeId ? String(product.storeId).replace(/^store_/, '') : ''),
+            quantity: selectedQuantity,
+            price: currentTier.pricePerUnit
+        });
         toast.success(`Added ${selectedQuantity}x "${activeVariantLabel}" to your cart!`);
     };
 
     // White-Labeled "⚡ Buy Now" Handler (Gumroad In-Page Iframe)
     const handleInstantBuyNow = async () => {
         setIsCheckingOut(true);
+        trackEvent('initiate_checkout', {
+            productId: product.id,
+            productName: product.name,
+            storeId: product.storeId || storeInfo?.id,
+            storeSlug: storeInfo?.username || (product.storeId ? String(product.storeId).replace(/^store_/, '') : ''),
+            quantity: currentTier.qty,
+            price: currentTier.totalPrice + protectionFee
+        });
         try {
             const res = await fetch('/api/gumroad/dynamic-checkout', {
                 method: 'POST',

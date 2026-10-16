@@ -37,7 +37,12 @@ import {
     Eye,
     EyeOff,
     Scissors,
-    Clock
+    Clock,
+    Users,
+    MousePointer,
+    Activity,
+    Monitor,
+    Compass
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { isProductDeleted, isStoreDeleted, markStoreDeleted, deleteStore } from '@/lib/firebaseDb';
@@ -194,6 +199,34 @@ export default function MasterDashboardPage() {
             // Silently fall back to empty array
         } finally {
             setLoadingHistory(false);
+        }
+    };
+
+    // ─── Live & In-Depth Analytics State ───
+    const [analyticsTimeframe, setAnalyticsTimeframe] = useState('today'); // 'realtime' | 'today' | 'yesterday' | '7d' | '30d' | 'all'
+    const [analyticsStoreFilter, setAnalyticsStoreFilter] = useState('all');
+    const [analyticsData, setAnalyticsData] = useState(null);
+    const [analyticsLoading, setAnalyticsLoading] = useState(false);
+    const [livePulseEnabled, setLivePulseEnabled] = useState(true);
+
+    const loadAnalytics = async () => {
+        setAnalyticsLoading(true);
+        try {
+            const query = new URLSearchParams({
+                timeframe: analyticsTimeframe,
+                store: analyticsStoreFilter
+            });
+            const res = await fetch(`/api/analytics/stats?${query.toString()}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    setAnalyticsData(data);
+                }
+            }
+        } catch (e) {
+            console.warn('Analytics fetch note:', e.message);
+        } finally {
+            setAnalyticsLoading(false);
         }
     };
 
@@ -598,6 +631,24 @@ export default function MasterDashboardPage() {
             window.removeEventListener('homepage_stores_changed', handleHomepageStoresChange);
         };
     }, []);
+
+    // Trigger analytics loading when activeNavTab switches to 'analytics' or filters change
+    useEffect(() => {
+        if (activeNavTab === 'analytics') {
+            loadAnalytics();
+        }
+    }, [activeNavTab, analyticsTimeframe, analyticsStoreFilter]);
+
+    // Live Pulse 10-Second Auto-Refresh
+    useEffect(() => {
+        if (activeNavTab !== 'analytics' || !livePulseEnabled) return;
+        const interval = setInterval(() => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+                loadAnalytics();
+            }
+        }, 10000);
+        return () => clearInterval(interval);
+    }, [activeNavTab, livePulseEnabled, analyticsTimeframe, analyticsStoreFilter]);
 
     const handleInPageLogin = async (e) => {
         e?.preventDefault?.();
@@ -2029,72 +2080,463 @@ export default function MasterDashboardPage() {
                 {/* ─── TAB 6: ANALYTICS (Section 25) ─── */}
                 {activeNavTab === 'analytics' && (
                     <div className="space-y-6">
-                        <div>
-                            <h2 className="text-lg font-black text-slate-900">Master Commerce Analytics</h2>
-                            <p className="text-xs text-slate-500 mt-0.5">
-                                Verified commercial metrics and live storefront engagement. Zero simulated claims.
-                            </p>
+                        {/* Header & Controls Toolbar */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-xl font-black text-slate-900 tracking-tight">Master Commerce Analytics</h2>
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        Native Engine
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                    Zero-bloat, Google Analytics-grade real-time behavioral tracking. Pure first-party telemetry with 0 third-party tags.
+                                </p>
+                            </div>
+
+                            {/* Action Controls */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {/* Store Fleet Selector */}
+                                <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-xs text-xs">
+                                    <Store size={14} className="text-slate-400" />
+                                    <select
+                                        value={analyticsStoreFilter}
+                                        onChange={(e) => setAnalyticsStoreFilter(e.target.value)}
+                                        className="bg-transparent font-bold text-slate-700 outline-none cursor-pointer text-xs"
+                                    >
+                                        <option value="all">All Stores (Fleet-Wide)</option>
+                                        {(shops || []).map(s => (
+                                            <option key={s.id || s.username} value={s.username || s.slug || s.id}>
+                                                {s.name || s.username}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Live Pulse Toggle */}
+                                <button
+                                    onClick={() => setLivePulseEnabled(!livePulseEnabled)}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition shadow-xs cursor-pointer ${
+                                        livePulseEnabled 
+                                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300' 
+                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <span className={`size-2 rounded-full ${livePulseEnabled ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'}`} />
+                                    <span>{livePulseEnabled ? 'Live Pulse (10s)' : 'Pulse Paused'}</span>
+                                </button>
+
+                                {/* Manual Refresh Button */}
+                                <button
+                                    onClick={loadAnalytics}
+                                    disabled={analyticsLoading}
+                                    title="Refresh telemetry"
+                                    className="p-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-slate-600 hover:text-slate-900 transition shadow-xs cursor-pointer disabled:opacity-50"
+                                >
+                                    <RefreshCw size={14} className={analyticsLoading ? 'animate-spin text-emerald-600' : ''} />
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Storefront Engagement Metrics */}
+                        {/* Timeframe Filter Tabs */}
+                        <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-2xl border border-slate-200/80 overflow-x-auto">
+                            {[
+                                { key: 'realtime', label: '🔴 Realtime (5m)' },
+                                { key: 'today', label: 'Today' },
+                                { key: 'yesterday', label: 'Yesterday' },
+                                { key: '7d', label: 'Last 7 Days' },
+                                { key: '30d', label: 'Last 30 Days' },
+                                { key: 'all', label: 'All Time' }
+                            ].map(tab => (
+                                <button
+                                    key={tab.key}
+                                    onClick={() => setAnalyticsTimeframe(tab.key)}
+                                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                                        analyticsTimeframe === tab.key
+                                            ? 'bg-white text-slate-950 shadow-xs border border-slate-200'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Top KPI Metric Cards */}
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+                            {/* Card 1: Active Visitors Now */}
+                            <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-sm relative overflow-hidden group">
+                                <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold">
+                                    <span>Active Right Now</span>
+                                    <span className="relative flex size-2.5">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                        <span className="relative inline-flex rounded-full size-2.5 bg-emerald-500" />
+                                    </span>
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-black text-slate-950 mt-2 font-mono tracking-tight">
+                                    {analyticsData?.kpis?.activeVisitorsNow || 0}
+                                </div>
+                                <p className="text-[10px] text-emerald-700 font-semibold mt-1">
+                                    Browsing in last 5m
+                                </p>
+                            </div>
+
+                            {/* Card 2: Unique Visitors */}
+                            <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-sm">
+                                <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold">
+                                    <span>Unique Visitors</span>
+                                    <Users size={14} className="text-slate-400" />
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-black text-slate-950 mt-2 font-mono tracking-tight">
+                                    {analyticsData?.kpis?.totalVisitors || 0}
+                                </div>
+                                <p className="text-[10px] text-slate-500 font-medium mt-1">
+                                    {analyticsData?.kpis?.totalPageviews && analyticsData?.kpis?.totalVisitors
+                                        ? `${(analyticsData.kpis.totalPageviews / Math.max(1, analyticsData.kpis.totalVisitors)).toFixed(1)} views / visitor`
+                                        : 'First-party unique'}
+                                </p>
+                            </div>
+
+                            {/* Card 3: Total Pageviews */}
+                            <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-sm">
+                                <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold">
+                                    <span>Total Pageviews</span>
+                                    <Eye size={14} className="text-slate-400" />
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-black text-slate-950 mt-2 font-mono tracking-tight">
+                                    {analyticsData?.kpis?.totalPageviews || 0}
+                                </div>
+                                <p className="text-[10px] text-slate-500 font-medium mt-1">
+                                    Avg. dwell: {analyticsData?.kpis?.avgSessionSeconds ? `${Math.floor(analyticsData.kpis.avgSessionSeconds / 60)}m ${analyticsData.kpis.avgSessionSeconds % 60}s` : '0s'}
+                                </p>
+                            </div>
+
+                            {/* Card 4: Bounce Rate */}
+                            <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-sm">
+                                <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold">
+                                    <span>Bounce Rate</span>
+                                    <TrendingUp size={14} className="text-slate-400" />
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-black text-slate-950 mt-2 font-mono tracking-tight">
+                                    {analyticsData?.kpis?.bounceRate !== undefined ? `${analyticsData.kpis.bounceRate}%` : '0%'}
+                                </div>
+                                <p className="text-[10px] text-slate-500 font-medium mt-1">
+                                    Single-page dropoff
+                                </p>
+                            </div>
+
+                            {/* Card 5: Conversion Rate */}
+                            <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-sm col-span-2 md:col-span-1">
+                                <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold">
+                                    <span>Conversion Rate</span>
+                                    <DollarSign size={14} className="text-emerald-600" />
+                                </div>
+                                <div className="text-2xl sm:text-3xl font-black text-emerald-600 mt-2 font-mono tracking-tight">
+                                    {analyticsData?.kpis?.conversionRate !== undefined ? `${analyticsData.kpis.conversionRate}%` : '0%'}
+                                </div>
+                                <p className="text-[10px] text-slate-500 font-medium mt-1">
+                                    {analyticsData?.kpis?.completedOrders || 0} orders • ${(analyticsData?.kpis?.totalRevenue || 0).toFixed(2)}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Real-Time Live Visitors Activity Stream */}
                         <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                                    <TrendingUp size={16} className="text-emerald-600" />
-                                    <span>GumShop Storefront Engagement (Local Metrics)</span>
-                                </h3>
-                                <span className="text-[10px] text-slate-500 font-mono">Live Counter</span>
+                                <div className="flex items-center gap-2">
+                                    <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                                    <h3 className="text-sm font-bold text-slate-900">
+                                        Live Active Shoppers Stream (Last 5 Minutes)
+                                    </h3>
+                                    <span className="text-[11px] text-slate-400 font-mono">
+                                        ({analyticsData?.liveVisitors?.length || 0} active)
+                                    </span>
+                                </div>
+                                <span className="text-[10px] font-mono text-slate-400">Updates every 10s</span>
                             </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                                    <div className="text-[11px] text-slate-600 font-bold">Total Stores</div>
-                                    <div className="text-xl font-black text-slate-900 mt-1">{totalStores}</div>
-                                    <div className="text-[10px] text-slate-500 mt-0.5">{activeStoresCount} active shops</div>
+                            {analyticsData?.liveVisitors && analyticsData.liveVisitors.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {analyticsData.liveVisitors.map((v, i) => (
+                                        <div key={i} className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-2 text-xs transition hover:border-slate-300">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-base">{v.flag}</span>
+                                                    <span className="font-extrabold text-slate-900">{v.country}</span>
+                                                </div>
+                                                <span className="text-[10px] font-mono text-slate-400">
+                                                    {v.secondsAgo}s ago
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+                                                <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 font-semibold flex items-center gap-1">
+                                                    {v.deviceType === 'mobile' ? <Smartphone size={10} /> : <Monitor size={10} />}
+                                                    <span>{v.os} • {v.browser}</span>
+                                                </span>
+                                                <span className="px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold">
+                                                    {v.trafficChannel}
+                                                </span>
+                                            </div>
+
+                                            <div className="pt-1 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-500">
+                                                <span className="truncate max-w-[200px]" title={v.currentPath}>
+                                                    Browsing: <strong className="text-slate-800">{v.currentPath}</strong>
+                                                </span>
+                                                <span className="font-mono text-[10px] text-slate-400">{v.shortId}</span>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                                    <div className="text-[11px] text-slate-600 font-bold">Active Catalog Items</div>
-                                    <div className="text-xl font-black text-slate-900 mt-1">{totalProducts}</div>
-                                    <div className="text-[10px] text-slate-500 mt-0.5">Across all stores</div>
+                            ) : (
+                                <div className="text-center py-8 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-slate-500 text-xs">
+                                    <Activity size={24} className="mx-auto text-slate-300 mb-2" />
+                                    <p className="font-semibold text-slate-700">No active visitors in the last 5 minutes.</p>
+                                    <p className="text-[11px] text-slate-400 mt-0.5">As visitors browse your storefronts, their real-time telemetry will stream here automatically.</p>
                                 </div>
-                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                                    <div className="text-[11px] text-slate-600 font-bold">Recorded Orders</div>
-                                    <div className="text-xl font-black text-emerald-600 mt-1">{totalOrdersCount}</div>
-                                    <div className="text-[10px] text-slate-500 mt-0.5">Real checkouts</div>
+                            )}
+                        </div>
+
+                        {/* Conversion Funnel & Marketing Acquisition Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* E-Commerce Conversion Funnel */}
+                            <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm flex flex-col justify-between">
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                        <TrendingUp size={16} className="text-emerald-600" />
+                                        <span>E-Commerce Conversion Funnel</span>
+                                    </h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        Behavioral progression from initial visit to completed Gumroad checkout.
+                                    </p>
                                 </div>
-                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                                    <div className="text-[11px] text-slate-600 font-bold">Creator Bio Links</div>
-                                    <div className="text-xl font-black text-rose-600 mt-1">{totalStores}</div>
-                                    <div className="text-[10px] text-slate-500 mt-0.5">Active landing pages</div>
+
+                                <div className="space-y-3 pt-2">
+                                    {(analyticsData?.funnel || []).map((step, idx) => (
+                                        <div key={idx} className="space-y-1">
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                                                    <span className="size-4 rounded-full bg-slate-100 text-slate-600 text-[10px] font-mono flex items-center justify-center font-bold">
+                                                        {idx + 1}
+                                                    </span>
+                                                    <span>{step.step}</span>
+                                                </span>
+                                                <div className="flex items-center gap-2 font-mono">
+                                                    <span className="font-black text-slate-900">{step.count}</span>
+                                                    <span className="text-[11px] text-slate-400">({step.rate}%)</span>
+                                                </div>
+                                            </div>
+                                            <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                                <div 
+                                                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500" 
+                                                    style={{ width: `${Math.max(4, step.rate)}%` }} 
+                                                />
+                                            </div>
+                                            {step.dropoff > 0 && idx < 4 && (
+                                                <div className="text-[10px] text-rose-500 font-semibold text-right">
+                                                    ↓ {step.dropoff}% drop-off to next step
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Acquisition Channels Breakdown */}
+                            <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm flex flex-col justify-between">
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                        <Compass size={16} className="text-blue-600" />
+                                        <span>Traffic Acquisition Channels</span>
+                                    </h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        Visitor origins categorized across organic, social, and direct channels.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3 pt-2">
+                                    {(analyticsData?.acquisition && analyticsData.acquisition.length > 0) ? (
+                                        analyticsData.acquisition.map((ch, idx) => (
+                                            <div key={idx} className="space-y-1">
+                                                <div className="flex items-center justify-between text-xs">
+                                                    <span className="font-bold text-slate-800">{ch.channel}</span>
+                                                    <span className="font-mono text-slate-600 text-xs font-semibold">
+                                                        {ch.count} ({ch.percentage}%)
+                                                    </span>
+                                                </div>
+                                                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                    <div 
+                                                        className="h-full bg-blue-500 rounded-full transition-all duration-500" 
+                                                        style={{ width: `${Math.max(4, ch.percentage)}%` }} 
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-8 text-slate-400 text-xs">
+                                            No referral data recorded for this timeframe.
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Gumroad Settlement Metrics */}
-                        <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
-                            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                                <DollarSign size={16} className="text-teal-600" />
-                                <span>Gumroad Commercial Settlement (Verified Financials)</span>
-                            </h3>
-                            <p className="text-xs text-slate-500">
-                                Sales figures are sourced directly from authenticated transactions and verified sales. Never synthesized from click events.
-                            </p>
+                        {/* Top Products & Top Pages Leaderboards */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Top Products */}
+                            <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
+                                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                    <Package size={16} className="text-emerald-600" />
+                                    <span>Top Performing Products</span>
+                                </h3>
 
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                                    <div className="text-[11px] text-slate-600 font-bold">Verified Purchases</div>
-                                    <div className="text-xl font-black text-slate-900 mt-1">{completedOrdersCount}</div>
-                                    <div className="text-[10px] text-slate-500 mt-1">{completedOrdersCount > 0 ? 'Verified transactions' : 'No sales recorded yet'}</div>
+                                {analyticsData?.topProducts && analyticsData.topProducts.length > 0 ? (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-xs">
+                                            <thead>
+                                                <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400">
+                                                    <th className="pb-2 font-bold">Product</th>
+                                                    <th className="pb-2 text-right">Views</th>
+                                                    <th className="pb-2 text-right">Cart Adds</th>
+                                                    <th className="pb-2 text-right">Checkouts</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {analyticsData.topProducts.map((p, idx) => (
+                                                    <tr key={idx} className="hover:bg-slate-50/50">
+                                                        <td className="py-2.5 font-bold text-slate-900 truncate max-w-[180px]">{p.name}</td>
+                                                        <td className="py-2.5 text-right font-mono font-semibold text-slate-700">{p.views}</td>
+                                                        <td className="py-2.5 text-right font-mono font-semibold text-emerald-700">+{p.cartAdds}</td>
+                                                        <td className="py-2.5 text-right font-mono font-bold text-slate-950">{p.checkouts}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-6 text-slate-400 text-xs">
+                                        No product interactions recorded in this period.
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Top Pages */}
+                            <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
+                                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                    <Globe size={16} className="text-slate-600" />
+                                    <span>Top Pages Visited</span>
+                                </h3>
+
+                                {analyticsData?.topPages && analyticsData.topPages.length > 0 ? (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-xs">
+                                            <thead>
+                                                <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400">
+                                                    <th className="pb-2 font-bold">Page Path</th>
+                                                    <th className="pb-2 text-right">Views</th>
+                                                    <th className="pb-2 text-right">Unique Visitors</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {analyticsData.topPages.map((pg, idx) => (
+                                                    <tr key={idx} className="hover:bg-slate-50/50">
+                                                        <td className="py-2.5 font-mono text-slate-800 truncate max-w-[200px]" title={pg.path}>
+                                                            {pg.path}
+                                                        </td>
+                                                        <td className="py-2.5 text-right font-mono font-bold text-slate-900">{pg.views}</td>
+                                                        <td className="py-2.5 text-right font-mono text-slate-600">{pg.uniqueVisitors}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-6 text-slate-400 text-xs">
+                                        No pageview activity recorded in this period.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Technology & Geographics Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* Devices Breakdown */}
+                            <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-3">
+                                <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                    <Smartphone size={14} className="text-slate-500" />
+                                    <span>Devices</span>
+                                </h4>
+                                <div className="space-y-2 text-xs">
+                                    {(() => {
+                                        const d = analyticsData?.devices || { mobile: 0, desktop: 0, tablet: 0 };
+                                        const totalD = (d.mobile + d.desktop + d.tablet) || 1;
+                                        return (
+                                            <>
+                                                <div className="flex justify-between items-center text-slate-700">
+                                                    <span className="flex items-center gap-1.5"><Smartphone size={12} /> Mobile</span>
+                                                    <span className="font-mono font-bold">{Math.round((d.mobile / totalD) * 100)}% ({d.mobile})</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-slate-700">
+                                                    <span className="flex items-center gap-1.5"><Monitor size={12} /> Desktop</span>
+                                                    <span className="font-mono font-bold">{Math.round((d.desktop / totalD) * 100)}% ({d.desktop})</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-slate-700">
+                                                    <span className="flex items-center gap-1.5"><Smartphone size={12} /> Tablet</span>
+                                                    <span className="font-mono font-bold">{Math.round((d.tablet / totalD) * 100)}% ({d.tablet})</span>
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
                                 </div>
-                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                                    <div className="text-[11px] text-slate-600 font-bold">Net Revenue</div>
-                                    <div className="text-xl font-black text-emerald-600 mt-1 font-mono">${totalRevenue.toFixed(2)}</div>
-                                    <div className="text-[10px] text-slate-500 mt-1">Real gross GMV</div>
+                            </div>
+
+                            {/* Top Countries */}
+                            <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-3">
+                                <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                    <Globe size={14} className="text-slate-500" />
+                                    <span>Top Countries</span>
+                                </h4>
+                                <div className="space-y-2 text-xs">
+                                    {(analyticsData?.countries && analyticsData.countries.length > 0) ? (
+                                        analyticsData.countries.map((c, idx) => (
+                                            <div key={idx} className="flex justify-between items-center text-slate-700">
+                                                <span className="flex items-center gap-1.5 truncate max-w-[140px]">
+                                                    <span>{c.flag}</span>
+                                                    <span className="font-medium">{c.name}</span>
+                                                </span>
+                                                <span className="font-mono font-bold text-slate-900">
+                                                    {c.count} ({c.percentage}%)
+                                                </span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-3 text-slate-400 text-xs">
+                                            No geolocation data recorded.
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                                    <div className="text-[11px] text-slate-600 font-bold">Refund Rate</div>
-                                    <div className="text-xl font-black text-slate-900 mt-1">0.0%</div>
-                                    <div className="text-[10px] text-slate-500 mt-1">Zero chargebacks</div>
+                            </div>
+
+                            {/* Operating Systems & Browsers */}
+                            <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-3">
+                                <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                    <ShieldCheck size={14} className="text-slate-500" />
+                                    <span>Browsers & OS</span>
+                                </h4>
+                                <div className="space-y-2 text-xs">
+                                    {(analyticsData?.browsers && analyticsData.browsers.length > 0) ? (
+                                        analyticsData.browsers.map((b, idx) => (
+                                            <div key={idx} className="flex justify-between items-center text-slate-700">
+                                                <span className="font-medium">{b.name}</span>
+                                                <span className="font-mono font-bold text-slate-900">{b.count}</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-3 text-slate-400 text-xs">
+                                            No browser telemetry recorded.
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

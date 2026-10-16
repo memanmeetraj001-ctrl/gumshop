@@ -10,6 +10,7 @@ import { getActiveStoreSync } from '@/lib/activeStore';
 import { getCoupon } from '@/lib/firebaseDb';
 import GumroadIframeModal from './GumroadIframeModal';
 import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
+import { trackEvent } from './AnalyticsTracker';
 
 export default function CartDrawer({ isOpen, onClose, products: propProducts }) {
     if (!isOpen) return null;
@@ -211,6 +212,13 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
 
             const resolvedStoreSlug = items[0]?.storeSlug || (items[0]?.storeId ? String(items[0].storeId).replace(/^store_/, '') : (activeStore?.username || ''));
             const resolvedStoreId = items[0]?.storeId || activeStore?.id || (resolvedStoreSlug ? `store_${resolvedStoreSlug}` : 'store_default');
+
+            trackEvent('initiate_checkout', {
+                storeId: resolvedStoreId,
+                storeSlug: resolvedStoreSlug,
+                productName: items.map(i => `${i.quantity}x ${i.name}`).join(', '),
+                price: finalTotal
+            });
 
             const res = await fetch('/api/gumroad/dynamic-checkout', {
                 method: 'POST',

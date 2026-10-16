@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import Script from "next/script";
 import { Toaster } from "react-hot-toast";
 import StoreProvider from "@/app/StoreProvider";
 import { AuthProvider } from "@/lib/AuthContext";
 import { Analytics } from "@vercel/analytics/next";
 import CartSync from "@/components/CartSync";
+import AnalyticsTracker from "@/components/AnalyticsTracker";
 import "./globals.css";
 
 export const metadata = {
@@ -178,6 +180,9 @@ export default function RootLayout({ children }) {
                 <StoreProvider>
                     <AuthProvider>
                         <CartSync />
+                        <Suspense fallback={null}>
+                            <AnalyticsTracker />
+                        </Suspense>
                         <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
                         {children}
                         <Analytics />
