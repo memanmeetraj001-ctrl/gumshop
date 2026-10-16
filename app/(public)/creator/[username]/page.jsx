@@ -212,9 +212,53 @@ export default function CreatorBioPage({ params }) {
     const [products, setProducts] = useState(initialData.products || []);
     const [loading, setLoading] = useState(!initialData.store);
     const [copied, setCopied] = useState(false);
-    const [viewMode, setViewMode] = useState('phone'); // 'phone' | 'full'
-    
-    // Redux Multi-Item Cart Integration
+    const [viewMode, setViewMode] = useState('full'); // 'full' | 'phone'
+    const [isMobileDevice, setIsMobileDevice] = useState(true);
+    const [isPreviewMode, setIsPreviewMode] = useState(false);
+
+    // Dynamic Mobile / iPad / Tablet & Preview Mode Detection
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const checkMobileOrTablet = () => {
+            const ua = navigator.userAgent || '';
+            // 1. Mobile & tablet user agents (iPhone, iPad, iPod, Android, etc.)
+            const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(ua);
+            // 2. iPadOS 13+ desktop-class Safari reports as Macintosh with multi-touch points
+            const isIPadOS = /Macintosh/i.test(ua) && Boolean(navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
+            // 3. Touch screen with tablet or mobile viewport
+            const isTouchScreen = Boolean(
+                (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+                (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
+                ('ontouchstart' in window)
+            );
+            const isTabletOrMobileWidth = window.innerWidth <= 1024;
+
+            return isMobileUA || isIPadOS || (isTouchScreen && isTabletOrMobileWidth);
+        };
+
+        const isMobile = checkMobileOrTablet();
+        setIsMobileDevice(isMobile);
+
+        const params = new URLSearchParams(window.location.search);
+        const hasPreview = params.get('preview') === 'true' || params.get('mode') === 'preview' || params.get('admin') === 'true';
+        setIsPreviewMode(hasPreview);
+
+        if (isMobile || !hasPreview) {
+            setViewMode('full');
+        }
+
+        const handleResize = () => {
+            const mobileNow = checkMobileOrTablet();
+            setIsMobileDevice(mobileNow);
+            if (mobileNow) {
+                setViewMode('full');
+            }
+        };
+
+        window.addEventListener('resize', handleResize, { passive: true });
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
     const dispatch = useDispatch();
     const { cartItems, total: cartTotal } = useSelector(state => state.cart || {});
     const cartCount = Object.values(cartItems || {}).reduce((a, b) => a + (Number(b) || 0), 0);
@@ -966,85 +1010,89 @@ export default function CreatorBioPage({ params }) {
                 />
             )}
 
-            {/* Desktop Admin / Switcher Banner */}
-            <header className="hidden md:flex items-center justify-between px-6 py-3 bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-40 shadow-xs">
-                <div className="flex items-center gap-3">
-                    <Link 
-                        href="/" 
-                        className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition"
-                    >
-                        <ArrowLeft size={14} /> Back to GumShop
-                    </Link>
-                    <span className="text-slate-300">|</span>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100">
-                        ⚡ Link-in-Bio Mode • Live Store Sync
-                    </span>
-                    <Link
-                        href={`/store/bio-editor?store=${encodeURIComponent(rawUsername)}`}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
-                    >
-                        <Smartphone size={12} className="text-rose-500" />
-                        <span>Edit Bio Profile</span>
-                    </Link>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    {/* View Mode Toggle */}
-                    <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs font-medium">
-                        <button
-                            onClick={() => setViewMode('phone')}
-                            aria-label="Switch to Phone Frame view"
-                            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
-                                viewMode === 'phone' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
-                            }`}
+            {/* Desktop Admin / Switcher Banner - Strictly hidden on mobile/iPad and only shown in explicit desktop preview mode */}
+            {isPreviewMode && !isMobileDevice && (
+                <header className="hidden md:flex items-center justify-between px-6 py-3 bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-40 shadow-xs">
+                    <div className="flex items-center gap-3">
+                        <Link 
+                            href="/" 
+                            className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition"
                         >
-                            <Smartphone size={13} /> Phone Frame
-                        </button>
-                        <button
-                            onClick={() => setViewMode('full')}
-                            aria-label="Switch to Full Width view"
-                            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
-                                viewMode === 'full' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
-                            }`}
+                            <ArrowLeft size={14} /> Back to GumShop
+                        </Link>
+                        <span className="text-slate-300">|</span>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100">
+                            ⚡ Link-in-Bio Mode • Live Store Sync
+                        </span>
+                        <Link
+                            href={`/store/bio-editor?store=${encodeURIComponent(rawUsername)}`}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
                         >
-                            <Monitor size={13} /> Full Width
-                        </button>
+                            <Smartphone size={12} className="text-rose-500" />
+                            <span>Edit Bio Profile</span>
+                        </Link>
                     </div>
 
-                    {/* Copy Bio Link */}
-                    <button
-                        onClick={handleCopyShareLink}
-                        aria-label="Copy store bio link"
-                        className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-xs cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-                    >
-                        {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-                        <span>{copied ? "Copied!" : "Copy Bio Link"}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {/* View Mode Toggle */}
+                        <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs font-medium">
+                            <button
+                                onClick={() => setViewMode('phone')}
+                                aria-label="Switch to Phone Frame view"
+                                className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+                                    viewMode === 'phone' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
+                                }`}
+                            >
+                                <Smartphone size={13} /> Phone Frame
+                            </button>
+                            <button
+                                onClick={() => setViewMode('full')}
+                                aria-label="Switch to Full Width view"
+                                className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+                                    viewMode === 'full' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'
+                                }`}
+                            >
+                                <Monitor size={13} /> Full Width
+                            </button>
+                        </div>
 
-                    {/* View Standard Catalog */}
-                    <Link
-                        href={`/shop/${rawUsername}`}
-                        className="px-3.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
-                    >
-                        <Globe size={13} />
-                        <span>Standard Grid Shop</span>
-                    </Link>
-                </div>
-            </header>
+                        {/* Copy Bio Link */}
+                        <button
+                            onClick={handleCopyShareLink}
+                            aria-label="Copy store bio link"
+                            className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-xs cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                        >
+                            {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                            <span>{copied ? "Copied!" : "Copy Bio Link"}</span>
+                        </button>
 
-            {/* Main Stage with Dynamic Atmosphere Preset */}
-            <main className={`flex-1 flex flex-col items-center justify-start w-full min-h-screen p-0 md:py-8 md:px-4 overflow-x-hidden ${activePreset.bg}`}>
+                        {/* View Standard Catalog */}
+                        <Link
+                            href={`/shop/${rawUsername}`}
+                            className="px-3.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
+                        >
+                            <Globe size={13} />
+                            <span>Standard Grid Shop</span>
+                        </Link>
+                    </div>
+                </header>
+            )}
+
+            {/* Main Stage with Dynamic Atmosphere Preset - Full Screen by default on mobile/iPad */}
+            <main className={`flex-1 flex flex-col items-center justify-start w-full min-h-screen overflow-x-hidden ${
+                isPreviewMode && !isMobileDevice && viewMode === 'phone' ? 'p-0 md:py-8 md:px-4' : 'p-0 m-0'
+            } ${activePreset.bg}`}>
                 
-                {/* Mobile Smartphone Frame Container */}
+                {/* Mobile Smartphone Frame Container - Opens in Full View on Mobile/iPad */}
                 <div 
                     className={`w-full transition-all duration-300 ${
-                        viewMode === 'phone' 
+                        isPreviewMode && !isMobileDevice && viewMode === 'phone' 
                             ? `w-full max-w-full sm:max-w-[430px] mx-auto md:my-auto md:rounded-[48px] md:border-[10px] md:border-slate-900 md:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] md:ring-1 md:ring-slate-800/10 relative overflow-hidden ${activePreset.frame}`
-                            : `w-full max-w-xl mx-auto rounded-3xl shadow-xl border border-slate-200 my-6 ${activePreset.frame}`
+                            : `w-full max-w-full sm:max-w-xl md:max-w-2xl mx-auto min-h-screen rounded-none border-0 shadow-none ring-0 my-0 relative ${activePreset.frame}`
                     }`}
                 >
                     {/* Inner Content Canvas */}
-                    <div className="px-5 sm:px-6 pt-5 pb-8 min-h-[640px] flex flex-col justify-between">
+                    <div className="px-4 sm:px-6 pt-5 pb-12 w-full min-h-screen flex flex-col justify-between">
                         
                         {/* ─── Profile Header ─── */}
                         <div>
