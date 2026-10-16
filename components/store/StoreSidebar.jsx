@@ -11,8 +11,6 @@ const StoreSidebar = ({ storeInfo }) => {
 
     const sidebarLinks = [
         { name: '← Master Dashboard', href: '/dashboard', icon: HomeIcon, highlight: true },
-        { name: 'Import Store (AI)', href: `/store/import?store=${storeSlug}`, icon: Sparkles, highlight: true },
-        { name: '+ Create Blank Shop', href: '/create-store', icon: SquarePlusIcon },
         { name: 'Analytics & Overview', href: `/store?store=${storeSlug}`, icon: BarChart3 },
         { name: '📱 Edit Stan / Mobile Bio', href: `/store/bio-editor?store=${storeSlug}`, icon: Smartphone, highlight: true, badge: 'New' },
         { name: 'Creator Bio Link', href: `/creator/${storeSlug}`, icon: ExternalLink, highlight: false, external: true, badge: 'Live' },
@@ -55,22 +53,15 @@ const StoreSidebar = ({ storeInfo }) => {
                     })()}
                     <h3 className="font-bold text-slate-800 text-sm mt-1">{storeInfo?.name || 'My Store'}</h3>
                     
-                    {/* View Live Storefront & Bio Link */}
-                    <div className="flex flex-col gap-1.5 mt-2 w-full px-2">
+                    {/* View Live Storefront */}
+                    <div className="mt-2 w-full px-2">
                         <Link 
                             href={`/shop/${storeSlug}`}
                             target="_blank"
-                            className="inline-flex items-center justify-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200/60 transition"
+                            className="inline-flex items-center justify-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200/60 transition w-full"
                         >
                             <span>View Storefront</span>
                             <ExternalLink size={12} />
-                        </Link>
-                        <Link 
-                            href={`/store/bio-editor?store=${storeSlug}`}
-                            className="inline-flex items-center justify-center gap-1.5 text-[11px] font-bold text-rose-700 hover:text-rose-800 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200/60 transition"
-                        >
-                            <Smartphone size={12} />
-                            <span>Edit Stan / Mobile Bio</span>
                         </Link>
                     </div>
                 </div>

@@ -294,8 +294,8 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                         <Link href="/#special-deals" className="hover:text-emerald-600 transition flex items-center gap-1 text-rose-600 font-extrabold">
                             🔥 Special Deals
                         </Link>
-                        <Link href="/shop" className="hover:text-emerald-600 transition">
-                            Catalog
+                        <Link href="/track" className="hover:text-emerald-600 transition">
+                            📦 Track Order
                         </Link>
                     </nav>
 

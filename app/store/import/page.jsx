@@ -34,7 +34,9 @@ import {
     Percent,
     Scissors,
     Eye,
-    Palette
+    Palette,
+    History,
+    RefreshCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { setActiveStoreSlug, setHomepageStoreSlug, getAllLocalStores } from '@/lib/activeStore';
@@ -106,8 +108,28 @@ export default function StoreImportPage() {
     const [setAsHomepage, setSetAsHomepage] = useState(false);
     const [rightsConfirmed, setRightsConfirmed] = useState(false);
 
-    // Load Existing Stores for "Append" Option
+    // Import Provenance & History State
+    const [importHistory, setImportHistory] = useState([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+
+    const loadImportHistory = async () => {
+        setLoadingHistory(true);
+        try {
+            const res = await fetch('/api/importer/history');
+            const data = await res.json();
+            if (data.success && Array.isArray(data.history)) {
+                setImportHistory(data.history);
+            }
+        } catch (e) {
+            console.error('Failed to load import history:', e);
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
+
+    // Load Existing Stores for "Append" Option & Load Import History
     useEffect(() => {
+        loadImportHistory();
         const loadStores = async () => {
             const local = getAllLocalStores().filter(s => s && !isStoreDeleted(s.id) && !isStoreDeleted(s.username));
             const map = new Map();
@@ -953,7 +975,80 @@ export default function StoreImportPage() {
                                     </label>
                                 </div>
                             )}
+                        </div>
 
+                        {/* Import Provenance & History */}
+                        <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4 mt-8">
+                            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                                <div>
+                                    <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                                        <History size={16} className="text-slate-400" />
+                                        <span>Import Provenance & History ({importHistory.length})</span>
+                                    </h3>
+                                    <p className="text-[11px] text-slate-500 mt-0.5">Audit log of previously imported catalogs and destination storefronts</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={loadImportHistory}
+                                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
+                                    title="Refresh History"
+                                >
+                                    <RefreshCw size={13} className={loadingHistory ? 'animate-spin' : ''} />
+                                </button>
+                            </div>
+
+                            {importHistory.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-xs">
+                                        <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
+                                            <tr>
+                                                <th className="py-2.5 px-3">Source</th>
+                                                <th className="py-2.5 px-3">Date</th>
+                                                <th className="py-2.5 px-3">Items</th>
+                                                <th className="py-2.5 px-3">Destination</th>
+                                                <th className="py-2.5 px-3 text-right">View</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 text-slate-700">
+                                            {importHistory.map((item, idx) => (
+                                                <tr key={item.id || idx} className="hover:bg-slate-50 transition">
+                                                    <td className="py-3 px-3">
+                                                        <div className="font-mono text-[11px] text-slate-700 truncate max-w-xs" title={item.sourceUrl}>
+                                                            {item.sourceUrl || 'Direct Catalog Import'}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 px-3 text-slate-500 text-[11px]">
+                                                        {new Date(item.createdAt || item.date || Date.now()).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="py-3 px-3 font-bold text-slate-900">
+                                                        {item.productsImported || 0} items
+                                                    </td>
+                                                    <td className="py-3 px-3">
+                                                        <span className="font-bold text-emerald-600">
+                                                            {item.destinationStoreName || item.destinationStoreSlug || 'Store'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-3 text-right">
+                                                        <a
+                                                            href={`/shop/${item.destinationStoreSlug}`}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-xs font-bold text-slate-500 hover:text-slate-900 inline-flex items-center gap-1"
+                                                        >
+                                                            <span>Open</span>
+                                                            <ExternalLink size={11} />
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="text-center py-6 text-slate-400 text-xs">
+                                    No external stores have been imported yet.
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
