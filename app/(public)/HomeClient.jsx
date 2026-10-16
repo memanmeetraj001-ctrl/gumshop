@@ -19,6 +19,7 @@ import CartDrawer from '@/components/CartDrawer';
 import WishlistDrawer from '@/components/WishlistDrawer';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import LiveSalesToaster from '@/components/LiveSalesToaster';
+import ExitIntentModal from '@/components/ExitIntentModal';
 import { getAllProducts, getProductsByStore } from '@/lib/firebaseDb';
 import { getActiveStoreSync, getHomepageStoreSync, getHomepageStoreSlug, getHomepageSelectedStores, getHomepageMode } from '@/lib/activeStore';
 import { useDispatch, useSelector } from 'react-redux';
@@ -883,6 +884,9 @@ export default function HomeClient({ initialStore = null, initialMode = 'single'
 
             {/* 🔥 Live Verified Sales Pop-Up (Social Proof) */}
             <LiveSalesToaster products={products} storeName={activeStore?.name} />
+
+            {/* 🎁 Exit Intent Recovery Modal */}
+            <ExitIntentModal />
 
         </div>
     );

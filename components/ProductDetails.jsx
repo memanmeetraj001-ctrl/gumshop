@@ -355,7 +355,7 @@ const ProductDetails = ({ product, storeInfo }) => {
             const storedCoupon = sessionStorage.getItem('active_coupon');
             if (storedCoupon) {
                 activeCoupon = storedCoupon.trim().toUpperCase();
-                const pct = activeCoupon === 'SAVE20' ? 20 : (activeCoupon === 'FLASH25' ? 25 : (activeCoupon === 'SAVE10' ? 10 : 20));
+                const pct = (activeCoupon === 'SAVE25' || activeCoupon === 'FLASH25') ? 25 : (activeCoupon === 'SAVE20' ? 20 : (activeCoupon === 'SAVE10' ? 10 : 20));
                 discountAmount = Math.round((currentTier.totalPrice * (pct / 100)) * 100) / 100;
             }
         }

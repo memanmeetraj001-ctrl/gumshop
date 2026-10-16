@@ -57,13 +57,14 @@ export default function ExitIntentModal({ onApplyCoupon }) {
 
     const handleClaimDiscount = () => {
         if (typeof window !== 'undefined') {
-            sessionStorage.setItem('active_coupon', 'SAVE10');
+            sessionStorage.setItem('active_coupon', 'SAVE25');
             sessionStorage.setItem('gumshop_exit_dismissed', 'true');
+            window.dispatchEvent(new CustomEvent('gumshop_coupon_applied', { detail: { code: 'SAVE25', discount: 25 } }));
         }
         if (onApplyCoupon) {
-            onApplyCoupon('SAVE10', 10);
+            onApplyCoupon('SAVE25', 25);
         }
-        toast.success("Coupon 'SAVE10' applied! 10% discount activated 🎉");
+        toast.success("Coupon 'SAVE25' applied! 25% discount activated 🎉");
         setIsOpen(false);
     };
 
@@ -103,13 +104,13 @@ export default function ExitIntentModal({ onApplyCoupon }) {
                     Wait! Don't Leave Empty-Handed.
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
-                    Take an extra <strong className="text-emerald-600">10% OFF</strong> your entire order right now before you go. Valid for the next 15 minutes!
+                    Take an extra <strong className="text-emerald-600">25% OFF</strong> your entire order right now before you go. Valid for the next 15 minutes!
                 </p>
 
                 {/* Coupon Code Pill */}
                 <div className="mt-5 p-3 rounded-2xl bg-emerald-50/70 border border-dashed border-emerald-500/50 flex items-center justify-center gap-2">
                     <span className="text-xs font-medium text-slate-600">Promo Code:</span>
-                    <strong className="text-base font-extrabold text-emerald-700 font-mono tracking-wider">SAVE10</strong>
+                    <strong className="text-base font-extrabold text-emerald-700 font-mono tracking-wider">SAVE25</strong>
                 </div>
 
                 <div className="mt-6 flex flex-col gap-2.5">
@@ -118,7 +119,7 @@ export default function ExitIntentModal({ onApplyCoupon }) {
                         className="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition"
                     >
                         <Zap size={16} className="fill-white" />
-                        <span>Claim 10% Off & Keep Shopping</span>
+                        <span>Claim 25% Off & Keep Shopping</span>
                     </button>
                     <button
                         onClick={handleClose}

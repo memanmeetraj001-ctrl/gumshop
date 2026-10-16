@@ -445,8 +445,8 @@ export default function CreatorBioPage({ params }) {
 
             if (!couponData) {
                 // High-converting promo code fallbacks
-                if (['SAVE10', 'SAVE20', 'WELCOME10', 'FLASH25', 'VIP15', 'HALLOWEEN'].includes(code)) {
-                    const discount = code === 'SAVE20' ? 20 : (code === 'FLASH25' ? 25 : (code === 'VIP15' ? 15 : 10));
+                if (['SAVE25', 'FLASH25', 'SAVE20', 'SAVE10', 'WELCOME10', 'VIP15', 'HALLOWEEN'].includes(code)) {
+                    const discount = (code === 'SAVE25' || code === 'FLASH25') ? 25 : (code === 'SAVE20' ? 20 : (code === 'VIP15' ? 15 : 10));
                     couponData = {
                         code,
                         type: 'percentage',
@@ -2377,8 +2377,8 @@ export default function CreatorBioPage({ params }) {
             {/* Exit Intent Discount Recovery Modal */}
             <ExitIntentModal 
                 onApplyCoupon={(code, discount) => {
-                    const discNum = discount || 15;
-                    const couponCode = code || 'FLASH15';
+                    const discNum = discount || 25;
+                    const couponCode = code || 'SAVE25';
                     setStanAppliedCoupon({
                         code: couponCode,
                         type: 'percentage',

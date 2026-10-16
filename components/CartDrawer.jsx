@@ -170,8 +170,8 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
             return;
         }
         const code = couponCode.trim().toUpperCase();
-        if (['SAVE20', 'SAVE10', 'FLASH25', 'NEW20', 'VIP15'].includes(code)) {
-            const pct = code === 'FLASH25' ? 25 : (code === 'SAVE10' ? 10 : (code === 'VIP15' ? 15 : 20));
+        if (['SAVE25', 'FLASH25', 'SAVE20', 'SAVE10', 'NEW20', 'VIP15'].includes(code)) {
+            const pct = (code === 'SAVE25' || code === 'FLASH25') ? 25 : (code === 'SAVE10' ? 10 : (code === 'VIP15' ? 15 : 20));
             const calculated = Math.round(subtotal * (pct / 100) * 100) / 100;
             setAppliedDiscount(calculated);
         }
@@ -218,11 +218,11 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                     setAppliedDiscount(discount);
                     toast.success(`Coupon applied: ${pct}% off! 🎉`);
                 }
-            } else if (['SAVE20', 'SAVE10', 'FLASH25', 'NEW20', 'VIP15'].includes(code)) {
+            } else if (['SAVE25', 'FLASH25', 'SAVE20', 'SAVE10', 'NEW20', 'VIP15'].includes(code)) {
                 if (typeof window !== 'undefined') {
                     sessionStorage.setItem('active_coupon', code);
                 }
-                const pct = code === 'FLASH25' ? 25 : (code === 'SAVE10' ? 10 : (code === 'VIP15' ? 15 : 20));
+                const pct = (code === 'SAVE25' || code === 'FLASH25') ? 25 : (code === 'SAVE10' ? 10 : (code === 'VIP15' ? 15 : 20));
                 const discount = Math.round(subtotal * (pct / 100) * 100) / 100;
                 setAppliedDiscount(discount);
                 toast.success(`Coupon "${code}" applied: ${pct}% off! 🎉`);
