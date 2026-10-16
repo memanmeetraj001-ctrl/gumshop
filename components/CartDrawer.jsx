@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart, removeFromCart, deleteItemFromCart } from '@/lib/features/cart/cartSlice';
@@ -112,6 +112,23 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts, storeSlug: p
             }
         }
     }, [isOpen, couponCode]);
+
+    // Handle Escape key and body scroll locking
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && onClose) {
+                onClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        document.body.style.overflow = 'hidden';
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = '';
+        };
+    }, [isOpen, onClose]);
 
     // Memoize resolved items and subtotal to avoid synchronous storage scans on every render
     const { allResolvedItems, items, subtotal, otherStoresCount } = useMemo(() => {
@@ -353,7 +370,12 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts, storeSlug: p
     const displayedItemsCount = items.reduce((s, i) => s + i.quantity, 0);
 
     const drawerMarkup = (
-        <div className="fixed inset-0 z-50 overflow-hidden animate-in fade-in duration-200">
+        <div 
+            role="dialog"
+            aria-modal="true"
+            aria-label="Shopping Cart"
+            className="fixed inset-0 z-50 overflow-hidden animate-in fade-in duration-200"
+        >
             {/* Backdrop */}
             <div 
                 className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity"

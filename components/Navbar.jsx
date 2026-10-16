@@ -64,15 +64,25 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
     }, []);
 
     useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                setMobileMenuOpen(false);
+                setStoresMenuOpen(false);
+            }
+        };
+        if (mobileMenuOpen || storesMenuOpen) {
+            window.addEventListener('keydown', handleKeyDown);
+        }
         if (mobileMenuOpen) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = '';
         }
         return () => {
+            window.removeEventListener('keydown', handleKeyDown);
             document.body.style.overflow = '';
         };
-    }, [mobileMenuOpen]);
+    }, [mobileMenuOpen, storesMenuOpen]);
 
     useEffect(() => {
         // Check if master admin is authenticated
@@ -432,12 +442,13 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                                     📦 Track My Order
                                 </Link>
                                 <button 
+                                    type="button"
                                     onClick={() => {
                                         setMobileMenuOpen(false);
                                         if (onOpenCart) onOpenCart();
                                         else router.push('/cart');
                                     }}
-                                    className="p-3 rounded-xl hover:bg-slate-50 text-slate-800 transition flex items-center justify-between w-full text-left font-bold"
+                                    className="p-3 rounded-xl hover:bg-slate-50 text-slate-800 transition flex items-center justify-between w-full text-left font-bold cursor-pointer"
                                 >
                                     <span>My Cart</span>
                                     <span className="text-xs font-black bg-slate-900 text-white size-5 rounded-full flex items-center justify-center">

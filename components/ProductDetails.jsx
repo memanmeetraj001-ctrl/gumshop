@@ -231,6 +231,13 @@ const ProductDetails = ({ product, storeInfo }) => {
     
     const [mainImage, setMainImage] = useState(images[0]);
 
+    // Synchronize main displayed photo when product changes
+    useEffect(() => {
+        if (images && images.length > 0) {
+            setMainImage(images[0]);
+        }
+    }, [product?.id]);
+
     // Track product view for analytics
     useEffect(() => {
         if (product && product.id) {

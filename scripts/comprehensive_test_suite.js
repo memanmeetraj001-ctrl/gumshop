@@ -419,7 +419,7 @@ async function runSuite() {
     });
 
     await test('Order Bridge', 'Server Order Store correctly partitions and retrieves orders by store', async () => {
-        const { saveServerOrder, getServerOrdersByStore } = await import('../lib/serverOrderStore.js');
+        const { saveServerOrder, getServerOrdersByStore } = await import('../lib/db/orders.js');
         const testOrderA = {
             id: 'ord_test_alpha_1',
             storeId: 'store-alpha',

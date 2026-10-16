@@ -14,23 +14,24 @@ function escapeXml(unsafe) {
 }
 
 export async function GET() {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';
-    const products = await getAllProductsWithStores().catch(() => []);
+    try {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';
+        const products = await getAllProductsWithStores().catch(() => []);
 
-    const xmlItems = products.map(product => {
-        const id = escapeXml(product.id);
-        const title = escapeXml(product.name || product.title || 'Product');
-        const description = escapeXml(
-            (product.description || `${product.name} available at GumShop with fast delivery, authentic guarantee, and secure checkout.`)
-                .replace(/<[^>]*>?/gm, '')
-                .slice(0, 5000)
-        );
-        const link = `${baseUrl}/product/${encodeURIComponent(product.id)}`;
-        const imageLink = product.image || (Array.isArray(product.images) && product.images[0]) || `${baseUrl}/favicon.svg`;
-        const price = `${Number(product.price || 52.99).toFixed(2)} USD`;
-        const brand = escapeXml(product.storeName || 'GumShop');
+        const xmlItems = products.map(product => {
+            const id = escapeXml(product.id);
+            const title = escapeXml(product.name || product.title || 'Product');
+            const description = escapeXml(
+                (product.description || `${product.name} available at GumShop with fast delivery, authentic guarantee, and secure checkout.`)
+                    .replace(/<[^>]*>?/gm, '')
+                    .slice(0, 5000)
+            );
+            const link = `${baseUrl}/product/${encodeURIComponent(product.id)}`;
+            const imageLink = product.image || (Array.isArray(product.images) && product.images[0]) || `${baseUrl}/favicon.svg`;
+            const price = `${Number(product.price || 52.99).toFixed(2)} USD`;
+            const brand = escapeXml(product.storeName || 'GumShop');
 
-        return `    <item>
+            return `    <item>
       <g:id>${id}</g:id>
       <g:title>${title}</g:title>
       <g:description>${description}</g:description>
@@ -47,9 +48,9 @@ export async function GET() {
         <g:price>4.99 USD</g:price>
       </g:shipping>
     </item>`;
-    }).join('\n');
+        }).join('\n');
 
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
   <channel>
     <title>GumShop.online Product Catalog Feed</title>
@@ -59,10 +60,16 @@ ${xmlItems}
   </channel>
 </rss>`;
 
-    return new Response(xml, {
-        headers: {
-            'Content-Type': 'application/xml; charset=utf-8',
-            'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400'
-        }
-    });
+        return new Response(xml, {
+            headers: {
+                'Content-Type': 'application/xml; charset=utf-8',
+                'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400'
+            }
+        });
+    } catch (err) {
+        return new Response(`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Error</title><description>${escapeXml(err.message)}</description></channel></rss>`, {
+            status: 500,
+            headers: { 'Content-Type': 'application/xml; charset=utf-8' }
+        });
+    }
 }

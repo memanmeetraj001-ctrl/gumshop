@@ -99,6 +99,17 @@ export default function GumroadIframeModal({
         }
     }, [isOpen]);
 
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && onClose) {
+                onClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
     if (!isOpen) return null;
 
     // Line items list
@@ -266,7 +277,13 @@ export default function GumroadIframeModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in">
+        <div 
+            role="dialog"
+            aria-modal="true"
+            aria-label="Secure Checkout Modal"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in"
+            onClick={onClose}
+        >
             <div 
                 className="bg-white rounded-3xl shadow-2xl w-full max-w-xl border-2 border-black overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95"
                 onClick={(e) => e.stopPropagation()}

@@ -46,12 +46,21 @@ export default function ExitIntentModal({ onApplyCoupon }) {
             }
         };
 
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                sessionStorage.setItem('gumshop_exit_dismissed', 'true');
+                setIsOpen(false);
+            }
+        };
+
         document.addEventListener('mouseleave', handleMouseLeave);
         window.addEventListener('scroll', handleScroll, { passive: true });
+        window.addEventListener('keydown', handleKeyDown);
 
         return () => {
             document.removeEventListener('mouseleave', handleMouseLeave);
             window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('keydown', handleKeyDown);
         };
     }, [hasTriggered]);
 
@@ -77,6 +86,9 @@ export default function ExitIntentModal({ onApplyCoupon }) {
 
     return (
         <div 
+            role="dialog"
+            aria-modal="true"
+            aria-label="Exclusive 25% Discount Offer"
             className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
             onClick={handleClose}
         >
@@ -86,8 +98,10 @@ export default function ExitIntentModal({ onApplyCoupon }) {
             >
                 {/* Close Button */}
                 <button 
+                    type="button"
                     onClick={handleClose}
-                    className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 rounded-full transition"
+                    aria-label="Close discount dialog"
+                    className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 rounded-full transition"
                 >
                     <X size={18} />
                 </button>
@@ -115,15 +129,17 @@ export default function ExitIntentModal({ onApplyCoupon }) {
 
                 <div className="mt-6 flex flex-col gap-2.5">
                     <button
+                        type="button"
                         onClick={handleClaimDiscount}
-                        className="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition"
+                        className="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition cursor-pointer"
                     >
                         <Zap size={16} className="fill-white" />
                         <span>Claim 25% Off & Keep Shopping</span>
                     </button>
                     <button
+                        type="button"
                         onClick={handleClose}
-                        className="text-xs text-slate-400 hover:text-slate-600 font-medium py-1"
+                        className="text-xs text-slate-400 hover:text-slate-600 font-medium py-1 cursor-pointer"
                     >
                         No thanks, I prefer paying full price
                     </button>
