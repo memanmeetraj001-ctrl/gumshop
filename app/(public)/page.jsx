@@ -20,7 +20,7 @@ import WishlistDrawer from '@/components/WishlistDrawer';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import LiveSalesToaster from '@/components/LiveSalesToaster';
 import { getAllProducts, getProductsByStore } from '@/lib/firebaseDb';
-import { getActiveStoreSync, getHomepageStoreSync, getHomepageStoreSlug } from '@/lib/activeStore';
+import { getActiveStoreSync, getHomepageStoreSync, getHomepageStoreSlug, getHomepageSelectedStores } from '@/lib/activeStore';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts } from '@/lib/features/product/productSlice';
 
@@ -31,6 +31,7 @@ export default function SuperStorefront() {
     const [products, setProducts] = useState([]);
     const [activeStore, setActiveStore] = useState(null);
     const [homepageMode, setHomepageModeState] = useState('single');
+    const [viewMode, setViewMode] = useState('by-store'); // 'by-store' | 'combined'
     const [loading, setLoading] = useState(true);
     const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
     const [wishlistDrawerOpen, setWishlistDrawerOpen] = useState(false);
@@ -53,6 +54,7 @@ export default function SuperStorefront() {
                 let store = null;
                 let targetSlug = null;
                 let mode = 'single';
+                let selectedStores = [];
                 try {
                     const hpRes = await fetch('/api/store/homepage', { cache: 'no-store' });
                     if (hpRes.ok) {
@@ -60,8 +62,13 @@ export default function SuperStorefront() {
                         if (hpData.homepageMode) mode = hpData.homepageMode;
                         if (hpData.homepageStore) store = hpData.homepageStore;
                         if (hpData.homepageSlug) targetSlug = hpData.homepageSlug;
+                        if (Array.isArray(hpData.selectedStores)) selectedStores = hpData.selectedStores;
                     }
                 } catch {}
+
+                if (selectedStores.length === 0) {
+                    selectedStores = getHomepageSelectedStores();
+                }
 
                 // Offline fallback if server API is unavailable
                 if (!store) {
@@ -69,7 +76,7 @@ export default function SuperStorefront() {
                     targetSlug = targetSlug || getHomepageStoreSlug();
                 }
 
-                // If in All Shops Marketplace Mode
+                // 1. If in All Shops Marketplace Mode
                 if (mode === 'all') {
                     setHomepageModeState('all');
                     try {
@@ -82,6 +89,28 @@ export default function SuperStorefront() {
                                     username: 'marketplace',
                                     isMarketplace: true,
                                     description: 'Browse verified top-selling products across our creator fleet.'
+                                });
+                                setProducts(pData.products);
+                                return;
+                            }
+                        }
+                    } catch {}
+                }
+
+                // 2. If in Custom Multi-Store Selection Mode
+                if (mode === 'custom') {
+                    setHomepageModeState('custom');
+                    try {
+                        const storesParam = selectedStores.length > 0 ? `&stores=${encodeURIComponent(selectedStores.join(','))}` : '';
+                        const customProdsRes = await fetch(`/api/products?mode=custom${storesParam}`, { cache: 'no-store' });
+                        if (customProdsRes.ok) {
+                            const pData = await customProdsRes.json();
+                            if (pData.success && Array.isArray(pData.products)) {
+                                setActiveStore({
+                                    name: 'Combined Stores Showcase',
+                                    username: 'showcase',
+                                    isMarketplace: true,
+                                    description: 'Explore featured products across our selected creator stores with direct merchant checkout.'
                                 });
                                 setProducts(pData.products);
                                 return;
@@ -108,12 +137,12 @@ export default function SuperStorefront() {
                     } catch {}
                 }
 
-                // 2. Fallback to active store if no homepage is explicitly chosen
+                // 3. Fallback to active store if no homepage is explicitly chosen
                 if (!store) {
                     store = getActiveStoreSync();
                 }
 
-                // 3. Fallback to active store from activeStore helper
+                // 4. Fallback to active store from activeStore helper
                 if (!store) {
                     const { getAllLocalStores } = await import('@/lib/activeStore');
                     const localStores = getAllLocalStores();
@@ -148,6 +177,7 @@ export default function SuperStorefront() {
         if (typeof window !== 'undefined') {
             window.addEventListener('homepage_store_changed', loadStoreAndCatalog);
             window.addEventListener('homepage_mode_changed', loadStoreAndCatalog);
+            window.addEventListener('homepage_stores_changed', loadStoreAndCatalog);
             window.addEventListener('active_store_changed', loadStoreAndCatalog);
         }
 
@@ -155,6 +185,7 @@ export default function SuperStorefront() {
             if (typeof window !== 'undefined') {
                 window.removeEventListener('homepage_store_changed', loadStoreAndCatalog);
                 window.removeEventListener('homepage_mode_changed', loadStoreAndCatalog);
+                window.removeEventListener('homepage_stores_changed', loadStoreAndCatalog);
                 window.removeEventListener('active_store_changed', loadStoreAndCatalog);
             }
         };
@@ -169,9 +200,11 @@ export default function SuperStorefront() {
         return Array.from(set);
     }, [products]);
 
-    // Extract dynamic unique shops (for All Shops Marketplace Mode)
+    const isMultiStore = homepageMode === 'all' || homepageMode === 'custom';
+
+    // Extract dynamic unique shops (for Multi-Store Modes)
     const shopsList = useMemo(() => {
-        if (homepageMode !== 'all') return [];
+        if (!isMultiStore) return [];
         const map = new Map();
         products.forEach(p => {
             const slug = p.storeSlug || p.storeId?.replace(/^store_/, '');
@@ -181,14 +214,14 @@ export default function SuperStorefront() {
             }
         });
         return Array.from(map.values());
-    }, [homepageMode, products]);
+    }, [isMultiStore, products]);
 
     // Filter and sort products
     const filteredProducts = useMemo(() => {
         let list = [...products];
 
-        // Store Filter (in All Shops Marketplace mode)
-        if (homepageMode === 'all' && selectedStore !== 'All') {
+        // Store Filter (in Multi-Store modes)
+        if (isMultiStore && selectedStore !== 'All') {
             list = list.filter(p => (p.storeSlug === selectedStore) || (p.storeId && (p.storeId === selectedStore || p.storeId === `store_${selectedStore}`)));
         }
 
@@ -227,7 +260,27 @@ export default function SuperStorefront() {
         }
 
         return list;
-    }, [products, homepageMode, selectedStore, searchTerm, selectedCategory, inStockOnly, sortBy]);
+    }, [products, isMultiStore, selectedStore, searchTerm, selectedCategory, inStockOnly, sortBy]);
+
+    // Group filtered products by store for Grouped Store Showcases
+    const groupedStores = useMemo(() => {
+        if (!isMultiStore) return [];
+        const map = new Map();
+        filteredProducts.forEach(p => {
+            const slug = p.storeSlug || p.storeId?.replace(/^store_/, '') || 'store';
+            if (!map.has(slug)) {
+                map.set(slug, {
+                    slug,
+                    name: p.storeName || slug,
+                    avatar: p.storeAvatar || null,
+                    themeColor: p.storeTheme || null,
+                    products: []
+                });
+            }
+            map.get(slug).products.push(p);
+        });
+        return Array.from(map.values());
+    }, [isMultiStore, filteredProducts]);
 
     // Discounted deals subset
     const discountedDeals = useMemo(() => {
@@ -286,6 +339,8 @@ export default function SuperStorefront() {
                             <span>
                                 {homepageMode === 'all' 
                                     ? 'Curated Marketplace · All Stores & Creators' 
+                                    : homepageMode === 'custom'
+                                    ? 'Featured Showcase · Multi-Store Collection'
                                     : 'Curated Catalog · Independent Merchant'}
                             </span>
                         </div>
@@ -297,6 +352,13 @@ export default function SuperStorefront() {
                                     Curated Marketplace & <br />
                                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
                                         All Shops Deals.
+                                    </span>
+                                </>
+                            ) : homepageMode === 'custom' ? (
+                                <>
+                                    Featured Creator Stores & <br />
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
+                                        Combined Showcase.
                                     </span>
                                 </>
                             ) : activeStore?.name ? (
@@ -320,6 +382,8 @@ export default function SuperStorefront() {
                         <p className="mt-5 text-base sm:text-lg text-slate-300 leading-relaxed font-normal max-w-2xl mx-auto">
                             {homepageMode === 'all'
                                 ? 'Browse verified top-selling products across our creator fleet with instant dynamic checkout.'
+                                : homepageMode === 'custom'
+                                ? 'Explore hand-picked creator collections in one unified storefront with direct merchant checkout.'
                                 : storeDescription}
                         </p>
 
@@ -374,11 +438,11 @@ export default function SuperStorefront() {
             </section>
 
             {/* 2. Visual Category & Store Filter Bar */}
-            {(categories.length > 1 || (homepageMode === 'all' && shopsList.length > 1)) && (
+            {(categories.length > 1 || (isMultiStore && shopsList.length > 1)) && (
                 <section className="bg-white border-b border-slate-200/80 py-5">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
-                        {/* Store Filter Pills (Marketplace Mode) */}
-                        {homepageMode === 'all' && shopsList.length > 1 && (
+                        {/* Store Filter Pills (Multi-Store Mode) */}
+                        {isMultiStore && shopsList.length > 1 && (
                             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
                                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1 shrink-0">
                                     <Store size={12} /> Stores:
@@ -457,7 +521,7 @@ export default function SuperStorefront() {
                                     key={product.id} 
                                     product={product} 
                                     onOpenCart={() => setCartDrawerOpen(true)}
-                                    showShopName={homepageMode === 'all'}
+                                    showShopName={isMultiStore}
                                 />
                             ))}
                         </div>
@@ -482,6 +546,38 @@ export default function SuperStorefront() {
 
                         {/* Controls */}
                         <div className="flex flex-wrap items-center gap-3">
+                            {/* View Mode Switcher (Grouped Shelves vs Combined Grid) for Multi-Store */}
+                            {isMultiStore && (
+                                <div className="flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200">
+                                    <button
+                                        type="button"
+                                        onClick={() => setViewMode('by-store')}
+                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                                            viewMode === 'by-store'
+                                                ? 'bg-emerald-600 text-white shadow-xs'
+                                                : 'text-slate-600 hover:text-slate-900'
+                                        }`}
+                                        title="Group products into store shelves"
+                                    >
+                                        <Store size={13} />
+                                        <span>Store Shelves</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setViewMode('combined')}
+                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                                            viewMode === 'combined'
+                                                ? 'bg-slate-900 text-white shadow-xs'
+                                                : 'text-slate-600 hover:text-slate-900'
+                                        }`}
+                                        title="View all products in a combined grid"
+                                    >
+                                        <Layers size={13} />
+                                        <span>Combined Grid</span>
+                                    </button>
+                                </div>
+                            )}
+
                             {/* Stock Toggle */}
                             <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-xl border border-slate-200 transition">
                                 <input 
@@ -551,6 +647,64 @@ export default function SuperStorefront() {
                                 )}
                             </div>
                         </div>
+                    ) : isMultiStore && viewMode === 'by-store' ? (
+                        <div className="space-y-12">
+                            {groupedStores.map(storeGroup => (
+                                <div key={storeGroup.slug} className="space-y-6">
+                                    {/* Store Showcase Header Banner */}
+                                    <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white p-5 sm:p-6 rounded-3xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 border border-slate-800">
+                                        <div className="flex items-center gap-3.5">
+                                            <div className="size-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-black text-lg flex items-center justify-center shrink-0">
+                                                {storeGroup.name.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                                                        {storeGroup.name}
+                                                    </h3>
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                                        <CheckCircle2 size={11} /> Verified Creator
+                                                    </span>
+                                                    <span className="text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700">
+                                                        {storeGroup.products.length} {storeGroup.products.length === 1 ? 'item' : 'items'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-slate-300 mt-1">
+                                                    Direct creator storefront with instant Gumroad checkout.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-wrap shrink-0">
+                                            <Link
+                                                href={`/creator/${storeGroup.slug}`}
+                                                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 transition flex items-center gap-1.5"
+                                            >
+                                                <span>📱 Stan Store</span>
+                                            </Link>
+                                            <Link
+                                                href={`/shop/${storeGroup.slug}`}
+                                                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
+                                            >
+                                                <span>🏪 Shop Catalog</span>
+                                                <ArrowRight size={13} />
+                                            </Link>
+                                        </div>
+                                    </div>
+
+                                    {/* Store Products Grid */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        {storeGroup.products.map(product => (
+                                            <ProductCard 
+                                                key={product.id} 
+                                                product={product} 
+                                                onOpenCart={() => setCartDrawerOpen(true)}
+                                                showShopName={false}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {filteredProducts.map(product => (
@@ -558,7 +712,7 @@ export default function SuperStorefront() {
                                     key={product.id} 
                                     product={product} 
                                     onOpenCart={() => setCartDrawerOpen(true)}
-                                    showShopName={homepageMode === 'all'}
+                                    showShopName={isMultiStore}
                                 />
                             ))}
                         </div>

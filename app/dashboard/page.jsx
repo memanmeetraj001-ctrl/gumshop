@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { isProductDeleted, isStoreDeleted, markStoreDeleted, deleteStore } from '@/lib/firebaseDb';
-import { setActiveStoreSlug, getActiveStoreSync, getAllLocalStores, getHomepageStoreSlug, setHomepageStoreSlug, getHomepageMode, setHomepageMode } from '@/lib/activeStore';
+import { setActiveStoreSlug, getActiveStoreSync, getAllLocalStores, getHomepageStoreSlug, setHomepageStoreSlug, getHomepageMode, setHomepageMode, getHomepageSelectedStores, setHomepageSelectedStores } from '@/lib/activeStore';
 
 const ADMIN_SESSION_TOKEN = 'gumshop_superadmin_session_meetminal_verified_2026';
 
@@ -63,6 +63,7 @@ export default function MasterDashboardPage() {
     const [activeStore, setActiveStore] = useState(null);
     const [homepageStoreSlug, setHomepageStoreSlugState] = useState('');
     const [homepageMode, setHomepageModeState] = useState('single');
+    const [selectedHomepageStores, setSelectedHomepageStores] = useState([]);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [authChecking, setAuthChecking] = useState(true);
     const [inPagePassword, setInPagePassword] = useState('');
@@ -474,22 +475,33 @@ export default function MasterDashboardPage() {
                 .then(d => {
                     if (d?.homepageMode) setHomepageModeState(d.homepageMode);
                     if (d?.homepageSlug) setHomepageStoreSlugState(d.homepageSlug);
+                    if (Array.isArray(d?.selectedStores)) setSelectedHomepageStores(d.selectedStores);
                 })
                 .catch(() => {});
         };
 
-        // Hydrate homepage mode and store
+        const handleHomepageStoresChange = () => {
+            setSelectedHomepageStores(getHomepageSelectedStores());
+        };
+
+        // Hydrate homepage mode, store and selected stores
         fetch('/api/store/homepage', { cache: 'no-store' })
             .then(r => r.json())
             .then(d => {
                 if (d?.homepageMode && isMounted) setHomepageModeState(d.homepageMode);
                 if (d?.homepageSlug && isMounted) setHomepageStoreSlugState(d.homepageSlug);
+                if (Array.isArray(d?.selectedStores) && isMounted) {
+                    setSelectedHomepageStores(d.selectedStores);
+                } else if (isMounted) {
+                    setSelectedHomepageStores(getHomepageSelectedStores());
+                }
             })
             .catch(() => {
                 if (isMounted) {
                     setHomepageModeState(getHomepageMode());
                     const hp = getHomepageStoreSlug();
                     if (hp) setHomepageStoreSlugState(hp);
+                    setSelectedHomepageStores(getHomepageSelectedStores());
                 }
             });
 
@@ -498,6 +510,7 @@ export default function MasterDashboardPage() {
         window.addEventListener('stores_updated', handleStoresUpdated);
         window.addEventListener('homepage_store_changed', handleHomepageChange);
         window.addEventListener('homepage_mode_changed', handleHomepageChange);
+        window.addEventListener('homepage_stores_changed', handleHomepageStoresChange);
         return () => {
             isMounted = false;
             window.removeEventListener('pageshow', handlePageShow);
@@ -505,6 +518,7 @@ export default function MasterDashboardPage() {
             window.removeEventListener('stores_updated', handleStoresUpdated);
             window.removeEventListener('homepage_store_changed', handleHomepageChange);
             window.removeEventListener('homepage_mode_changed', handleHomepageChange);
+            window.removeEventListener('homepage_stores_changed', handleHomepageStoresChange);
         };
     }, []);
 
@@ -638,17 +652,43 @@ export default function MasterDashboardPage() {
         toast.success(`Store "${shop.name}" is now the official Homepage (/)! 🌟`);
     };
 
-    // Toggle Homepage Mode: 'all' (Marketplace) vs 'single' (Designated Store)
+    // Toggle Homepage Mode: 'all' (Marketplace) vs 'custom' (Multi-Store Select) vs 'single' (Designated Store)
     const handleSetHomepageMode = async (mode) => {
-        const nextMode = mode === 'all' ? 'all' : 'single';
+        const nextMode = (mode === 'all' || mode === 'custom') ? mode : 'single';
         setHomepageModeState(nextMode);
-        await setHomepageMode(nextMode, homepageStoreSlug);
+        await setHomepageMode(nextMode, homepageStoreSlug, selectedHomepageStores);
         if (nextMode === 'all') {
             toast.success('🌐 Homepage is now set to All Shops Marketplace!');
+        } else if (nextMode === 'custom') {
+            toast.success('☑️ Homepage is now set to Custom Multi-Store Selection!');
         } else {
             const currentName = shops.find(s => s.username === homepageStoreSlug || s.id === homepageStoreSlug)?.name || homepageStoreSlug || 'Designated Store';
             toast.success(`⭐ Homepage is now set to Single Store (${currentName})`);
         }
+    };
+
+    // Toggle specific store in Custom Multi-Store Selection
+    const handleToggleHomepageStore = async (storeSlug) => {
+        const cleanSlug = String(storeSlug).toLowerCase().trim().replace(/^store_/, '');
+        let updated;
+        if (selectedHomepageStores.includes(cleanSlug)) {
+            updated = selectedHomepageStores.filter(s => s !== cleanSlug);
+        } else {
+            updated = [...selectedHomepageStores, cleanSlug];
+        }
+        setSelectedHomepageStores(updated);
+        await setHomepageSelectedStores(updated);
+        toast.success(`Updated homepage selection (${updated.length} stores)`);
+    };
+
+    // Select or deselect all stores for Custom Multi-Store Selection
+    const handleSelectAllHomepageStores = async (selectAll = true) => {
+        const updated = selectAll
+            ? shops.map(s => (s.username || s.id).toLowerCase().replace(/^store_/, ''))
+            : [];
+        setSelectedHomepageStores(updated);
+        await setHomepageSelectedStores(updated);
+        toast.success(selectAll ? 'All active stores selected for homepage' : 'All stores deselected for homepage');
     };
 
     // 1-Click Backup Export
@@ -1553,101 +1593,180 @@ export default function MasterDashboardPage() {
 
                         {/* Quick Store Switcher & Homepage Controller */}
                         {shops.length > 0 && (
-                            <div className="p-4 bg-white border border-slate-200 rounded-3xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-sm">
-                                <div className="flex items-center gap-3">
-                                    <div className="size-8 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0">
-                                        <Globe size={15} />
-                                    </div>
-                                    <div>
-                                        <div className="text-xs font-bold text-slate-900 flex items-center gap-2 flex-wrap">
-                                            <span>Root Homepage (gumshop.online):</span>
-                                            {homepageMode === 'all' ? (
-                                                <span className="inline-flex items-center gap-1.5 text-emerald-700 font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[11px]">
-                                                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                                    🌐 All Shops Marketplace ({shops.length} Active Stores)
-                                                </span>
-                                            ) : (
-                                                <span className="text-amber-700 font-extrabold">
-                                                    ⭐ {shops.find(s => s.username === homepageStoreSlug || s.id === homepageStoreSlug)?.name || homepageStoreSlug || 'Auto (First Active Store)'}
-                                                </span>
-                                            )}
+                            <div className="p-4 sm:p-5 bg-white border border-slate-200 rounded-3xl shadow-sm space-y-4">
+                                <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="size-9 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0">
+                                            <Globe size={16} />
                                         </div>
-                                        <div className="text-[11px] text-slate-500 mt-0.5">
-                                            {homepageMode === 'all' 
-                                                ? 'Homepage showcases products from all active stores labeled with shop names' 
-                                                : 'Homepage serves dedicated catalog and branding of the designated store'}
+                                        <div>
+                                            <div className="text-xs font-bold text-slate-900 flex items-center gap-2 flex-wrap">
+                                                <span>Root Homepage (gumshop.online):</span>
+                                                {homepageMode === 'all' ? (
+                                                    <span className="inline-flex items-center gap-1.5 text-emerald-700 font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[11px]">
+                                                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                        🌐 All Shops Marketplace ({shops.length} Active Stores)
+                                                    </span>
+                                                ) : homepageMode === 'custom' ? (
+                                                    <span className="inline-flex items-center gap-1.5 text-emerald-700 font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[11px]">
+                                                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                        ☑️ Custom Selection ({selectedHomepageStores.length} of {shops.length} Stores)
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-amber-700 font-extrabold">
+                                                        ⭐ {shops.find(s => s.username === homepageStoreSlug || s.id === homepageStoreSlug)?.name || homepageStoreSlug || 'Auto (First Active Store)'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-[11px] text-slate-500 mt-0.5">
+                                                {homepageMode === 'all' 
+                                                    ? 'Homepage showcases products from all active stores labeled with shop names' 
+                                                    : homepageMode === 'custom'
+                                                    ? 'Homepage showcases selected stores grouped with store headers & products'
+                                                    : 'Homepage serves dedicated catalog and branding of the designated store'}
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                                    {/* Segmented Mode Switch */}
-                                    <div className="flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleSetHomepageMode('all')}
-                                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
-                                                homepageMode === 'all'
-                                                    ? 'bg-emerald-600 text-white shadow-xs'
-                                                    : 'text-slate-600 hover:text-slate-900'
-                                            }`}
-                                        >
-                                            🌐 All Shops
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleSetHomepageMode('single')}
-                                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
-                                                homepageMode === 'single'
-                                                    ? 'bg-slate-900 text-white shadow-xs'
-                                                    : 'text-slate-600 hover:text-slate-900'
-                                            }`}
-                                        >
-                                            ⭐ Single Store
-                                        </button>
                                     </div>
 
-                                    {/* Store Selector Dropdown for Single Mode */}
-                                    {homepageMode === 'single' && (
-                                        <div className="flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 text-xs">
-                                            <span className="text-amber-800 font-bold">⭐ Set Homepage:</span>
+                                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                        {/* 3-Way Segmented Mode Switch */}
+                                        <div className="flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSetHomepageMode('all')}
+                                                className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                                                    homepageMode === 'all'
+                                                        ? 'bg-emerald-600 text-white shadow-xs'
+                                                        : 'text-slate-600 hover:text-slate-900'
+                                                }`}
+                                            >
+                                                🌐 All Stores
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSetHomepageMode('custom')}
+                                                className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                                                    homepageMode === 'custom'
+                                                        ? 'bg-emerald-600 text-white shadow-xs'
+                                                        : 'text-slate-600 hover:text-slate-900'
+                                                }`}
+                                            >
+                                                ☑️ Custom Select
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSetHomepageMode('single')}
+                                                className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                                                    homepageMode === 'single'
+                                                        ? 'bg-slate-900 text-white shadow-xs'
+                                                        : 'text-slate-600 hover:text-slate-900'
+                                                }`}
+                                            >
+                                                ⭐ Single Store
+                                            </button>
+                                        </div>
+
+                                        {/* Store Selector Dropdown for Single Mode */}
+                                        {homepageMode === 'single' && (
+                                            <div className="flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 text-xs">
+                                                <span className="text-amber-800 font-bold">⭐ Set Homepage:</span>
+                                                <select
+                                                    value={homepageStoreSlug || ''}
+                                                    onChange={(e) => {
+                                                        const target = shops.find(s => s.username === e.target.value);
+                                                        if (target) handleSetHomepage(target);
+                                                    }}
+                                                    className="bg-transparent text-amber-800 font-bold focus:outline-none cursor-pointer"
+                                                >
+                                                    <option value="" className="bg-white text-slate-600">Default (First Active Store)</option>
+                                                    {shops.map(s => (
+                                                        <option key={s.username} value={s.username} className="bg-white text-amber-800">
+                                                            {s.name} ({s.username})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+
+                                        {/* Active Dashboard Scope Selector */}
+                                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
+                                            <span className="text-slate-600 font-semibold">Active HQ:</span>
                                             <select
-                                                value={homepageStoreSlug || ''}
+                                                value={activeStore?.username || ''}
                                                 onChange={(e) => {
                                                     const target = shops.find(s => s.username === e.target.value);
-                                                    if (target) handleSetHomepage(target);
+                                                    if (target) handleSetActiveStore(target);
                                                 }}
-                                                className="bg-transparent text-amber-800 font-bold focus:outline-none cursor-pointer"
+                                                className="bg-transparent text-slate-900 font-bold focus:outline-none cursor-pointer"
                                             >
-                                                <option value="" className="bg-white text-slate-600">Default (First Active Store)</option>
                                                 {shops.map(s => (
-                                                    <option key={s.username} value={s.username} className="bg-white text-amber-800">
-                                                        {s.name} ({s.username})
+                                                    <option key={s.username} value={s.username} className="bg-white text-slate-900">
+                                                        {s.name} ({s.username}){s.username === homepageStoreSlug ? ' ⭐ [Homepage]' : ''}
                                                     </option>
                                                 ))}
                                             </select>
                                         </div>
-                                    )}
-
-                                    {/* Active Dashboard Scope Selector */}
-                                    <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
-                                        <span className="text-slate-600 font-semibold">Active HQ:</span>
-                                        <select
-                                            value={activeStore?.username || ''}
-                                            onChange={(e) => {
-                                                const target = shops.find(s => s.username === e.target.value);
-                                                if (target) handleSetActiveStore(target);
-                                            }}
-                                            className="bg-transparent text-slate-900 font-bold focus:outline-none cursor-pointer"
-                                        >
-                                            {shops.map(s => (
-                                                <option key={s.username} value={s.username} className="bg-white text-slate-900">
-                                                    {s.name} ({s.username}){s.username === homepageStoreSlug ? ' ⭐ [Homepage]' : ''}
-                                                </option>
-                                            ))}
-                                        </select>
                                     </div>
                                 </div>
+
+                                {/* Multi-Store Selection Panel (Visible in Custom Mode) */}
+                                {homepageMode === 'custom' && (
+                                    <div className="pt-3 border-t border-slate-100 space-y-3">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                            <div className="text-xs font-bold text-slate-700 flex items-center gap-2">
+                                                <span>Choose stores to include on homepage:</span>
+                                                <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
+                                                    {selectedHomepageStores.length} of {shops.length} selected
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSelectAllHomepageStores(true)}
+                                                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition text-[11px]"
+                                                >
+                                                    Select All
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSelectAllHomepageStores(false)}
+                                                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium transition text-[11px]"
+                                                >
+                                                    Deselect All
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-2.5">
+                                            {shops.map(shop => {
+                                                const slug = (shop.username || shop.id || '').toLowerCase().replace(/^store_/, '');
+                                                const isChecked = selectedHomepageStores.includes(slug);
+                                                return (
+                                                    <button
+                                                        key={slug}
+                                                        type="button"
+                                                        onClick={() => handleToggleHomepageStore(slug)}
+                                                        className={`flex items-center gap-2.5 px-3.5 py-2 rounded-2xl text-xs font-bold border transition cursor-pointer ${
+                                                            isChecked
+                                                                ? 'bg-emerald-50 border-emerald-300 text-emerald-950 shadow-xs'
+                                                                : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                                                        }`}
+                                                    >
+                                                        <div className={`size-4 rounded-md border flex items-center justify-center transition ${
+                                                            isChecked ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
+                                                        }`}>
+                                                            {isChecked && <Check size={11} strokeWidth={3} />}
+                                                        </div>
+                                                        <span>{shop.name}</span>
+                                                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white border border-slate-200 text-slate-600 font-mono">
+                                                            {shop.productsCount ?? shop.products?.length ?? 1} items
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 

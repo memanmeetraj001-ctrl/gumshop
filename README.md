@@ -103,10 +103,11 @@
 - **Per-Store Gumroad Credentials**: Store A and Store B can maintain completely independent Gumroad API tokens and payment configurations.
 - **Tombstone Protection**: Production stores (`rubber-couch-toys-official-store` and `phantompaws-headless-horseman-pet-costume`) are safeguarded against accidental client-side suppression.
 
-### 🌐 2. Dynamic Homepage Controller
+### 🌐 2. Dynamic Homepage Controller & Store Shelves
 - **All Shops Marketplace Mode**: Aggregates all active stores on the root homepage (`/`), clearly displaying each product's store attribution with direct links to that shop.
+- **Custom Multi-Store Selection**: Choose any combination of stores (one, multiple, or all) to feature on the root storefront with interactive multi-select checkboxes on the Master Dashboard.
 - **Single Store Mode**: Pins a single designated store to the root homepage (`/`).
-- **Custom Multi-Store Selection**: Choose one or multiple specific stores to feature on the root storefront.
+- **Grouped Store Shelves & View Switcher**: Group products into dedicated store sections with verified creator headers, avatar branding, and direct links to `/shop/[slug]` and Stan Store `/creator/[slug]`, with 1-click toggle to Combined Grid.
 
 ### 💳 3. Gumroad In-Frame Dynamic Checkout
 - **Instant Overlay Checkout**: Customers complete transactions without leaving your domain via `<GumroadIframeModal />`.

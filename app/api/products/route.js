@@ -18,8 +18,21 @@ export async function GET(req) {
     const mode = searchParams.get('mode');
     const storeId = searchParams.get('store_id') || searchParams.get('store');
 
-    if (mode === 'all') {
-      const products = await getAllProductsWithStores();
+    const storesParam = searchParams.get('stores');
+
+    if (mode === 'all' || mode === 'custom' || storesParam) {
+      let products = await getAllProductsWithStores();
+      if (storesParam) {
+        const allowedSlugs = new Set(
+          storesParam.split(',').map(s => s.toLowerCase().trim().replace(/^store_/, '')).filter(Boolean)
+        );
+        if (allowedSlugs.size > 0) {
+          products = products.filter(p => {
+            const pSlug = (p.storeSlug || p.storeId || '').toLowerCase().replace(/^store_/, '');
+            return allowedSlugs.has(pSlug);
+          });
+        }
+      }
       return NextResponse.json({ success: true, products }, { headers: NO_CACHE_HEADERS });
     }
 
