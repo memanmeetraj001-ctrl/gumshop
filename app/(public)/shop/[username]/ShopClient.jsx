@@ -12,13 +12,16 @@ import CartDrawer from "@/components/CartDrawer";
 import StorefrontFooter from "@/components/StorefrontFooter";
 import { useAuth } from "@/lib/AuthContext";
 import Link from "next/link";
+import toast from "react-hot-toast";
 import { 
     Zap, 
     Truck, 
     ShieldCheck, 
     Sparkles, 
     Store,
-    ShoppingBag
+    ShoppingBag,
+    Tag,
+    Clock
 } from "lucide-react";
 
 import { 
@@ -38,6 +41,53 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
     const [loading, setLoading] = useState(!initialStore && !initialData.store);
     const [activeCategory, setActiveCategory] = useState('All');
     const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+
+    // High-Converting Sticky Flash Sale Announcement Bar State
+    const [flashCountdown, setFlashCountdown] = useState({
+        hours: '02',
+        minutes: '44',
+        seconds: '19',
+        totalSecs: 9859
+    });
+    const [isCouponApplied, setIsCouponApplied] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const stored = sessionStorage.getItem('active_coupon');
+            if (stored && stored.toUpperCase() === 'SAVE20') {
+                setIsCouponApplied(true);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        const updateCountdown = () => {
+            const now = new Date();
+            const curSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+            const cycleSecs = 4 * 3600; // 4 hour cycle
+            const remaining = cycleSecs - (curSecs % cycleSecs);
+            const h = Math.floor(remaining / 3600);
+            const m = Math.floor((remaining % 3600) / 60);
+            const s = remaining % 60;
+            setFlashCountdown({
+                hours: String(h).padStart(2, '0'),
+                minutes: String(m).padStart(2, '0'),
+                seconds: String(s).padStart(2, '0'),
+                totalSecs: remaining
+            });
+        };
+        updateCountdown();
+        const timer = setInterval(updateCountdown, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const handleApplyFlashCoupon = () => {
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('active_coupon', 'SAVE20');
+        }
+        setIsCouponApplied(true);
+        toast.success('Coupon "SAVE20" applied! 20% OFF activated across your order 🎉');
+    };
 
     useEffect(() => {
         if (initialStore && initialProducts) {
@@ -102,13 +152,53 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col">
+            {/* ⚡ Sticky Flash Sale Announcement Bar */}
+            {storeInfo?.urgencyEnabled !== false && (
+                <div className="bg-slate-950 text-white py-2 px-3 sm:px-4 text-xs font-semibold border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md bg-slate-950/95">
+                    <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                        <div className="flex items-center gap-2 text-xs">
+                            <span className="flex items-center gap-1.5 text-amber-400 font-extrabold uppercase tracking-wider text-[11px] sm:text-xs">
+                                <Zap size={14} className="fill-amber-400 text-amber-400 animate-pulse" />
+                                <span>FLASH SALE: 20% OFF STOREWIDE</span>
+                            </span>
+                            <span className="text-slate-500 hidden md:inline">•</span>
+                            <span className="text-slate-300 font-medium text-[11px] sm:text-xs">
+                                Ends in <strong className="font-mono text-white tracking-widest bg-slate-800/90 px-2 py-0.5 rounded-md border border-slate-700/80">{flashCountdown.hours}:{flashCountdown.minutes}:{flashCountdown.seconds}</strong>
+                            </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={handleApplyFlashCoupon}
+                                className={`px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider transition active:scale-95 cursor-pointer flex items-center gap-1.5 shadow-sm ${
+                                    isCouponApplied 
+                                        ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400' 
+                                        : 'bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950'
+                                }`}
+                            >
+                                {isCouponApplied ? (
+                                    <>
+                                        <span>✓ APPLIED: 20% OFF</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>⚡ APPLY: SAVE20</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <StorefrontNavbar store={storeInfo} onOpenCart={() => setCartDrawerOpen(true)} />
             
             <main className="flex-1 pb-20">
-                <StoreHeroBanner store={storeInfo} />
+                <StoreHeroBanner store={storeInfo} totalProducts={products.length} />
 
                 {/* Products Section */}
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+                <div id="catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
                     {/* Category Filter Pills */}
                     {categories.length > 2 && (
                         <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-none mb-8">
@@ -116,7 +206,7 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
                                 <button
                                     key={cat}
                                     onClick={() => setActiveCategory(cat)}
-                                    className={`px-4 py-2 rounded-full text-xs font-bold transition whitespace-nowrap ${
+                                    className={`px-4 py-2 rounded-full text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                                         activeCategory === cat
                                             ? 'bg-slate-900 text-white shadow-sm'
                                             : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -137,8 +227,15 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                            {filteredProducts.map(prod => (
-                                <ProductCard key={prod.id} product={prod} showShopName={false} />
+                            {filteredProducts.map((prod, idx) => (
+                                <ProductCard 
+                                    key={prod.id || idx} 
+                                    product={prod} 
+                                    showShopName={false}
+                                    store={storeInfo}
+                                    cardIndex={idx}
+                                    onOpenCart={() => setCartDrawerOpen(true)}
+                                />
                             ))}
                         </div>
                     )}

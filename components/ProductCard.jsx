@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Star, ShoppingBag, Eye, Heart, Zap, Store } from 'lucide-react';
 import Link from 'next/link';
 import { useDispatch } from 'react-redux';
@@ -11,7 +11,7 @@ import { getActiveStoreSync } from '@/lib/activeStore';
 import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 import toast from 'react-hot-toast';
 
-export default function ProductCard({ product, onOpenCart, showShopName = false }) {
+export default function ProductCard({ product, onOpenCart, showShopName = false, store = null, cardIndex = 0 }) {
     const dispatch = useDispatch();
     const { toggle, has } = useWishlist();
     const [showQuickView, setShowQuickView] = useState(false);
@@ -26,6 +26,23 @@ export default function ProductCard({ product, onOpenCart, showShopName = false 
     const price = parseFloat(product.price !== undefined && product.price !== null && product.price !== '' ? product.price : 52.99);
     const compareAtPrice = parseFloat(product.compareAtPrice || (price === 52.99 ? 69.99 : Math.round(price * 1.35 * 100) / 100));
     const discountPercent = compareAtPrice > price ? Math.round(((compareAtPrice - price) / compareAtPrice) * 100) : 0;
+
+    // Deterministic Urgency & Scarcity Proof (Consistent Across Page Reloads)
+    const urgencyData = useMemo(() => {
+        let hash = 0;
+        const str = String(product?.id || product?.name || cardIndex);
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.charCodeAt(i);
+            hash |= 0;
+        }
+        const seed = Math.abs(hash);
+        const claimPercent = 65 + (seed % 24); // 65% to 88% claimed
+        const leftCount = 2 + (seed % 4); // 2 to 5 left
+        const badgeType = cardIndex === 0 
+            ? `⚡ ONLY ${leftCount} LEFT` 
+            : (cardIndex === 1 ? '🔥 BEST SELLER' : (cardIndex === 2 ? '⚡ SELLING FAST' : (product?.badge || `⚡ ONLY ${leftCount} LEFT`)));
+        return { claimPercent, leftCount, badgeType };
+    }, [product?.id, product?.name, cardIndex, product?.badge]);
 
     const handleAddToCart = (e) => {
         e.preventDefault();
@@ -120,12 +137,19 @@ export default function ProductCard({ product, onOpenCart, showShopName = false 
                         />
                     </Link>
 
-                    {/* Discount Badge */}
-                    {discountPercent > 0 && (
-                        <span className="absolute top-3 left-3 bg-rose-500 text-white text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full shadow-sm">
-                            SAVE {discountPercent}%
-                        </span>
-                    )}
+                    {/* Scarcity & Discount Badge Stack */}
+                    <div className="absolute top-3 left-3 flex flex-col gap-1 items-start z-10 pointer-events-none">
+                        {store?.urgencyEnabled !== false && urgencyData?.badgeType && (
+                            <span className="bg-rose-600/95 backdrop-blur-sm text-white text-[10px] font-black tracking-wider uppercase px-2.5 py-0.5 rounded-full shadow-sm flex items-center gap-1 border border-white/20">
+                                {urgencyData.badgeType}
+                            </span>
+                        )}
+                        {discountPercent > 0 && (
+                            <span className="bg-slate-900/90 backdrop-blur-sm text-white text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full shadow-sm">
+                                SAVE {discountPercent}%
+                            </span>
+                        )}
+                    </div>
 
                     {/* Floating Action Buttons */}
                     <div className="absolute top-3 right-3 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200">
@@ -209,18 +233,42 @@ export default function ProductCard({ product, onOpenCart, showShopName = false 
                                 {product.name}
                             </h3>
                         </Link>
+
+                        {/* Claimed Scarcity Progress Bar */}
+                        {store?.urgencyEnabled !== false && (
+                            <div className="mt-2.5">
+                                <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 mb-1">
+                                    <span className="flex items-center gap-1 text-rose-600 font-extrabold">
+                                        <span className="inline-block size-1.5 rounded-full bg-rose-500 animate-pulse" />
+                                        🔥 {urgencyData.claimPercent}% Claimed
+                                    </span>
+                                    <span className="text-slate-400 font-semibold">Selling Fast</span>
+                                </div>
+                                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                    <div 
+                                        className="bg-gradient-to-r from-amber-500 to-rose-500 h-full rounded-full transition-all duration-500" 
+                                        style={{ width: `${urgencyData.claimPercent}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Pricing & Direct Actions */}
                     <div className="mt-4 pt-3 border-t border-slate-100">
                         <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-2">
+                            <div className="flex items-baseline gap-1.5 flex-wrap">
                                 <span className="text-base sm:text-lg font-black text-slate-900">
                                     {currency}{price.toFixed(2)}
                                 </span>
                                 {compareAtPrice > price && (
                                     <span className="text-xs text-slate-400 line-through">
                                         {currency}{compareAtPrice.toFixed(2)}
+                                    </span>
+                                )}
+                                {compareAtPrice > price && (
+                                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                        Save {currency}{(compareAtPrice - price).toFixed(2)}
                                     </span>
                                 )}
                             </div>

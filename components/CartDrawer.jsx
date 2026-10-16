@@ -133,6 +133,44 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts, storeSlug: p
 
     const formatPrice = (val) => (Number(val) || 0).toFixed(2);
 
+    // 10-minute Cart Inventory Hold Timer (Urgency System)
+    const [reserveSeconds, setReserveSeconds] = useState(600);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const now = Date.now();
+        let initialRemaining = 600;
+        if (typeof window !== 'undefined') {
+            try {
+                const storedStart = sessionStorage.getItem('cart_reserve_start');
+                if (storedStart) {
+                    const elapsed = Math.floor((now - parseInt(storedStart, 10)) / 1000);
+                    if (elapsed >= 0 && elapsed < 600) {
+                        initialRemaining = 600 - elapsed;
+                    } else {
+                        sessionStorage.setItem('cart_reserve_start', String(now));
+                        initialRemaining = 600;
+                    }
+                } else {
+                    sessionStorage.setItem('cart_reserve_start', String(now));
+                }
+            } catch {}
+        }
+        setReserveSeconds(initialRemaining);
+
+        const interval = setInterval(() => {
+            setReserveSeconds(prev => (prev > 1 ? prev - 1 : 600));
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [isOpen]);
+
+    const formattedReserveTime = useMemo(() => {
+        const m = Math.floor(reserveSeconds / 60);
+        const s = reserveSeconds % 60;
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }, [reserveSeconds]);
+
     // Auto-detect and activate stored coupon (e.g. SAVE20 from Flash Deals)
     useEffect(() => {
         if (!isOpen) return;
@@ -426,7 +464,7 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts, storeSlug: p
             {/* Slide Drawer */}
             <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col justify-between h-full z-10 overflow-hidden">
                 
-                {/* Header */}
+                    {/* Header */}
                     <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <div className="size-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
@@ -442,6 +480,19 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts, storeSlug: p
                             <X size={20} />
                         </button>
                     </div>
+
+                    {/* Cart Reservation Urgency Banner */}
+                    {items.length > 0 && (
+                        <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-2.5 flex items-center justify-between text-xs font-bold text-amber-900">
+                            <div className="flex items-center gap-1.5">
+                                <span className="inline-block size-2 rounded-full bg-amber-500 animate-ping" />
+                                <span>High demand: Cart items reserved</span>
+                            </div>
+                            <div className="flex items-center gap-1 font-mono bg-amber-500/20 px-2 py-0.5 rounded text-amber-950 font-black">
+                                <span>⚡ {formattedReserveTime}</span>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Tiered Milestone Progress Bar */}
                     <div className="px-6 py-3 bg-gradient-to-b from-emerald-50/80 to-teal-50/40 border-b border-emerald-100/80">

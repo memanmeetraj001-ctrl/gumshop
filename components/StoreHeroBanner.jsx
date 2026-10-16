@@ -1,4 +1,5 @@
 'use client'
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { 
     Sparkles, 
@@ -8,7 +9,10 @@ import {
     Zap, 
     Truck, 
     ShieldCheck, 
-    ArrowDown 
+    ArrowDown,
+    Flame,
+    Eye,
+    Clock
 } from 'lucide-react';
 
 export default function StoreHeroBanner({ store, totalProducts = 0 }) {
@@ -16,18 +20,37 @@ export default function StoreHeroBanner({ store, totalProducts = 0 }) {
     const storeName = store?.name || "Official Store";
     const storeBio = store?.description || "Curated viral essentials with fast, tracked worldwide delivery.";
 
+    // Same-Day Dispatch Shipping Cutoff Calculator (5:00 PM local cutoff)
+    const shippingCutoff = useMemo(() => {
+        const now = new Date();
+        const cutoffHour = 17;
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        if (currentHour < cutoffHour) {
+            const diffMinutes = (cutoffHour * 60) - (currentHour * 60 + currentMinute);
+            const h = Math.floor(diffMinutes / 60);
+            const m = diffMinutes % 60;
+            return `${h > 0 ? `${h}h ` : ''}${m}m`;
+        }
+        return 'Tomorrow 9am';
+    }, []);
+
+    // Deterministic Live Social Demand Proof (Believable & Consistent Across Page Reloads)
+    const socialDemand = useMemo(() => {
+        let hash = 0;
+        const str = store?.username || store?.slug || store?.name || 'store';
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.charCodeAt(i);
+            hash |= 0;
+        }
+        const seed = Math.abs(hash);
+        const orders = 34 + (seed % 23); // Believable range: 34 to 56
+        const viewers = 12 + (seed % 16); // Believable range: 12 to 27
+        return { orders, viewers };
+    }, [store]);
+
     return (
         <div className="w-full">
-            {/* Flash Sale Announcement Bar */}
-            {store?.flashSale?.enabled !== false && (
-                <div className="bg-slate-950 text-white py-2.5 px-4 text-center text-xs font-semibold flex items-center justify-center gap-2 flex-wrap border-b border-slate-800">
-                    <span className="flex items-center gap-1.5 text-emerald-400">
-                        <Sparkles size={14} />
-                        <span>{store?.flashSale?.text || "⚡ FLASH SALE: 25% OFF STOREWIDE — Today Only!"}</span>
-                    </span>
-                </div>
-            )}
-
             {/* Store Hero Banner Section */}
             <div className="relative overflow-hidden bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white py-12 sm:py-18 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
                 {/* Background hero banner if provided */}
@@ -97,11 +120,28 @@ export default function StoreHeroBanner({ store, totalProducts = 0 }) {
                             {storeBio}
                         </p>
 
+                        {/* Urgency & Social Proof Demand Indicators */}
+                        {store?.urgencyEnabled !== false && (
+                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1 pb-1">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-bold shadow-xs">
+                                    <span className="size-2 rounded-full bg-rose-500 animate-pulse" />
+                                    <span>🔥 {socialDemand.orders} items ordered today</span>
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-slate-300 text-xs font-medium">
+                                    <span>👀 {socialDemand.viewers} viewing right now</span>
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold">
+                                    <span>📦</span>
+                                    <span>Order in <strong className="text-white font-mono">{shippingCutoff}</strong> for Same-Day Dispatch</span>
+                                </span>
+                            </div>
+                        )}
+
                         {/* Action Buttons */}
                         <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-3">
                             <a
                                 href="#catalog"
-                                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 active:scale-95 transition"
+                                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 active:scale-95 transition cursor-pointer"
                             >
                                 <span>Shop Collection</span>
                                 <ArrowDown size={15} />
@@ -109,7 +149,7 @@ export default function StoreHeroBanner({ store, totalProducts = 0 }) {
 
                             <Link
                                 href={`/shop/${store?.username || 'store'}/track`}
-                                className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs sm:text-sm transition"
+                                className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs sm:text-sm transition cursor-pointer"
                             >
                                 <Truck size={15} className="text-emerald-400" />
                                 <span>Track Order</span>
