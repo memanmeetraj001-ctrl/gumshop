@@ -90,7 +90,8 @@ const getInitialDashboardStores = () => {
             description: 'We Sell Gel Ball Launcher (Toy Guns) which is a superior alternative to Airsoft.',
             theme: 'viral_lander',
             themeColor: '#10B981',
-            logo: '',
+            logo: 'https://theluckylk.com/cdn/shop/files/30kb.webp?crop=center&height=32&v=1792057646&width=32',
+            avatar: 'https://theluckylk.com/cdn/shop/files/30kb.webp?crop=center&height=32&v=1792057646&width=32',
             status: 'active',
             hasGumroad: false,
             gumroadToken: '',
@@ -106,7 +107,8 @@ const getInitialDashboardStores = () => {
             description: "A headless horseman rider with a glowing jack-o'-lantern that straps onto your cat or small dog in seconds. Free tracked US shipping.",
             theme: 'clean_beauty',
             themeColor: '#F43F5E',
-            logo: '',
+            logo: 'https://cdn.shopify.com/s/files/1/0680/7997/6546/files/1_1c648c33-92f0-4ba2-a0ec-487472836950.png?v=1790669403',
+            avatar: 'https://cdn.shopify.com/s/files/1/0680/7997/6546/files/1_1c648c33-92f0-4ba2-a0ec-487472836950.png?v=1790669403',
             status: 'active',
             hasGumroad: true,
             gumroadToken: '',
@@ -370,6 +372,8 @@ export default function MasterDashboardPage() {
                     (typeof sStore.theme === 'object' ? sStore.theme?.primary : null) || 
                     '#10B981';
 
+                const storeDp = sStore.logo || sStore.avatar || sStore.logo_url || sStore.bioProfile?.avatar || (Array.isArray(sStore.products) && sStore.products[0]?.image) || '';
+
                 found.push({
                     id: sStore.id || `store_${slug}`,
                     name: sStore.name || slug,
@@ -377,7 +381,8 @@ export default function MasterDashboardPage() {
                     description: sStore.description || '',
                     theme: themeMode,
                     themeColor: themeColor,
-                    logo: sStore.logo || sStore.logo_url || '',
+                    logo: storeDp,
+                    avatar: storeDp,
                     status: sStore.status || 'active',
                     hasGumroad,
                     gumroadToken: sStore.gumroadToken || '',
@@ -397,7 +402,8 @@ export default function MasterDashboardPage() {
                     description: 'We Sell Gel Ball Launcher (Toy Guns) which is a superior alternative to Airsoft.',
                     theme: 'viral_lander',
                     themeColor: '#10B981',
-                    logo: '',
+                    logo: 'https://theluckylk.com/cdn/shop/files/30kb.webp?crop=center&height=32&v=1792057646&width=32',
+                    avatar: 'https://theluckylk.com/cdn/shop/files/30kb.webp?crop=center&height=32&v=1792057646&width=32',
                     status: 'active',
                     hasGumroad: false,
                     gumroadToken: '',
@@ -413,7 +419,8 @@ export default function MasterDashboardPage() {
                     description: "A headless horseman rider with a glowing jack-o'-lantern that straps onto your cat or small dog in seconds. Free tracked US shipping.",
                     theme: 'clean_beauty',
                     themeColor: '#F43F5E',
-                    logo: '',
+                    logo: 'https://cdn.shopify.com/s/files/1/0680/7997/6546/files/1_1c648c33-92f0-4ba2-a0ec-487472836950.png?v=1790669403',
+                    avatar: 'https://cdn.shopify.com/s/files/1/0680/7997/6546/files/1_1c648c33-92f0-4ba2-a0ec-487472836950.png?v=1790669403',
                     status: 'active',
                     hasGumroad: true,
                     gumroadToken: '',
@@ -1389,13 +1396,28 @@ export default function MasterDashboardPage() {
                                 <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm relative overflow-hidden">
                                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
                                         <div className="flex items-start sm:items-center gap-4">
-                                            <div className="size-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-black text-2xl shadow-lg shadow-emerald-500/20 shrink-0">
-                                                {activeStore.logo ? (
-                                                    <img src={activeStore.logo} alt={activeStore.name} className="w-full h-full object-cover rounded-2xl" />
-                                                ) : (
-                                                    (activeStore.name || 'S').charAt(0).toUpperCase()
-                                                )}
-                                            </div>
+                                            {(() => {
+                                                const activeDp = activeStore.logo || activeStore.avatar || activeStore.logo_url || activeStore.bioProfile?.avatar || (Array.isArray(activeStore.products) && activeStore.products[0]?.image);
+                                                return (
+                                                    <div className="size-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-black text-2xl shadow-lg shadow-emerald-500/20 shrink-0 overflow-hidden relative">
+                                                        {activeDp ? (
+                                                            <img 
+                                                                src={activeDp} 
+                                                                alt={activeStore.name} 
+                                                                className="w-full h-full object-cover rounded-2xl"
+                                                                onError={(e) => {
+                                                                    e.currentTarget.style.display = 'none';
+                                                                    const fb = e.currentTarget.parentElement?.querySelector('.active-avatar-fb');
+                                                                    if (fb) fb.classList.remove('hidden');
+                                                                }}
+                                                            />
+                                                        ) : null}
+                                                        <div className={`active-avatar-fb w-full h-full flex items-center justify-center font-black text-slate-950 text-2xl ${activeDp ? 'hidden' : ''}`}>
+                                                            {(activeStore.name || 'S').charAt(0).toUpperCase()}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
                                             <div>
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{activeStore.name}</h2>
@@ -2767,6 +2789,7 @@ export default function MasterDashboardPage() {
 function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onSetHomepage, onDelete, onArchive, onDuplicate, onOpenDashboard }) {
     const isActive = Boolean(activeStore && (activeStore.username === shop.username || activeStore.id === shop.id));
     const isHomepage = Boolean(homepageStoreSlug && (homepageStoreSlug === shop.username || homepageStoreSlug === shop.id));
+    const storeDp = shop.logo || shop.avatar || shop.logo_url || shop.bioProfile?.avatar || (Array.isArray(shop.products) && shop.products[0]?.image);
 
     return (
         <div
@@ -2783,14 +2806,22 @@ function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onS
             <div>
                 {/* Top Badges & Delete */}
                 <div className="flex items-start justify-between gap-3 mb-4">
-                    <div className="size-13 rounded-2xl bg-slate-100 border border-slate-200 p-1 shrink-0 overflow-hidden">
-                        {shop.logo ? (
-                            <img src={shop.logo} alt={shop.name} className="w-full h-full object-cover rounded-xl" />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center font-black text-emerald-600 text-base">
-                                {(shop.name || shop.username || 'Store').charAt(0).toUpperCase()}
-                            </div>
-                        )}
+                    <div className="size-13 rounded-2xl bg-slate-100 border border-slate-200 p-1 shrink-0 overflow-hidden relative">
+                        {storeDp ? (
+                            <img 
+                                src={storeDp} 
+                                alt={shop.name} 
+                                className="w-full h-full object-cover rounded-xl"
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const fb = e.currentTarget.parentElement?.querySelector('.store-avatar-fb');
+                                    if (fb) fb.classList.remove('hidden');
+                                }} 
+                            />
+                        ) : null}
+                        <div className={`store-avatar-fb w-full h-full flex items-center justify-center font-black text-emerald-600 text-base ${storeDp ? 'hidden' : ''}`}>
+                            {(shop.name || shop.username || 'Store').charAt(0).toUpperCase()}
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-1.5 flex-wrap justify-end">

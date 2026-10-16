@@ -31,13 +31,28 @@ const StoreSidebar = ({ storeInfo }) => {
             <div>
                 {/* Store Profile Header */}
                 <div className="flex flex-col gap-2 justify-center items-center pt-8 pb-6 px-4 border-b border-slate-100 max-sm:hidden text-center">
-                    {storeInfo?.logo ? (
-                        <img className="size-16 rounded-2xl shadow-sm border border-slate-100 object-cover" src={storeInfo.logo} alt="" />
-                    ) : (
-                        <div className="size-16 rounded-2xl bg-emerald-100 text-emerald-700 font-extrabold flex items-center justify-center text-xl shadow-sm">
-                            {storeInfo?.name?.charAt(0) || 'G'}
-                        </div>
-                    )}
+                    {(() => {
+                        const dp = storeInfo?.logo || storeInfo?.avatar || storeInfo?.logo_url || storeInfo?.bioProfile?.avatar || (Array.isArray(storeInfo?.products) && storeInfo?.products[0]?.image);
+                        return (
+                            <div className="size-16 rounded-2xl shadow-sm border border-slate-100 overflow-hidden relative">
+                                {dp ? (
+                                    <img 
+                                        className="w-full h-full object-cover" 
+                                        src={dp} 
+                                        alt={storeInfo?.name || "Store"} 
+                                        onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                            const fb = e.currentTarget.parentElement?.querySelector('.sidebar-avatar-fb');
+                                            if (fb) fb.classList.remove('hidden');
+                                        }}
+                                    />
+                                ) : null}
+                                <div className={`sidebar-avatar-fb w-full h-full bg-emerald-100 text-emerald-700 font-extrabold flex items-center justify-center text-xl ${dp ? 'hidden' : ''}`}>
+                                    {storeInfo?.name?.charAt(0) || 'G'}
+                                </div>
+                            </div>
+                        );
+                    })()}
                     <h3 className="font-bold text-slate-800 text-sm mt-1">{storeInfo?.name || 'My Store'}</h3>
                     
                     {/* View Live Storefront & Bio Link */}

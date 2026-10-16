@@ -3,11 +3,12 @@ import { MapPin, Mail, Phone, Store, User } from "lucide-react"
 import { getSafeImageUrl, handleImageError } from "@/lib/imageUtils"
 
 const StoreInfo = ({store}) => {
+    const storeDp = store?.logo || store?.avatar || store?.logo_url || store?.bioProfile?.avatar || (Array.isArray(store?.products) && store?.products[0]?.image);
     return (
         <div className="flex-1 space-y-2 text-sm">
-            {store?.logo ? (
+            {storeDp ? (
                 <img 
-                    src={getSafeImageUrl(store.logo)} 
+                    src={getSafeImageUrl(storeDp)} 
                     alt={store.name || "Store"} 
                     className="max-w-20 max-h-20 object-contain shadow rounded-full max-sm:mx-auto" 
                     onError={(e) => handleImageError(e, 'avatar')}

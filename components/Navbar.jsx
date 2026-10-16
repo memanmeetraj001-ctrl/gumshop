@@ -105,11 +105,14 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                     if (Array.isArray(data.stores)) {
                         data.stores.forEach(s => {
                             const slug = (s.username || s.name || s.id || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+                            const logo = s.logo || s.avatar || s.logo_url || s.bioProfile?.avatar || (Array.isArray(s.products) && s.products[0]?.image) || '';
                             if (slug && !isStoreDeleted(slug) && !isStoreDeleted(s.id) && !map.has(slug)) {
                                 map.set(slug, {
                                     id: s.id || `store_${slug}`,
                                     name: s.name || slug,
-                                    username: slug
+                                    username: slug,
+                                    logo,
+                                    avatar: logo
                                 });
                             }
                         });
@@ -231,17 +234,29 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                                 {storesMenuOpen && (
                                     <div className="absolute left-0 mt-2 w-60 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1">
                                         <div className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">Available Stores</div>
-                                        {availableStores.map(s => (
-                                            <Link
-                                                key={s.username}
-                                                href={`/shop/${s.username}`}
-                                                onClick={() => setStoresMenuOpen(false)}
-                                                className="block px-2.5 py-2 rounded-xl text-xs hover:bg-slate-50 text-slate-800 transition"
-                                            >
-                                                <div className="font-bold text-slate-900 truncate">{s.name}</div>
-                                                <div className="text-[10px] text-slate-400 font-mono">/shop/{s.username}</div>
-                                            </Link>
-                                        ))}
+                                        {availableStores.map(s => {
+                                            const sLogo = s.logo || s.avatar;
+                                            return (
+                                                <Link
+                                                    key={s.username}
+                                                    href={`/shop/${s.username}`}
+                                                    onClick={() => setStoresMenuOpen(false)}
+                                                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs hover:bg-slate-50 text-slate-800 transition"
+                                                >
+                                                    <div className="size-7 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+                                                        {sLogo ? (
+                                                            <img src={sLogo} alt="" className="size-full object-cover" />
+                                                        ) : (
+                                                            <Store size={12} className="text-slate-500" />
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className="font-bold text-slate-900 truncate">{s.name}</div>
+                                                        <div className="text-[10px] text-slate-400 font-mono">/shop/{s.username}</div>
+                                                    </div>
+                                                </Link>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
