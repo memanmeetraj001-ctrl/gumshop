@@ -1,44 +1,98 @@
-# ⚡ GumShop Super Store (v2 Pure Supabase)
+<div align="center">
+  <img src="docs/images/banner.svg" alt="GumShop.online Super Store V2 Banner" width="100%" />
 
-> **High-Performance Autonomous Multi-Store & Creator Ecommerce Engine**  
-> Powered by **Next.js 16 (Turbopack)**, **Pure Supabase PostgreSQL**, and **Gumroad Dynamic In-Frame Checkout**.
+  <br/><br/>
 
-[![Next.js 16](https://img.shields.io/badge/Next.js-16.4.0%20(Turbopack)-black?style=flat&logo=next.js)](https://nextjs.org/)
-[![Supabase](https://img.shields.io/badge/Database-Supabase%20PostgreSQL-3ECF8E?style=flat&logo=supabase)](https://supabase.com/)
-[![Deployment](https://img.shields.io/badge/Deployed%20on-Vercel-000000?style=flat&logo=vercel)](https://www.gumshop.online)
-[![Store Isolation](https://img.shields.io/badge/Store%20Isolation-100%25%20Verified-emerald?style=flat)]()
-[![License](https://img.shields.io/badge/License-Proprietary-blue.svg)]()
+  [![Next.js 16](https://img.shields.io/badge/Next.js-16.4.0%20(Turbopack)-black?style=flat&logo=next.js)](https://nextjs.org/)
+  [![Supabase](https://img.shields.io/badge/Database-Supabase%20PostgreSQL-3ECF8E?style=flat&logo=supabase)](https://supabase.com/)
+  [![Deployment](https://img.shields.io/badge/Deployed%20on-Vercel-000000?style=flat&logo=vercel)](https://www.gumshop.online)
+  [![Store Isolation](https://img.shields.io/badge/Store%20Isolation-100%25%20Verified-emerald?style=flat)]()
+  [![License](https://img.shields.io/badge/License-Proprietary-blue.svg)]()
+</div>
 
 ---
 
 ## 🌐 Live Production Storefront & Dashboards
 
-- **Production Root Storefront**: [https://www.gumshop.online](https://www.gumshop.online)
-- **Master Fleet Command Center**: [https://www.gumshop.online/dashboard](https://www.gumshop.online/dashboard)
-- **Active Creator Stores**:
-  - 🧸 **Rubber Couch Toys Official Store**: [https://www.gumshop.online/shop/rubber-couch-toys-official-store](https://www.gumshop.online/shop/rubber-couch-toys-official-store)  
-    *Creator Link-in-Bio*: [https://www.gumshop.online/creator/rubber-couch-toys-official-store](https://www.gumshop.online/creator/rubber-couch-toys-official-store)
-  - 🎃 **PhantomPaws Headless Horseman Pet Costume**: [https://www.gumshop.online/shop/phantompaws-headless-horseman-pet-costume](https://www.gumshop.online/shop/phantompaws-headless-horseman-pet-costume)  
-    *Creator Link-in-Bio*: [https://www.gumshop.online/creator/phantompaws-headless-horseman-pet-costume](https://www.gumshop.online/creator/phantompaws-headless-horseman-pet-costume)
+| Destination | Live URL | Description |
+|---|---|---|
+| **Production Root Storefront** | [https://www.gumshop.online](https://www.gumshop.online) | Primary homepage serving marketplace deals or designated creator store |
+| **Master Fleet Command Center** | [https://www.gumshop.online/dashboard](https://www.gumshop.online/dashboard) | Central hub to manage stores, homepage switching, and fleet imports |
+| **Rubber Couch Toys Official Store** | [Catalog](https://www.gumshop.online/shop/rubber-couch-toys-official-store) • [Stan Store](https://www.gumshop.online/creator/rubber-couch-toys-official-store) | 100+ gel blaster products, volume bundles, and instant checkout |
+| **PhantomPaws Pet Costume** | [Catalog](https://www.gumshop.online/shop/phantompaws-headless-horseman-pet-costume) • [Stan Store](https://www.gumshop.online/creator/phantompaws-headless-horseman-pet-costume) | Viral TikTok costume with Jack-o'-lantern light and size guarantee |
 
 ---
 
-## 📸 Platform Highlights & Screenshots
+## 📸 Platform Highlights & Visual Showcase
 
 ### 1. Master Fleet Command Center (`/dashboard`)
 *Manage multiple independent stores, toggle homepage modes, monitor global imports, and configure store-level credentials with strict isolation.*
 
-![Master Dashboard Store Controller](docs/images/dashboard-store-controller.png)
+<table>
+  <tr>
+    <td width="50%">
+      <b>Quick Store Switcher & Homepage Controller</b><br/>
+      <i>Designate root homepage, toggle marketplace mode, or switch store scope.</i><br/><br/>
+      <img src="docs/images/dashboard-store-controller.png" alt="Dashboard Store Controller" />
+    </td>
+    <td width="50%">
+      <b>Fleet Store Management Cards</b><br/>
+      <i>Monitor real-time product counts, theme palettes, and Gumroad payouts.</i><br/><br/>
+      <img src="docs/images/dashboard-fleet-management.png" alt="Fleet Store Cards" />
+    </td>
+  </tr>
+</table>
 
-### 2. High-Converting Creator Stan Store (`/creator/[username]`)
-*Interactive creator storefront featuring dynamic highlights, volume pricing tiers (1-pack, 2-pack, 3-pack), customer reviews, and lead magnet captures.*
+---
 
-![Creator Stan Store](docs/images/stan-store-creator.png)
+### 2. AI Store Import Center (`/store/import`)
+*1-click clone external stores (Shopify, Stan Store, custom sites) with intelligent crawl scopes and SSRF protection.*
 
-### 3. Synchronized Volume Bundles & Checkout
-*Zero price discrepancies across all routes with mathematically synchronized volume tiers and Gumroad in-frame payment overlay.*
+<div align="center">
+  <img src="docs/images/store-importer-center.png" alt="AI Store Import Center" width="90%" />
+</div>
 
-![Product Bundles & Detail](docs/images/product-bundles-detail.png)
+---
+
+### 3. High-Converting Creator Stan Store (`/creator/[username]`)
+*Creator-first link-in-bio storefronts with interactive highlight reels, volume bundles, and zero-friction purchase flows.*
+
+<table>
+  <tr>
+    <td width="33%" align="center">
+      <b>Creator Bio & Highlights</b><br/><br/>
+      <img src="docs/images/stan-store-creator.png" alt="Creator Profile View" />
+    </td>
+    <td width="33%" align="center">
+      <b>Mobile-Optimized Lander</b><br/><br/>
+      <img src="docs/images/stan-store-mobile-lander.png" alt="Mobile Lander" />
+    </td>
+    <td width="33%" align="center">
+      <b>In-Frame Modal Checkout</b><br/><br/>
+      <img src="docs/images/stan-store-inframe-checkout.png" alt="In-Frame Checkout & Social Proof" />
+    </td>
+  </tr>
+</table>
+
+---
+
+### 4. Volume Pricing Tiers & Conversion Optimization
+*Guaranteed zero price discrepancy ($52.99 baseline with 1-pack, 2-pack, and 3-pack volume discounts).*
+
+<table>
+  <tr>
+    <td width="50%">
+      <b>Synchronized Volume Bundles</b><br/>
+      <i>Dynamic savings badges, unit price calculations, and promo codes.</i><br/><br/>
+      <img src="docs/images/product-bundles-detail.png" alt="Product Bundles Detail" />
+    </td>
+    <td width="50%">
+      <b>Perfect Fit Sizing Guarantee</b><br/>
+      <i>Interactive sizing guide modal with trust badges and customer reviews.</i><br/><br/>
+      <img src="docs/images/product-guarantee-modal.png" alt="Product Guarantee Modal" />
+    </td>
+  </tr>
+</table>
 
 ---
 
@@ -114,7 +168,7 @@ gumshop-v2/
 │   ├── activeStore.js         # Client-side store context & persistence helpers
 │   ├── serverDb.js            # Unified server database interface
 │   └── firebaseDb.js          # Adapter delegating directly to Supabase
-├── docs/images/               # High-resolution screenshots & UI previews
+├── docs/images/               # High-resolution screenshots, banners & previews
 ├── scripts/                   # Automated verification test suites
 └── next.config.mjs            # Next.js configuration with CORS & compression
 ```
