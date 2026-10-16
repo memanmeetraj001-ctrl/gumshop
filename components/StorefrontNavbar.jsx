@@ -1,30 +1,34 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { ShoppingCart, Truck, Smartphone, ShieldCheck } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 
 export default function StorefrontNavbar({ store, onOpenCart }) {
-    const reduxCartCount = useSelector(state => state.cart?.total || 0);
-    const [localCount, setLocalCount] = useState(0);
+    const cartState = useSelector(state => state?.cart) || {};
+    const cartItems = (cartState.cartItems && typeof cartState.cartItems === 'object' && !Array.isArray(cartState.cartItems)) ? cartState.cartItems : {};
+    const cartProducts = (cartState.cartProducts && typeof cartState.cartProducts === 'object' && !Array.isArray(cartState.cartProducts)) ? cartState.cartProducts : {};
 
-    useEffect(() => {
-        try {
-            if (typeof window !== 'undefined') {
-                const raw = localStorage.getItem('cart');
-                if (raw) {
-                    const parsed = JSON.parse(raw);
-                    if (Array.isArray(parsed)) {
-                        setLocalCount(parsed.reduce((sum, item) => sum + (item.quantity || 1), 0));
-                    }
-                }
+    const storeSlug = store?.username || store?.slug || store?.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '') || 'shop';
+    const targetSlug = String(storeSlug).toLowerCase().trim().replace(/^store_/, '');
+
+    const storeCartCount = useMemo(() => {
+        let count = 0;
+        for (const [key, qty] of Object.entries(cartItems)) {
+            const numQty = parseInt(qty || 0);
+            if (!numQty || numQty <= 0) continue;
+            const baseId = key.includes('__') ? key.split('__')[0] : key;
+            const prod = cartProducts[key] || cartProducts[baseId];
+            const pSlug = prod?.storeSlug || (prod?.storeId ? String(prod.storeId).replace(/^store_/, '') : '');
+            if (!pSlug || pSlug === targetSlug || prod?.storeId === `store_${targetSlug}`) {
+                count += numQty;
             }
-        } catch {}
-    }, []);
+        }
+        return count;
+    }, [cartItems, cartProducts, targetSlug]);
 
-    const cartCount = reduxCartCount > 0 ? reduxCartCount : localCount;
-    const storeSlug = store?.username || store?.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '') || 'shop';
+    const cartCount = storeCartCount;
 
     return (
         <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 transition-all shadow-xs">

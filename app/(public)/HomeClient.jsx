@@ -868,6 +868,9 @@ export default function HomeClient({ initialStore = null, initialMode = 'single'
             <CartDrawer
                 isOpen={cartDrawerOpen}
                 onClose={() => setCartDrawerOpen(false)}
+                products={products}
+                storeSlug={homepageMode === 'all' || homepageMode === 'custom' ? 'all' : (activeStore?.username || 'all')}
+                store={activeStore}
             />
 
             <WishlistDrawer

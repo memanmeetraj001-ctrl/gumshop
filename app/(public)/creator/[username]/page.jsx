@@ -260,8 +260,23 @@ export default function CreatorBioPage({ params }) {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
     const dispatch = useDispatch();
-    const { cartItems, total: cartTotal } = useSelector(state => state.cart || {});
-    const cartCount = Object.values(cartItems || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+    const cartState = useSelector(state => state?.cart) || {};
+    const cartItems = (cartState.cartItems && typeof cartState.cartItems === 'object' && !Array.isArray(cartState.cartItems)) ? cartState.cartItems : {};
+    const cartProducts = (cartState.cartProducts && typeof cartState.cartProducts === 'object' && !Array.isArray(cartState.cartProducts)) ? cartState.cartProducts : {};
+    const cartCount = useMemo(() => {
+        let count = 0;
+        for (const [key, qty] of Object.entries(cartItems)) {
+            const numQty = parseInt(qty || 0);
+            if (!numQty || numQty <= 0) continue;
+            const baseId = key.includes('__') ? key.split('__')[0] : key;
+            const prod = cartProducts[key] || cartProducts[baseId];
+            const pSlug = prod?.storeSlug || (prod?.storeId ? String(prod.storeId).replace(/^store_/, '') : '');
+            if (!pSlug || pSlug === cleanUser || prod?.storeId === `store_${cleanUser}`) {
+                count += numQty;
+            }
+        }
+        return count;
+    }, [cartItems, cartProducts, cleanUser]);
     const [isCartOpen, setIsCartOpen] = useState(false);
 
     // High-Conversion Sales States
@@ -2102,6 +2117,8 @@ export default function CreatorBioPage({ params }) {
                 isOpen={isCartOpen}
                 onClose={() => setIsCartOpen(false)}
                 products={Array.isArray(displayedProducts) ? displayedProducts : []}
+                storeSlug={cleanUser}
+                store={creator}
             />
 
             {/* 🔥 Live Sales Pop-up (Social Proof Toaster) */}

@@ -146,7 +146,13 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
             </main>
 
             <StorefrontFooter store={storeInfo} />
-            <CartDrawer open={cartDrawerOpen} onClose={() => setCartDrawerOpen(false)} />
+            <CartDrawer 
+                isOpen={cartDrawerOpen} 
+                onClose={() => setCartDrawerOpen(false)} 
+                products={products}
+                storeSlug={storeInfo.username || storeInfo.slug || rawUsername}
+                store={storeInfo}
+            />
             <ExitIntentModal storeName={storeInfo.name} />
             <AiShoppingAssistant store={storeInfo} products={products} />
             <LiveSalesToaster storeSlug={storeInfo.username || storeInfo.slug} />

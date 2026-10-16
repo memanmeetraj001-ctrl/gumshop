@@ -14,8 +14,8 @@ export default function Cart() {
     const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '$';
     
     const cartState = useSelector(state => state?.cart) || {};
-    const cartItems = (cartState.cartItems && typeof cartState.cartItems === 'object') ? cartState.cartItems : {};
-    const cartProducts = (cartState.cartProducts && typeof cartState.cartProducts === 'object') ? cartState.cartProducts : {};
+    const cartItems = (cartState.cartItems && typeof cartState.cartItems === 'object' && !Array.isArray(cartState.cartItems)) ? cartState.cartItems : {};
+    const cartProducts = (cartState.cartProducts && typeof cartState.cartProducts === 'object' && !Array.isArray(cartState.cartProducts)) ? cartState.cartProducts : {};
     const reduxProducts = useSelector(state => state?.product?.list);
     const products = Array.isArray(reduxProducts) ? reduxProducts : [];
 
@@ -39,10 +39,12 @@ export default function Cart() {
         let calculatedTotal = 0;
 
         for (const [key, value] of Object.entries(cartItems || {})) {
-            if (!value || value <= 0) continue;
+            const numQty = parseInt(value || 0);
+            if (!numQty || numQty <= 0) continue;
+            const baseId = key.includes('__') ? key.split('__')[0] : key;
 
             // 1. Check cartProducts stored during addToCart
-            let product = cartProducts[key] || (products || []).find(p => p && p.id === key);
+            let product = cartProducts[key] || cartProducts[baseId] || (products || []).find(p => p && (p.id === key || p.id === baseId));
 
 
 

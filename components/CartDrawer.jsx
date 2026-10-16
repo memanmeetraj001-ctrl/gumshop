@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart, removeFromCart, deleteItemFromCart } from '@/lib/features/cart/cartSlice';
-import { X, Trash2, ShoppingBag, Plus, Minus, Zap, ShieldCheck, Tag, Sparkles } from 'lucide-react';
+import { X, Trash2, ShoppingBag, Plus, Minus, Zap, ShieldCheck, Tag, Sparkles, Store } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { getActiveStoreSync } from '@/lib/activeStore';
@@ -12,12 +12,19 @@ import GumroadIframeModal from './GumroadIframeModal';
 import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 import { trackEvent } from './AnalyticsTracker';
 
-export default function CartDrawer({ isOpen, onClose, products: propProducts }) {
-    if (!isOpen) return null;
+export default function CartDrawer({ isOpen, open, onClose, products: propProducts, storeSlug, store }) {
+    const isVisible = Boolean(isOpen || open);
+    if (!isVisible) return null;
 
     return (
         <CartDrawerErrorBoundary onClose={onClose}>
-            <CartDrawerInner isOpen={isOpen} onClose={onClose} products={propProducts} />
+            <CartDrawerInner 
+                isOpen={isVisible} 
+                onClose={onClose} 
+                products={propProducts} 
+                storeSlug={storeSlug} 
+                store={store} 
+            />
         </CartDrawerErrorBoundary>
     );
 }
@@ -68,12 +75,12 @@ class CartDrawerErrorBoundary extends React.Component {
     }
 }
 
-function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
+function CartDrawerInner({ isOpen, onClose, products: propProducts, storeSlug: propStoreSlug, store: propStore }) {
     const dispatch = useDispatch();
     const currency = '$';
     const cartState = useSelector(state => state?.cart) || {};
-    const cartItems = (cartState.cartItems && typeof cartState.cartItems === 'object') ? cartState.cartItems : {};
-    const cartProducts = (cartState.cartProducts && typeof cartState.cartProducts === 'object') ? cartState.cartProducts : {};
+    const cartItems = (cartState.cartItems && typeof cartState.cartItems === 'object' && !Array.isArray(cartState.cartItems)) ? cartState.cartItems : {};
+    const cartProducts = (cartState.cartProducts && typeof cartState.cartProducts === 'object' && !Array.isArray(cartState.cartProducts)) ? cartState.cartProducts : {};
     const total = Number(cartState.total) || 0;
     const reduxProducts = useSelector(state => state?.product?.list);
     const products = Array.isArray(propProducts) && propProducts.length > 0 
@@ -85,6 +92,14 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
     const [appliedDiscount, setAppliedDiscount] = useState(0);
     const [hasPriorityProtection, setHasPriorityProtection] = useState(true);
     const [checkoutModal, setCheckoutModal] = useState({ isOpen: false, gumroadUrl: '', orderSessionId: '' });
+
+    const normalizedPropSlug = (propStoreSlug && propStoreSlug !== 'all')
+        ? String(propStoreSlug).toLowerCase().trim().replace(/^store_/, '')
+        : '';
+    const [viewAllStores, setViewAllStores] = useState(false);
+    const effectiveScope = (viewAllStores || !normalizedPropSlug) ? 'all' : normalizedPropSlug;
+
+    const formatPrice = (val) => (Number(val) || 0).toFixed(2);
 
     // Auto-detect and activate stored coupon (e.g. SAVE20 from Flash Deals)
     useEffect(() => {
@@ -99,10 +114,9 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
     }, [isOpen, couponCode]);
 
     // Memoize resolved items and subtotal to avoid synchronous storage scans on every render
-    const { items, subtotal } = useMemo(() => {
-        if (!isOpen) return { items: [], subtotal: 0 };
+    const { allResolvedItems, items, subtotal, otherStoresCount } = useMemo(() => {
+        if (!isOpen) return { allResolvedItems: [], items: [], subtotal: 0, otherStoresCount: 0 };
         const resolvedItems = [];
-        let calculatedSubtotal = 0;
 
         for (const [rawKey, qty] of Object.entries(cartItems || {})) {
             const numQty = parseInt(qty || 0);
@@ -118,6 +132,10 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
             const name = product?.name || 'Featured Item';
             const image = product?.image || (Array.isArray(product?.images) && product.images[0]) || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200';
 
+            const rawStoreSlug = product?.storeSlug || product?.storeUsername || (product?.storeId ? String(product.storeId).replace(/^store_/, '') : (product?.store_id ? String(product.store_id).replace(/^store_/, '') : ''));
+            const cleanSlug = rawStoreSlug ? String(rawStoreSlug).toLowerCase().trim().replace(/^store_/, '') : '';
+            const cleanStoreId = product?.storeId || (cleanSlug ? `store_${cleanSlug}` : 'store_default');
+
             resolvedItems.push({
                 id: key,
                 name,
@@ -125,14 +143,30 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                 price,
                 image,
                 quantity: numQty,
-                storeId: product?.storeId || 'store_default',
-                storeSlug: product?.storeSlug || (product?.storeId ? String(product.storeId).replace(/^store_/, '') : '')
+                storeId: cleanStoreId,
+                storeSlug: cleanSlug,
+                storeName: product?.storeName || cleanSlug,
+                gumroadUrl: product?.gumroadUrl || ''
             });
-            calculatedSubtotal += price * numQty;
         }
 
-        return { items: resolvedItems, subtotal: Math.round(calculatedSubtotal * 100) / 100 };
-    }, [isOpen, cartItems, cartProducts, products]);
+        let filtered = resolvedItems;
+        let otherCount = 0;
+        if (effectiveScope !== 'all') {
+            filtered = resolvedItems.filter(i => !i.storeSlug || i.storeSlug === effectiveScope || i.storeId === `store_${effectiveScope}`);
+            const otherItems = resolvedItems.filter(i => i.storeSlug && i.storeSlug !== effectiveScope && i.storeId !== `store_${effectiveScope}`);
+            otherCount = otherItems.reduce((acc, curr) => acc + curr.quantity, 0);
+        }
+
+        const calculatedSubtotal = filtered.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+        return { 
+            allResolvedItems: resolvedItems, 
+            items: filtered, 
+            subtotal: Math.round(calculatedSubtotal * 100) / 100, 
+            otherStoresCount: otherCount 
+        };
+    }, [isOpen, cartItems, cartProducts, products, effectiveScope]);
 
     // Frequently Bought Together Companion Recommendation
     const crossSellProduct = useMemo(() => {
@@ -239,13 +273,13 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
         setIsCheckingOut(true);
         try {
             const activeStore = getActiveStoreSync();
-            const storeSlug = activeStore?.username || activeStore?.id;
-            const storeScopedUrl = storeSlug && typeof window !== 'undefined' ? (localStorage.getItem(`gumroad_url_${storeSlug}`) || localStorage.getItem(`gumroad_url_${activeStore?.id}`)) : '';
-            const storeScopedToken = storeSlug && typeof window !== 'undefined' ? (localStorage.getItem(`gumroad_token_${storeSlug}`) || localStorage.getItem(`gumroad_token_${activeStore?.id}`)) : '';
+            const targetStoreSlug = (effectiveScope !== 'all' ? effectiveScope : (items[0]?.storeSlug || activeStore?.username || ''));
+            const storeScopedUrl = targetStoreSlug && typeof window !== 'undefined' ? (localStorage.getItem(`gumroad_url_${targetStoreSlug}`) || localStorage.getItem(`gumroad_url_store_${targetStoreSlug}`)) : '';
+            const storeScopedToken = targetStoreSlug && typeof window !== 'undefined' ? (localStorage.getItem(`gumroad_token_${targetStoreSlug}`) || localStorage.getItem(`gumroad_token_store_${targetStoreSlug}`)) : '';
             const persistentUrl = typeof window !== 'undefined' ? (storeScopedUrl || localStorage.getItem('gumshop_gumroad_url') || localStorage.getItem('gumroad_product_url') || '') : '';
             const persistentToken = typeof window !== 'undefined' ? (storeScopedToken || localStorage.getItem('gumshop_gumroad_token') || localStorage.getItem('gumroad_access_token') || '') : '';
             const itemGumroadUrl = items.find(i => i.gumroadUrl)?.gumroadUrl || '';
-            const effectiveGumroadUrl = activeStore?.gumroadProductUrl || activeStore?.gumroadUrl || storeScopedUrl || persistentUrl || itemGumroadUrl || '';
+            const effectiveGumroadUrl = propStore?.gumroadProductUrl || propStore?.gumroadUrl || activeStore?.gumroadProductUrl || activeStore?.gumroadUrl || storeScopedUrl || persistentUrl || itemGumroadUrl || '';
 
             let activeAttribution = null;
             if (typeof window !== 'undefined') {
@@ -255,8 +289,8 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                 } catch {}
             }
 
-            const resolvedStoreSlug = items[0]?.storeSlug || (items[0]?.storeId ? String(items[0].storeId).replace(/^store_/, '') : (activeStore?.username || ''));
-            const resolvedStoreId = items[0]?.storeId || activeStore?.id || (resolvedStoreSlug ? `store_${resolvedStoreSlug}` : 'store_default');
+            const resolvedStoreSlug = targetStoreSlug || items[0]?.storeSlug || (items[0]?.storeId ? String(items[0].storeId).replace(/^store_/, '') : (activeStore?.username || ''));
+            const resolvedStoreId = items[0]?.storeId || (resolvedStoreSlug ? `store_${resolvedStoreSlug}` : (activeStore?.id || 'store_default'));
 
             trackEvent('initiate_checkout', {
                 storeId: resolvedStoreId,
@@ -271,9 +305,9 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                 body: JSON.stringify({
                     storeId: resolvedStoreId,
                     storeSlug: resolvedStoreSlug,
-                    storeName: activeStore?.name || 'GumShop Super Store',
+                    storeName: propStore?.name || activeStore?.name || 'GumShop Super Store',
                     gumroadProductUrl: effectiveGumroadUrl,
-                    accessToken: activeStore?.gumroadToken || persistentToken || '',
+                    accessToken: propStore?.gumroadToken || activeStore?.gumroadToken || persistentToken || '',
                     attribution: activeAttribution,
                     items: items.map(i => ({
                         productId: i.id,
@@ -281,7 +315,9 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                         price: parseFloat(i.price || 0),
                         quantity: i.quantity,
                         variant: i.variant || '',
-                        gumroadUrl: i.gumroadUrl || ''
+                        gumroadUrl: i.gumroadUrl || '',
+                        storeId: i.storeId || resolvedStoreId,
+                        storeSlug: i.storeSlug || resolvedStoreSlug
                     })),
                     couponCode: couponCode || (typeof window !== 'undefined' ? sessionStorage.getItem('active_coupon') : '') || '',
                     discountAmount: appliedDiscount,
@@ -314,6 +350,8 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
         }
     };
 
+    const displayedItemsCount = items.reduce((s, i) => s + i.quantity, 0);
+
     const drawerMarkup = (
         <div className="fixed inset-0 z-50 overflow-hidden animate-in fade-in duration-200">
             {/* Backdrop */}
@@ -331,7 +369,7 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                             <div className="size-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
                                 <ShoppingBag size={18} />
                             </div>
-                            <h2 className="text-lg font-extrabold text-slate-900">Your Cart ({total})</h2>
+                            <h2 className="text-lg font-extrabold text-slate-900">Your Cart ({displayedItemsCount})</h2>
                         </div>
                         <button 
                             onClick={onClose}
@@ -371,6 +409,36 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
 
                     {/* Item List */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                        {/* Store Scoping Banner */}
+                        {otherStoresCount > 0 && !viewAllStores && (
+                            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2 text-xs">
+                                <span className="text-[11px] font-medium text-slate-600 truncate">
+                                    🛒 Scoped to <strong>@{effectiveScope}</strong> ({otherStoresCount} other {otherStoresCount === 1 ? 'item' : 'items'} in cart)
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setViewAllStores(true)}
+                                    className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 underline shrink-0 cursor-pointer"
+                                >
+                                    View all
+                                </button>
+                            </div>
+                        )}
+                        {viewAllStores && normalizedPropSlug && (
+                            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-2 text-xs">
+                                <span className="text-[11px] font-medium text-emerald-900 truncate">
+                                    Showing all stores ({allResolvedItems.reduce((s, i) => s + i.quantity, 0)} items total)
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setViewAllStores(false)}
+                                    className="text-[11px] font-bold text-slate-600 hover:text-slate-900 underline shrink-0 cursor-pointer"
+                                >
+                                    Filter to @{normalizedPropSlug}
+                                </button>
+                            </div>
+                        )}
+
                         {items.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center text-center py-12">
                                 <div className="size-16 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-4">
@@ -402,11 +470,19 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                                         <div className="flex items-start justify-between gap-2">
                                             <div>
                                                 <h4 className="text-xs font-bold text-slate-900 line-clamp-2">{item.name}</h4>
-                                                {item.variant && (
-                                                    <span className="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-semibold rounded-md border border-slate-200">
-                                                        {item.variant}
-                                                    </span>
-                                                )}
+                                                <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                                                    {item.variant && (
+                                                        <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-semibold rounded-md border border-slate-200">
+                                                            {item.variant}
+                                                        </span>
+                                                    )}
+                                                    {item.storeSlug && (
+                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-800 text-[10px] font-bold rounded-md border border-emerald-200/60">
+                                                            <Store size={10} className="text-emerald-600" />
+                                                            @{item.storeSlug}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                             <button 
                                                 onClick={() => dispatch(deleteItemFromCart({ productId: item.id, itemKey: item.id }))}
@@ -419,7 +495,7 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                                         </div>
                                         <div className="flex items-center justify-between mt-2">
                                             <span className="text-sm font-extrabold text-slate-900">
-                                                {currency}{(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}
+                                                {currency}{formatPrice(Number(item.price || 0) * Number(item.quantity || 1))}
                                             </span>
                                             <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5 shadow-2xs">
                                                 <button
@@ -574,12 +650,12 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                                 <div className="space-y-1.5 pt-1">
                                     <div className="flex justify-between">
                                         <span>Subtotal</span>
-                                        <span className="font-bold text-slate-900">${subtotal.toFixed(2)}</span>
+                                        <span className="font-bold text-slate-900">${formatPrice(subtotal)}</span>
                                     </div>
                                     {appliedDiscount > 0 && (
                                         <div className="flex justify-between text-emerald-600 font-bold">
                                             <span>Discount</span>
-                                            <span>-${appliedDiscount.toFixed(2)}</span>
+                                            <span>-${formatPrice(appliedDiscount)}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between">
@@ -600,7 +676,7 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                                     )}
                                     <div className="flex justify-between text-base font-extrabold text-slate-900 pt-2 border-t border-slate-200">
                                         <span>Total</span>
-                                        <span className="text-emerald-600">${finalTotal.toFixed(2)}</span>
+                                        <span className="text-emerald-600">${formatPrice(finalTotal)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -647,8 +723,8 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts }) {
                 rushFee={priorityFee}
                 gumroadUrl={checkoutModal.gumroadUrl}
                 orderSessionId={checkoutModal.orderSessionId}
-                storeId={items[0]?.storeId}
-                storeSlug={items[0]?.storeSlug || (items[0]?.storeId ? String(items[0].storeId).replace(/^store_/, '') : '')}
+                storeId={items[0]?.storeId || (effectiveScope !== 'all' ? `store_${effectiveScope}` : 'store_default')}
+                storeSlug={items[0]?.storeSlug || (effectiveScope !== 'all' ? effectiveScope : (items[0]?.storeId ? String(items[0].storeId).replace(/^store_/, '') : ''))}
             />
         </div>
     );
