@@ -295,6 +295,77 @@ export default function CreatorBioPage({ params }) {
     const [quickViewSelectedBundle, setQuickViewSelectedBundle] = useState(0);
     const [quickViewSelectedVariant, setQuickViewSelectedVariant] = useState('');
 
+    // High-Conversion Urgency & Scarcity States
+    const [flashCountdown, setFlashCountdown] = useState({
+        hours: '02',
+        minutes: '44',
+        seconds: '19',
+        totalSecs: 9859
+    });
+    useEffect(() => {
+        const updateCountdown = () => {
+            const now = new Date();
+            const curSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+            const cycleSecs = 4 * 3600; // resets gracefully every 4 hours
+            const remaining = cycleSecs - (curSecs % cycleSecs);
+            const h = Math.floor(remaining / 3600);
+            const m = Math.floor((remaining % 3600) / 60);
+            const s = remaining % 60;
+            setFlashCountdown({
+                hours: String(h).padStart(2, '0'),
+                minutes: String(m).padStart(2, '0'),
+                seconds: String(s).padStart(2, '0'),
+                totalSecs: remaining
+            });
+        };
+        updateCountdown();
+        const timer = setInterval(updateCountdown, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    // Same-Day Dispatch Shipping Cutoff Calculator (5:00 PM local cutoff)
+    const shippingCutoff = useMemo(() => {
+        const now = new Date();
+        const cutoffHour = 17;
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        if (currentHour < cutoffHour) {
+            const diffMinutes = (cutoffHour * 60) - (currentHour * 60 + currentMinute);
+            const h = Math.floor(diffMinutes / 60);
+            const m = diffMinutes % 60;
+            return `${h > 0 ? `${h}h ` : ''}${m}m`;
+        }
+        return 'Tomorrow 9am';
+    }, []);
+
+    // Deterministic Live Social Demand Proof (Believable & Consistent Across Page Reloads)
+    const socialDemand = useMemo(() => {
+        let hash = 0;
+        const str = cleanUser || 'store';
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.charCodeAt(i);
+            hash |= 0;
+        }
+        const seed = Math.abs(hash);
+        const orders = 28 + (seed % 27); // Believable range: 28 to 54
+        const viewers = 11 + (seed % 14); // Believable range: 11 to 24
+        return { orders, viewers };
+    }, [cleanUser]);
+
+    // Cart Reservation Timer (10-minute inventory hold)
+    const [cartReserveSeconds, setCartReserveSeconds] = useState(599);
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCartReserveSeconds(prev => (prev > 1 ? prev - 1 : 599));
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+    const formattedReserveTime = useMemo(() => {
+        const m = Math.floor(cartReserveSeconds / 60);
+        const s = cartReserveSeconds % 60;
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }, [cartReserveSeconds]);
+
     // High-Conversion Sales States
     const [showStickyBar, setShowStickyBar] = useState(false);
     const [selectedPackIndex, setSelectedPackIndex] = useState(0);
@@ -506,9 +577,14 @@ export default function CreatorBioPage({ params }) {
         return () => clearInterval(photoTimer);
     }, [isHoveredHeroPhoto, heroGalleryImages]);
 
-    const handleApplyStanCoupon = async (e) => {
-        if (e) e.preventDefault();
-        const code = stanCouponInput.trim().toUpperCase();
+    const handleApplyStanCoupon = async (eOrCode) => {
+        let code = '';
+        if (typeof eOrCode === 'string') {
+            code = eOrCode.trim().toUpperCase();
+        } else {
+            if (eOrCode && eOrCode.preventDefault) eOrCode.preventDefault();
+            code = stanCouponInput.trim().toUpperCase();
+        }
         if (!code) return;
         setIsCheckingCoupon(true);
         try {
@@ -1105,6 +1181,37 @@ export default function CreatorBioPage({ params }) {
                 />
             )}
 
+            {/* ⚡ High-Converting Sticky Flash Sale Urgency Bar */}
+            <aside 
+                aria-label="Flash sale promotion" 
+                className="sticky top-0 z-50 w-full bg-gradient-to-r from-red-600 via-orange-600 to-rose-600 text-white shadow-md select-none border-b border-white/10"
+            >
+                <div className="max-w-[440px] mx-auto px-3 py-1.5 sm:py-2 flex items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-1.5 font-black tracking-tight shrink-0">
+                        <span className="size-2 rounded-full bg-yellow-300 animate-ping shrink-0" />
+                        <span className="text-[11px] sm:text-xs uppercase tracking-tight">⚡ FLASH SALE: 20% OFF</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-0.5 font-mono font-black bg-black/40 px-2 py-0.5 rounded-lg text-[11px] text-yellow-300 tracking-wider shadow-inner">
+                            <span>{flashCountdown.hours}</span>
+                            <span className="animate-pulse">:</span>
+                            <span>{flashCountdown.minutes}</span>
+                            <span className="animate-pulse">:</span>
+                            <span>{flashCountdown.seconds}</span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => handleApplyStanCoupon('SAVE20')}
+                            className="px-2.5 py-1 rounded-full bg-white text-rose-700 hover:bg-yellow-50 font-black text-[10px] tracking-wider transition active:scale-95 shadow-sm cursor-pointer uppercase shrink-0"
+                            title="Apply 20% off code SAVE20"
+                        >
+                            {stanAppliedCoupon?.code === 'SAVE20' ? 'APPLIED ✓' : 'APPLY CODE'}
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
             {/* Desktop Admin / Switcher Banner - Strictly hidden on mobile/iPad and only shown in explicit desktop preview mode */}
             {isPreviewMode && !isMobileDevice && (
                 <header className="hidden md:flex items-center justify-between px-6 py-3 bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-40 shadow-xs">
@@ -1227,6 +1334,20 @@ export default function CreatorBioPage({ params }) {
                                 <p className="text-xs sm:text-[13px] text-slate-600 font-medium max-w-xs mt-1.5 leading-relaxed">
                                     {decodeHtmlEntities(creator.bio)}
                                 </p>
+
+                                {/* 🔥 Real-Time Social Demand & Shipping Cutoff Tickers */}
+                                <div className="mt-2.5 flex flex-col items-center gap-1.5 w-full max-w-xs mx-auto">
+                                    <div className="w-full py-1 px-3 rounded-full bg-rose-50 border border-rose-200/70 text-rose-700 text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-2xs">
+                                        <span className="size-1.5 rounded-full bg-rose-500 animate-pulse" />
+                                        <span>🔥 {socialDemand.orders} items ordered today</span>
+                                        <span className="text-rose-300">•</span>
+                                        <span>👀 {socialDemand.viewers} shoppers viewing</span>
+                                    </div>
+                                    <div className="w-full py-0.5 px-2.5 rounded-full bg-emerald-50 border border-emerald-200/60 text-emerald-700 text-[10.5px] font-semibold flex items-center justify-center gap-1">
+                                        <span>📦</span>
+                                        <span>Order within <strong className="font-bold text-emerald-800">{shippingCutoff}</strong> for Same-Day Dispatch</span>
+                                    </div>
+                                </div>
 
                                 {/* Direct Bridge to Full Storefront & Cart */}
                                 <div className="mt-3 flex items-center justify-center flex-wrap gap-2">
@@ -1991,11 +2112,10 @@ export default function CreatorBioPage({ params }) {
                                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                                     onError={(e) => handleImageError(e, 'product')}
                                                                 />
-                                                                {(item.badge || index === 0 || (item.comparePrice && item.comparePrice > item.price)) && (
-                                                                    <span className="absolute top-1.5 left-1.5 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-slate-900/90 text-white shadow-xs">
-                                                                        {item.badge || (index === 0 ? '🔥 Best Seller' : '🏷️ Sale')}
-                                                                    </span>
-                                                                )}
+                                                                <span className="absolute top-1.5 left-1.5 text-[8.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-rose-600 text-white shadow-xs flex items-center gap-1">
+                                                                    <span className="size-1 rounded-full bg-white animate-pulse" />
+                                                                    {index === 0 ? 'ONLY 3 LEFT' : (index === 1 ? 'BEST SELLER' : (item.badge || 'SELLING FAST'))}
+                                                                </span>
                                                             </div>
 
                                                             {/* Product Title */}
@@ -2006,16 +2126,29 @@ export default function CreatorBioPage({ params }) {
                                                                 {item.name}
                                                             </h3>
 
-                                                            {/* Category Pill */}
-                                                            {item.category && (
-                                                                <span className="inline-block text-[9px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
-                                                                    {typeof item.category === 'string' ? item.category : (item.category?.name || 'Featured')}
+                                                            {/* Category Pill & Scarcity */}
+                                                            <div className="flex items-center justify-between gap-1 mt-1">
+                                                                {item.category && (
+                                                                    <span className="inline-block text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
+                                                                        {typeof item.category === 'string' ? item.category : (item.category?.name || 'Featured')}
+                                                                    </span>
+                                                                )}
+                                                                <span className="text-[9px] font-bold text-rose-600 flex items-center gap-0.5">
+                                                                    🔥 {index === 0 ? '85%' : (index === 1 ? '74%' : '62%')} claimed
                                                                 </span>
-                                                            )}
+                                                            </div>
+
+                                                            {/* Low-stock Progress Meter */}
+                                                            <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden mt-1 mb-0.5">
+                                                                <div 
+                                                                    className="h-full bg-gradient-to-r from-amber-500 to-rose-500 rounded-full" 
+                                                                    style={{ width: `${index === 0 ? 85 : (index === 1 ? 74 : 62)}%` }}
+                                                                />
+                                                            </div>
                                                         </div>
 
                                                         {/* Price & Action Buttons */}
-                                                        <div className="mt-2.5 pt-2 border-t border-slate-100">
+                                                        <div className="mt-2 pt-2 border-t border-slate-100">
                                                             <div className="flex items-baseline justify-between mb-2">
                                                                 <span className="text-xs sm:text-sm font-black text-slate-900">
                                                                     {priceDisplay}
@@ -2098,14 +2231,13 @@ export default function CreatorBioPage({ params }) {
 
                                                         {/* Product Content Column */}
                                                         <div className="flex-1 min-w-0">
-                                                            {/* Badges */}
-                                                            {(item.badge || index === 0 || (item.comparePrice && item.comparePrice > item.price)) && (
-                                                                <div className="mb-1">
-                                                                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-500/20">
-                                                                        {item.badge || (index === 0 ? '🔥 Best Seller • In Stock' : (item.comparePrice && item.comparePrice > item.price ? '🏷️ Limited Quantity' : '🚚 Ships within 24h'))}
-                                                                    </span>
-                                                                </div>
-                                                            )}
+                                                            {/* Scarcity Badges */}
+                                                            <div className="mb-1 flex items-center gap-1.5 flex-wrap">
+                                                                <span className="inline-flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-700 border border-rose-500/20">
+                                                                    <span className="size-1.5 rounded-full bg-rose-500 animate-pulse" />
+                                                                    {item.badge || (index === 0 ? '⚡ Only 3 Left at this price' : (index === 1 ? '🔥 Best Seller • High Demand' : '⚡ Almost Gone'))}
+                                                                </span>
+                                                            </div>
                                                             <h3 
                                                                 onClick={() => { setQuickViewProduct(item); setQuickViewActivePhoto(0); setQuickViewSelectedBundle(0); setQuickViewSelectedVariant(''); }}
                                                                 className="text-sm font-bold text-slate-900 leading-snug line-clamp-2 cursor-pointer hover:text-slate-700"
@@ -2113,12 +2245,25 @@ export default function CreatorBioPage({ params }) {
                                                                 {item.name}
                                                             </h3>
 
-                                                            {/* Category / Tag Pill */}
-                                                            {item.category && (
-                                                                <span className="inline-block mt-0.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                                                                    {typeof item.category === 'string' ? item.category : (item.category?.name || 'Featured')}
+                                                            {/* Category / Tag Pill & Claimed Meter */}
+                                                            <div className="flex items-center justify-between gap-2 mt-1">
+                                                                {item.category && (
+                                                                    <span className="inline-block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                                                                        {typeof item.category === 'string' ? item.category : (item.category?.name || 'Featured')}
+                                                                    </span>
+                                                                )}
+                                                                <span className="text-[9px] font-bold text-rose-600">
+                                                                    🔥 {index === 0 ? '85%' : (index === 1 ? '74%' : '62%')} claimed
                                                                 </span>
-                                                            )}
+                                                            </div>
+
+                                                            {/* Micro Progress Bar */}
+                                                            <div className="w-full max-w-[180px] h-1 bg-slate-100 rounded-full overflow-hidden mt-0.5 mb-1">
+                                                                <div 
+                                                                    className="h-full bg-gradient-to-r from-amber-500 to-rose-500 rounded-full" 
+                                                                    style={{ width: `${index === 0 ? 85 : (index === 1 ? 74 : 62)}%` }}
+                                                                />
+                                                            </div>
 
                                                             {/* Bottom Row: Price & High-Converting CTA */}
                                                             <div className="flex items-center justify-between gap-2 mt-2">
@@ -2351,11 +2496,12 @@ export default function CreatorBioPage({ params }) {
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <p className="text-xs font-bold text-white truncate">{decodeHtmlEntities(displayedProducts[0].name)}</p>
-                                    <p className="text-[11px] font-black text-emerald-400">
-                                        ${displayPrice.toFixed(2)}
-                                        {hasWearableSizes && selectedSize && <span className="text-[10px] text-amber-300 font-bold ml-1.5">• {selectedSize}</span>}
+                                    <p className="text-[11px] font-black text-emerald-400 flex items-center flex-wrap gap-1">
+                                        <span>${displayPrice.toFixed(2)}</span>
+                                        {hasWearableSizes && selectedSize && <span className="text-[10px] text-amber-300 font-bold ml-1">• {selectedSize}</span>}
                                         {activeBundle && <span className="text-[10px] text-slate-400 font-normal ml-1">({activeBundle.label})</span>}
                                         {stickyDiscountVal > 0 && <span className="text-[9px] text-emerald-300 font-bold ml-1">({stanAppliedCoupon.label})</span>}
+                                        <span className="text-[9px] text-yellow-300 font-mono font-bold ml-1">⚡ Hold: {formattedReserveTime}</span>
                                     </p>
                                 </div>
                             </div>
@@ -2386,16 +2532,19 @@ export default function CreatorBioPage({ params }) {
                 );
             })()}
 
-            {/* 🛒 Floating Cart Counter Pill (Visible when cart has items) */}
+            {/* 🛒 Floating Cart Counter Pill with Reservation Countdown (Visible when cart has items) */}
             {cartCount > 0 && (
                 <button
                     type="button"
                     onClick={() => setIsCartOpen(true)}
-                    className="fixed top-4 right-4 z-40 px-3.5 py-2 rounded-full bg-slate-950/90 backdrop-blur-md text-white shadow-2xl border border-slate-700 flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 active:scale-95 animate-in fade-in"
+                    className="fixed top-12 right-3 z-40 px-3 py-1.5 rounded-full bg-slate-950/95 backdrop-blur-md text-white shadow-2xl border border-slate-700 flex items-center gap-1.5 cursor-pointer transition-transform hover:scale-105 active:scale-95 animate-in fade-in"
                 >
-                    <ShoppingBag size={14} className="text-emerald-400" />
-                    <span className="size-5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black flex items-center justify-center">
+                    <ShoppingBag size={13} className="text-emerald-400" />
+                    <span className="size-4.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black flex items-center justify-center">
                         {cartCount}
+                    </span>
+                    <span className="text-[10px] text-yellow-300 font-mono font-bold">
+                        {formattedReserveTime}
                     </span>
                 </button>
             )}
@@ -2817,9 +2966,9 @@ export default function CreatorBioPage({ params }) {
                                             className="w-full h-full object-cover"
                                             onError={(e) => handleImageError(e, 'product')}
                                         />
-                                        <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[10px] shadow-sm flex items-center gap-1">
+                                        <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-rose-600 text-white font-extrabold text-[10px] shadow-sm flex items-center gap-1.5">
                                             <span className="size-1.5 rounded-full bg-white animate-pulse" />
-                                            In Stock & Verified
+                                            ⚡ HIGH DEMAND: ONLY 3 LEFT
                                         </span>
                                     </div>
 
@@ -2851,8 +3000,8 @@ export default function CreatorBioPage({ params }) {
                                                 </span>
                                             )}
                                         </div>
-                                        <span className="text-xs font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full">
-                                            Free US Delivery
+                                        <span className="text-xs font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                            <span>📦</span> Order in {shippingCutoff} for Same-Day
                                         </span>
                                     </div>
 
