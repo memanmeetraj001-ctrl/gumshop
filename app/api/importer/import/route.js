@@ -156,6 +156,41 @@ export async function POST(req) {
                 };
             });
 
+            // Ensure variant prices scale with any store-wide slash discount
+            const discountRatio = (rawPrice > 0 && price > 0) ? (price / rawPrice) : 1;
+            const processedVariants = (Array.isArray(p.variants) ? p.variants : []).map(v => {
+                const vRawPrice = parseFloat(v.price || 0);
+                const vEffPrice = (discountRatio < 0.999 && discountRatio > 0 && vRawPrice > 0)
+                    ? Math.round(vRawPrice * discountRatio * 100) / 100
+                    : vRawPrice;
+                const vDelta = Math.max(0, Math.round((vEffPrice - price) * 100) / 100);
+                return {
+                    ...v,
+                    price: vEffPrice || price,
+                    priceDelta: vDelta,
+                    effectivePrice: vEffPrice || price
+                };
+            });
+
+            const processedSizes = (Array.isArray(p.sizes) && p.sizes.length > 0)
+                ? p.sizes.map(s => {
+                    const matchedVar = processedVariants.find(pv => pv.name === s.name || pv.name.includes(s.name));
+                    return {
+                        ...s,
+                        priceDelta: matchedVar ? matchedVar.priceDelta : (parseFloat(s.priceDelta) || 0),
+                        effectivePrice: matchedVar ? matchedVar.price : (price + (parseFloat(s.priceDelta) || 0))
+                    };
+                })
+                : (processedVariants.length > 0
+                    ? processedVariants.map(v => ({
+                        id: v.id,
+                        name: v.name,
+                        sku: v.sku,
+                        priceDelta: v.priceDelta,
+                        effectivePrice: v.price
+                    }))
+                    : []);
+
             return {
                 id: prodId,
                 storeId,
@@ -168,7 +203,8 @@ export async function POST(req) {
                 kicker: p.kicker || '',
                 subtitle: p.subtitle || '',
                 customBundles,
-                variants: Array.isArray(p.variants) ? p.variants : [],
+                sizes: processedSizes,
+                variants: processedVariants,
                 options: Array.isArray(p.options) ? p.options : [],
                 faqs: Array.isArray(p.faqs) ? p.faqs : [],
                 badges: Array.isArray(p.badges) ? p.badges : [],

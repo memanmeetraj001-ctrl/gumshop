@@ -36,16 +36,38 @@ export async function POST(req) {
 
             if (item.productId || item.id) {
                 try {
-                    const dbProduct = await getProduct(item.productId || item.id);
+                    const cleanProductId = String(item.productId || item.id || '').split('__')[0];
+                    const dbProduct = await getProduct(cleanProductId);
                     if (dbProduct && parseFloat(dbProduct.price) > 0) {
                         const baseRetail = parseFloat(dbProduct.price);
                         
                         // Check if item has a matched size/edition variant delta
                         let sizeDelta = 0;
-                        if (Array.isArray(dbProduct.sizes) && (item.selectedSize || item.variant)) {
-                            const variantStr = String(item.selectedSize || item.variant || '').toLowerCase();
+                        const variantStr = String(item.selectedSize || item.variant || (item.productId || item.id || '').split('__')[1] || '').toLowerCase();
+
+                        if (Array.isArray(dbProduct.variants) && dbProduct.variants.length > 0 && variantStr) {
+                            const matchedVariant = dbProduct.variants.find(v => 
+                                (item.selectedVariantId && String(v.id) === String(item.selectedVariantId)) ||
+                                (item.sku && v.sku && String(v.sku).toLowerCase() === String(item.sku).toLowerCase()) ||
+                                (v.name && variantStr.includes(v.name.toLowerCase())) ||
+                                (v.name && v.name.toLowerCase().includes(variantStr))
+                            );
+                            if (matchedVariant) {
+                                const baseV0Price = parseFloat(dbProduct.variants[0]?.price || 0);
+                                const discountRatio = (baseV0Price > 0 && baseRetail > 0) ? (baseRetail / baseV0Price) : 1;
+                                const rawVPrice = parseFloat(matchedVariant.price || 0);
+                                if (rawVPrice > 0) {
+                                    const vEffPrice = (discountRatio < 0.999 && discountRatio > 0)
+                                        ? Math.round(rawVPrice * discountRatio * 100) / 100
+                                        : rawVPrice;
+                                    sizeDelta = Math.max(0, Math.round((vEffPrice - baseRetail) * 100) / 100);
+                                } else if (matchedVariant.priceDelta) {
+                                    sizeDelta = parseFloat(matchedVariant.priceDelta) || 0;
+                                }
+                            }
+                        } else if (Array.isArray(dbProduct.sizes) && variantStr) {
                             const matchedSize = dbProduct.sizes.find(s => 
-                                s.name && variantStr.includes(s.name.toLowerCase())
+                                s.name && (variantStr.includes(s.name.toLowerCase()) || s.name.toLowerCase().includes(variantStr))
                             );
                             if (matchedSize && matchedSize.priceDelta) {
                                 sizeDelta = parseFloat(matchedSize.priceDelta) || 0;

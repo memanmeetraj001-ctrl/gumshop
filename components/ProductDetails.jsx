@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { addToCart } from "@/lib/features/cart/cartSlice";
@@ -31,20 +31,117 @@ const ProductDetails = ({ product, storeInfo }) => {
     const hasExplicitSizes = Array.isArray(product.sizes) && product.sizes.length > 0;
     const hasVariantsArray = Array.isArray(product.variants) && product.variants.length > 0;
 
-    const availableColors = hasExplicitColors ? product.colors : [];
-    const availableSizes = hasExplicitSizes 
-        ? product.sizes 
-        : (hasVariantsArray && product.variants.length > 0
-            ? product.variants.map(v => ({ name: v.name, priceDelta: v.priceDelta || 0 })) 
-            : [
-                { name: "Small (S)", priceDelta: 0 },
-                { name: "Medium (M)", priceDelta: 0 },
-                { name: "Large (L)", priceDelta: 0 },
-                { name: "X-Large (XL)", priceDelta: 0 }
-            ]);
+    // Detect color/style option from product.options if not explicitly passed
+    const colorOption = !hasExplicitColors && Array.isArray(product.options)
+        ? product.options.find(o => /color|style|finish/i.test(o.name || ''))
+        : null;
+
+    const availableColors = useMemo(() => {
+        if (hasExplicitColors) return product.colors;
+        if (colorOption && Array.isArray(colorOption.values) && colorOption.values.length > 1) {
+            return colorOption.values.map(val => {
+                const lower = val.toLowerCase();
+                let hex = '#10b981';
+                if (lower.includes('red')) hex = '#ef4444';
+                else if (lower.includes('white')) hex = '#f8fafc';
+                else if (lower.includes('black')) hex = '#1e293b';
+                else if (lower.includes('blue')) hex = '#3b82f6';
+                else if (lower.includes('tan') || lower.includes('sand') || lower.includes('desert')) hex = '#d97706';
+                else if (lower.includes('green') || lower.includes('camo')) hex = '#15803d';
+                else if (lower.includes('gold') || lower.includes('yellow')) hex = '#eab308';
+                return { name: val, hex };
+            });
+        }
+        return [];
+    }, [hasExplicitColors, product.colors, colorOption]);
+
+    const baseVariantPrice = hasVariantsArray ? parseFloat(product.variants[0]?.price || 0) : 0;
+    const unitPrice = parseFloat(product.price !== undefined && product.price !== null && product.price !== '' ? product.price : (baseVariantPrice || 52.99));
+    const discountRatio = (baseVariantPrice > 0 && unitPrice > 0) ? (unitPrice / baseVariantPrice) : 1;
+
+    const getVariantPricing = (v) => {
+        const rawPrice = parseFloat(v.price || 0);
+        let effectivePrice = unitPrice;
+        let priceDelta = 0;
+
+        if (rawPrice > 0) {
+            if (discountRatio < 0.999 && discountRatio > 0) {
+                effectivePrice = Math.round(rawPrice * discountRatio * 100) / 100;
+            } else {
+                effectivePrice = rawPrice;
+            }
+            priceDelta = Math.max(0, Math.round((effectivePrice - unitPrice) * 100) / 100);
+        } else if (v.priceDelta !== undefined) {
+            priceDelta = parseFloat(v.priceDelta) || 0;
+            effectivePrice = Math.round((unitPrice + priceDelta) * 100) / 100;
+        }
+
+        return { effectivePrice, priceDelta };
+    };
+
+    const allVariantSizes = useMemo(() => {
+        if (hasExplicitSizes) {
+            return product.sizes.map(s => {
+                const pricing = getVariantPricing(s);
+                return {
+                    ...s,
+                    effectivePrice: pricing.effectivePrice,
+                    priceDelta: pricing.priceDelta
+                };
+            });
+        }
+        if (hasVariantsArray) {
+            return product.variants.map(v => {
+                const pricing = getVariantPricing(v);
+                return {
+                    id: v.id,
+                    name: v.name,
+                    sku: v.sku,
+                    available: v.available !== false,
+                    effectivePrice: pricing.effectivePrice,
+                    priceDelta: pricing.priceDelta,
+                    compareAtPrice: v.compareAtPrice
+                };
+            });
+        }
+        return [
+            { name: "Small (S)", priceDelta: 0, effectivePrice: unitPrice },
+            { name: "Medium (M)", priceDelta: 0, effectivePrice: unitPrice },
+            { name: "Large (L)", priceDelta: 0, effectivePrice: unitPrice },
+            { name: "X-Large (XL)", priceDelta: 0, effectivePrice: unitPrice }
+        ];
+    }, [hasExplicitSizes, product.sizes, hasVariantsArray, product.variants, unitPrice, discountRatio]);
 
     const [selectedColor, setSelectedColor] = useState(availableColors[0] || null);
-    const [selectedSize, setSelectedSize] = useState(availableSizes[1] || availableSizes[0] || null);
+
+    // If a color is selected and variants contain the color name, filter to those variants for focused UX
+    const availableSizes = useMemo(() => {
+        if (selectedColor && allVariantSizes.length > 4) {
+            const filtered = allVariantSizes.filter(s => 
+                s.name.toLowerCase().includes(selectedColor.name.toLowerCase())
+            );
+            if (filtered.length > 0) return filtered;
+        }
+        return allVariantSizes;
+    }, [allVariantSizes, selectedColor]);
+
+    const [selectedSize, setSelectedSize] = useState(() => {
+        if (hasVariantsArray && allVariantSizes.length > 0) {
+            return allVariantSizes[0];
+        }
+        return allVariantSizes[1] || allVariantSizes[0] || null;
+    });
+
+    // When color changes, keep selectedSize in sync with the filtered options
+    useEffect(() => {
+        if (selectedColor && availableSizes.length > 0) {
+            const stillAvailable = availableSizes.find(s => s.name === selectedSize?.name);
+            if (!stillAvailable) {
+                setSelectedSize(availableSizes[0]);
+            }
+        }
+    }, [selectedColor, availableSizes]);
+
     const [selectedQuantity, setSelectedQuantity] = useState(1);
     const [openFaq, setOpenFaq] = useState(0);
     const [checkoutModal, setCheckoutModal] = useState({ isOpen: false, gumroadUrl: '', orderSessionId: '' });
@@ -57,21 +154,25 @@ const ProductDetails = ({ product, storeInfo }) => {
     
     const [mainImage, setMainImage] = useState(images[0]);
 
-    const unitPrice = parseFloat(product.price !== undefined && product.price !== null && product.price !== '' ? product.price : 52.99);
     const sizeDelta = parseFloat(selectedSize?.priceDelta || 0);
     const effectiveUnitPrice = unitPrice + sizeDelta;
-    const compareAtPrice = parseFloat(product.compareAtPrice || product.mrp || (unitPrice === 52.99 ? 69.99 : Math.round(unitPrice * 1.35 * 100) / 100)) + sizeDelta;
+    const rawCompareAt = parseFloat(selectedSize?.compareAtPrice || product.compareAtPrice || product.mrp || 0);
+    const compareAtPrice = rawCompareAt > 0
+        ? ((discountRatio < 0.999 && discountRatio > 0 && selectedSize?.compareAtPrice)
+            ? Math.round(rawCompareAt * discountRatio * 100) / 100
+            : rawCompareAt + sizeDelta)
+        : (unitPrice === 52.99 ? 69.99 : Math.round(effectiveUnitPrice * 1.35 * 100) / 100);
 
     const colorCode = selectedColor?.name?.substring(0, 3).toUpperCase() || 'DEF';
     const sizeCode = selectedSize?.name?.substring(0, 3).toUpperCase() || 'STD';
     const baseSku = product.sku || `SKU-${product.id?.substring(0, 6)?.toUpperCase() || 'PROD'}`;
-    const activeSku = `${baseSku}-${colorCode}-${sizeCode}`;
+    const activeSku = selectedSize?.sku || `${baseSku}-${colorCode}-${sizeCode}`;
 
     const rawStock = Number(product.stockQuantity !== undefined ? product.stockQuantity : 42);
     const isOutOfStock = product.inStock === false || rawStock <= 0;
     const isLowStock = !isOutOfStock && rawStock <= 12;
 
-    const activeVariantLabel = `${selectedColor ? selectedColor.name : ''}${selectedSize ? (selectedColor ? ' • ' : '') + selectedSize.name : ''}` || 'Standard Edition';
+    const activeVariantLabel = `${selectedColor && !selectedSize?.name?.toLowerCase().includes(selectedColor.name.toLowerCase()) ? selectedColor.name + ' • ' : ''}${selectedSize?.name || 'Standard Edition'}`;
 
     // Quantity Tier Breaks: Prefer authentic product-specific customBundles if available, scaling if size variant has priceDelta
     const baseItemName = product.name ? product.name.split(' ')[0] : 'Item';
@@ -158,6 +259,9 @@ const ProductDetails = ({ product, storeInfo }) => {
                             price: currentTier.pricePerUnit,
                             quantity: currentTier.qty,
                             variant: activeVariantLabel,
+                            selectedSize: selectedSize?.name,
+                            selectedVariantId: selectedSize?.id,
+                            sku: selectedSize?.sku || activeSku,
                             gumroadUrl: product.gumroadUrl || ''
                         }
                     ],
@@ -473,25 +577,48 @@ const ProductDetails = ({ product, storeInfo }) => {
                                     <span className="uppercase tracking-wider text-[11px] text-slate-500">Edition / Package</span>
                                     <span className="text-emerald-600 font-extrabold">{selectedSize?.name}</span>
                                 </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {availableSizes.map((sz, idx) => (
-                                        <button
-                                            key={idx}
-                                            type="button"
-                                            aria-pressed={selectedSize?.name === sz.name}
-                                            onClick={() => setSelectedSize(sz)}
-                                            className={`p-3 rounded-xl border-2 text-left transition flex flex-col justify-between outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer ${
-                                                selectedSize?.name === sz.name
-                                                    ? 'border-emerald-600 bg-emerald-50/60 shadow-xs'
-                                                    : 'border-slate-200 bg-white hover:border-slate-300'
-                                            }`}
-                                        >
-                                            <span className="text-xs font-bold text-slate-900">{sz.name}</span>
-                                            <span className="text-[11px] font-semibold text-slate-500 mt-0.5">
-                                                {parseFloat(sz.priceDelta || 0) > 0 ? `+$${parseFloat(sz.priceDelta).toFixed(2)}` : 'Standard Price'}
-                                            </span>
-                                        </button>
-                                    ))}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                    {availableSizes.map((sz, idx) => {
+                                        const isSelected = selectedSize?.name === sz.name;
+                                        const delta = parseFloat(sz.priceDelta || 0);
+                                        const cardEffectivePrice = sz.effectivePrice || (unitPrice + delta);
+                                        return (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                aria-pressed={isSelected}
+                                                onClick={() => setSelectedSize(sz)}
+                                                className={`p-3 rounded-2xl border-2 text-left transition flex flex-col justify-between outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer ${
+                                                    isSelected
+                                                        ? 'border-emerald-600 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-500/20'
+                                                        : 'border-slate-200 bg-white hover:border-slate-300'
+                                                }`}
+                                            >
+                                                <div className="flex items-start justify-between gap-1.5">
+                                                    <span className="text-xs font-bold text-slate-900 leading-snug">{sz.name}</span>
+                                                    {isSelected && (
+                                                        <span className="size-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                                                            <Check size={10} className="stroke-[3]" />
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="text-[11px] font-semibold mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between">
+                                                    <span className="text-emerald-700 font-black font-mono">
+                                                        ${cardEffectivePrice.toFixed(2)}
+                                                    </span>
+                                                    <span>
+                                                        {delta > 0 ? (
+                                                            <span className="text-amber-800 bg-amber-100/80 border border-amber-300/80 px-2 py-0.5 rounded-md text-[10px] font-black tracking-tight">
+                                                                +${delta.toFixed(2)}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-slate-400 text-[10px] font-semibold">Standard Price</span>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
