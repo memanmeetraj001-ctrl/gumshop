@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { normalizeProductPrice, applyPriceSlash } from '../lib/importer/priceNormalizer.js';
 import { serverSaveStore, serverSaveProducts, serverGetStore, serverGetAllStores, serverDeleteStore } from '../lib/serverDb.js';
-import { createStore, getStore, getAllStores, createProduct, getProduct, getProductsByStore, createCoupon, getCoupon, recordImportHistory, getAllImportHistory } from '../lib/firebaseDb.js';
+import { createStore, getStore, getAllStores, deleteStore, createProduct, getProduct, getProductsByStore, createCoupon, getCoupon, recordImportHistory, getAllImportHistory } from '../lib/firebaseDb.js';
 import { createOrder as saveServerOrder, getOrderById as getServerOrder, getOrdersByStore as getServerOrdersByStore } from '../lib/db/orders.js';
 import { setServerGumroadToken, getServerGumroadToken } from '../lib/serverVault.js';
 
@@ -221,7 +221,11 @@ async function runMasterSuite() {
         assert.ok(history.some(h => h.id === impId), 'Import history entry not found');
     });
 
-    // Clean up temporary test stores
+    // Clean up temporary test stores and cascade-delete their test products from Supabase & memory
+    try {
+        await deleteStore(storeAId);
+        await deleteStore(storeBId);
+    } catch {}
     await serverDeleteStore(storeAId, storeASlug);
     await serverDeleteStore(storeBId, storeBSlug);
 
