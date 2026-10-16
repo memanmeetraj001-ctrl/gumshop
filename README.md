@@ -23,76 +23,15 @@
 
 ---
 
-## 📸 Platform Highlights & Visual Showcase
+## ✨ Platform Capabilities & Highlights
 
-### 1. Master Fleet Command Center (`/dashboard`)
-*Manage multiple independent stores, toggle homepage modes, monitor global imports, and configure store-level credentials with strict isolation.*
-
-<table>
-  <tr>
-    <td width="50%">
-      <b>Quick Store Switcher & Homepage Controller</b><br/>
-      <i>Designate root homepage, toggle marketplace mode, or switch store scope.</i><br/><br/>
-      <img src="docs/images/dashboard-store-controller.png" alt="Dashboard Store Controller" />
-    </td>
-    <td width="50%">
-      <b>Fleet Store Management Cards</b><br/>
-      <i>Monitor real-time product counts, theme palettes, and Gumroad payouts.</i><br/><br/>
-      <img src="docs/images/dashboard-fleet-management.png" alt="Fleet Store Cards" />
-    </td>
-  </tr>
-</table>
-
----
-
-### 2. AI Store Import Center (`/store/import`)
-*1-click clone external stores (Shopify, Stan Store, custom sites) with intelligent crawl scopes and SSRF protection.*
-
-<div align="center">
-  <img src="docs/images/store-importer-center.png" alt="AI Store Import Center" width="90%" />
-</div>
-
----
-
-### 3. High-Converting Creator Stan Store (`/creator/[username]`)
-*Creator-first link-in-bio storefronts with interactive highlight reels, volume bundles, and zero-friction purchase flows.*
-
-<table>
-  <tr>
-    <td width="33%" align="center">
-      <b>Creator Bio & Highlights</b><br/><br/>
-      <img src="docs/images/stan-store-creator.png" alt="Creator Profile View" />
-    </td>
-    <td width="33%" align="center">
-      <b>Mobile-Optimized Lander</b><br/><br/>
-      <img src="docs/images/stan-store-mobile-lander.png" alt="Mobile Lander" />
-    </td>
-    <td width="33%" align="center">
-      <b>In-Frame Modal Checkout</b><br/><br/>
-      <img src="docs/images/stan-store-inframe-checkout.png" alt="In-Frame Checkout & Social Proof" />
-    </td>
-  </tr>
-</table>
-
----
-
-### 4. Volume Pricing Tiers & Conversion Optimization
-*Guaranteed zero price discrepancy ($52.99 baseline with 1-pack, 2-pack, and 3-pack volume discounts).*
-
-<table>
-  <tr>
-    <td width="50%">
-      <b>Synchronized Volume Bundles</b><br/>
-      <i>Dynamic savings badges, unit price calculations, and promo codes.</i><br/><br/>
-      <img src="docs/images/product-bundles-detail.png" alt="Product Bundles Detail" />
-    </td>
-    <td width="50%">
-      <b>Perfect Fit Sizing Guarantee</b><br/>
-      <i>Interactive sizing guide modal with trust badges and customer reviews.</i><br/><br/>
-      <img src="docs/images/product-guarantee-modal.png" alt="Product Guarantee Modal" />
-    </td>
-  </tr>
-</table>
+| Capability | Scope & Architecture | Production Route |
+|---|---|---|
+| **Master Fleet Command Center** | Macro fleet control: switch root homepage (All Stores / Custom Select / Single Store), inspect store metrics, and export 1-click backups. | [`/dashboard`](https://www.gumshop.online/dashboard) |
+| **Creator Stan Store Engine** | Creator-first link-in-bio storefronts with interactive highlight reels, volume bundles, and zero-friction purchase flows. | [`/creator/[username]`](https://www.gumshop.online/creator/rubber-couch-toys-official-store) |
+| **AI Store Import & Cloning** | 1-click external store cloner (Shopify, Stan Store, custom sites) with intelligent crawl scopes and SSRF protection. | [`/store/import`](https://www.gumshop.online/store/import) |
+| **Authoritative Dynamic Pricing** | Mathematically synchronized pricing ($52.99 baseline with 1-pack, 2-pack, and 3-pack volume discounts) with zero discrepancy. | [`/product/[productId]`](https://www.gumshop.online/product/rubber-couch-toys-official-store-product-1) |
+| **Gumroad In-Frame Checkout** | Native in-frame modal checkout overlay directly connected to store-scoped Gumroad credentials. | [`<GumroadIframeModal />`](https://www.gumshop.online) |
 
 ---
 
