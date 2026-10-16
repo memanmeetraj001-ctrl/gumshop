@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getStoreByUsername, getProductsByStore, createStore, createProduct } from '@/lib/firebaseDb';
+import { getStoreByUsername, getProductsByStore, createStore, createProduct, createProductsBatch } from '@/lib/firebaseDb';
 import { resolvePresetStore } from '@/lib/storePresets';
 import { applyPriceSlash } from '@/lib/importer/priceNormalizer.js';
 
@@ -110,7 +110,8 @@ export async function POST(req) {
                     finalCompareAt = slashed.compareAtPrice;
                 }
 
-                const newProdId = `prod_${cleanNewSlug}_${i}_${Math.random().toString(36).substring(2, 6)}`;
+                const cleanProdSlug = (sp.slug || sp.name || `item-${i}`).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+                const newProdId = `prod_${cleanNewSlug}_${cleanProdSlug || i}`;
                 duplicatedProducts.push({
                     ...sp,
                     id: newProdId,
@@ -130,8 +131,8 @@ export async function POST(req) {
         // 5. Persist to Firestore and serverDb memory cache / Supabase
         try {
             await createStore(duplicatedStore);
-            for (const dp of duplicatedProducts) {
-                await createProduct(dp).catch(() => {});
+            if (duplicatedProducts.length > 0) {
+                await createProductsBatch(duplicatedProducts).catch(err => console.warn('createProductsBatch warning:', err?.message));
             }
         } catch (dbErr) {
             console.warn('Firebase duplication error:', dbErr.message);
