@@ -434,7 +434,7 @@ const ProductDetails = ({ product, storeInfo }) => {
         ];
 
     return (
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto pb-16 sm:pb-0 overflow-x-hidden">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
                 
                 {/* Left Column: Product Gallery */}
@@ -1029,21 +1029,21 @@ const ProductDetails = ({ product, storeInfo }) => {
                 className={`fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_25px_rgba(0,0,0,0.12)] sm:hidden transition-transform duration-300 ease-in-out ${
                     showStickyBar ? 'translate-y-0' : 'translate-y-full pointer-events-none'
                 }`}
-                style={{ paddingBottom: 'max(0.6rem, env(safe-area-inset-bottom))' }}
+                style={{ paddingBottom: 'max(0.4rem, env(safe-area-inset-bottom))' }}
             >
-                <div className="px-3 pt-2.5 pb-1 flex items-center justify-between gap-2 max-w-lg mx-auto">
+                <div className="px-3 py-1.5 flex items-center justify-between gap-2 max-w-lg mx-auto w-full">
                     {/* Product Thumbnail & Price */}
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                         <img 
                             src={images[0] || product.image || '/favicon.svg'} 
                             alt={product.name}
-                            className="size-10 rounded-xl object-cover border border-slate-200 shrink-0"
+                            className="size-8 rounded-lg object-cover border border-slate-200 shrink-0"
                         />
                         <div className="min-w-0 flex-1">
-                            <p className="text-xs font-bold text-slate-900 truncate leading-tight">{product.name}</p>
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-sm font-black text-emerald-600 font-mono tracking-tight">${(currentTier.totalPrice + protectionFee).toFixed(2)}</span>
-                                {compareAtPrice > unitPrice && (
+                            <p className="text-[11px] font-bold text-slate-900 truncate leading-tight">{product.name}</p>
+                            <div className="flex items-center gap-1.5 leading-none mt-0.5">
+                                <span className="text-xs sm:text-sm font-black text-emerald-600 font-mono tracking-tight">${(currentTier.totalPrice + protectionFee).toFixed(2)}</span>
+                                {(compareAtPrice * currentTier.qty) > (currentTier.totalPrice + protectionFee) && (
                                     <span className="text-[10px] text-slate-400 line-through">
                                         ${(compareAtPrice * currentTier.qty).toFixed(2)}
                                     </span>
@@ -1057,16 +1057,16 @@ const ProductDetails = ({ product, storeInfo }) => {
                         <button
                             onClick={handleAddToCart}
                             aria-label="Add to cart"
-                            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition flex items-center justify-center active:scale-95 cursor-pointer shrink-0"
+                            className="size-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition flex items-center justify-center active:scale-95 cursor-pointer shrink-0"
                         >
-                            <ShoppingBag size={17} />
+                            <ShoppingBag size={15} />
                         </button>
                         <button
                             onClick={handleInstantBuyNow}
                             disabled={isCheckingOut || isOutOfStock}
-                            className="py-2.5 px-3.5 sm:px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0"
+                            className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-extrabold text-xs shadow-sm shadow-emerald-600/30 flex items-center justify-center gap-1 transition cursor-pointer whitespace-nowrap shrink-0"
                         >
-                            <Zap size={14} className="fill-white shrink-0" />
+                            <Zap size={12} className="fill-white shrink-0" />
                             <span>Instant Buy</span>
                         </button>
                     </div>

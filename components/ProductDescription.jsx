@@ -22,14 +22,14 @@ const ProductDescription = ({ product }) => {
 
             {/* Description / Story Lander */}
             {selectedTab === "Description" && (
-                <div className="max-w-3xl space-y-6">
+                <div className="max-w-3xl space-y-6 overflow-hidden max-w-full">
                     {product.bodyHtml ? (
                         <div 
-                            className="prose prose-slate max-w-none text-slate-700 leading-relaxed [&_h1]:text-2xl [&_h1]:font-black [&_h2]:text-xl [&_h2]:font-bold [&_h3]:text-lg [&_h3]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_li]:text-sm [&_p]:text-sm [&_p]:leading-relaxed [&_img]:rounded-2xl [&_img]:shadow-md [&_img]:my-4"
+                            className="prose prose-slate max-w-none text-slate-700 leading-relaxed overflow-hidden break-words [&_iframe]:w-full [&_iframe]:max-w-full [&_iframe]:aspect-video [&_iframe]:h-auto [&_table]:w-full [&_table]:max-w-full [&_table]:block [&_table]:overflow-x-auto [&_img]:max-w-full [&_img]:h-auto [&_h1]:text-2xl [&_h1]:font-black [&_h2]:text-xl [&_h2]:font-bold [&_h3]:text-lg [&_h3]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_li]:text-sm [&_p]:text-sm [&_p]:leading-relaxed [&_img]:rounded-2xl [&_img]:shadow-md [&_img]:my-4"
                             dangerouslySetInnerHTML={{ __html: product.bodyHtml }}
                         />
                     ) : (
-                        <p className="max-w-xl text-base leading-relaxed text-slate-700 whitespace-pre-line">
+                        <p className="max-w-xl text-base leading-relaxed text-slate-700 whitespace-pre-line break-words">
                             {product.description}
                         </p>
                     )}

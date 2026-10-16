@@ -119,7 +119,7 @@ export default function ProductClient({ initialProduct, productId: propProductId
     const storeName = product.storeName || 'Store Catalog';
 
     return (
-        <div className="mx-3 sm:mx-6 pb-28 sm:pb-20">
+        <div className="mx-3 sm:mx-6 pb-28 sm:pb-20 overflow-x-hidden max-w-full">
             <div className="max-w-7xl mx-auto">
                 {/* Merchant Live Controls */}
                 {isOwner && (

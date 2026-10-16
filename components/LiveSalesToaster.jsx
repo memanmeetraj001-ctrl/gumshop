@@ -73,7 +73,7 @@ export default function LiveSalesToaster({ product, products, storeName }) {
     return (
         <aside
             aria-live="polite"
-            className="fixed bottom-24 sm:bottom-6 left-3 sm:left-6 z-40 max-w-[320px] sm:max-w-[340px] w-[calc(100vw-1.5rem)] sm:w-auto animate-in slide-in-from-bottom-5 fade-in duration-300"
+            className="hidden sm:block fixed sm:bottom-6 sm:left-6 z-40 max-w-[340px] animate-in slide-in-from-bottom-5 fade-in duration-300"
         >
             <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3 border border-slate-200/90 shadow-[0_10px_30px_rgba(0,0,0,0.12)] flex items-center gap-3 relative group text-left">
                 {/* Product Thumbnail */}
