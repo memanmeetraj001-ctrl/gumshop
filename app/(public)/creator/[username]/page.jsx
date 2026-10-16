@@ -139,6 +139,62 @@ function resolveCtaTheme(themeColor, isDarkSurface = false) {
     };
 }
 
+function getProductVariantPricing(product, variantOrSizeName) {
+    const basePrice = parseFloat(product?.price !== undefined && product?.price !== null && product?.price !== '' ? product.price : 52.99);
+    if (!variantOrSizeName || !product) {
+        return { effectivePrice: basePrice, priceDelta: 0, matchedVariant: null };
+    }
+    const cleanName = String(variantOrSizeName).toLowerCase().trim();
+
+    // 1. Check product.variants
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+        const matched = product.variants.find(v => {
+            if (!v) return false;
+            if (v.id && String(v.id) === String(variantOrSizeName)) return true;
+            const vName = String(v.name || v.label || v.title || '').toLowerCase().trim();
+            return vName === cleanName || vName.includes(cleanName) || cleanName.includes(vName);
+        });
+        if (matched) {
+            const vPrice = parseFloat(matched.price || 0);
+            const baseV0Price = parseFloat(product.variants[0]?.price || 0);
+            let priceDelta = 0;
+            if (matched.priceDelta !== undefined && matched.priceDelta !== null && !isNaN(parseFloat(matched.priceDelta))) {
+                priceDelta = Math.max(0, parseFloat(matched.priceDelta));
+            } else if (matched.effectivePrice && parseFloat(matched.effectivePrice) >= basePrice) {
+                priceDelta = Math.max(0, Math.round((parseFloat(matched.effectivePrice) - basePrice) * 100) / 100);
+            } else if (vPrice > baseV0Price && baseV0Price > 0) {
+                priceDelta = Math.round((vPrice - baseV0Price) * 100) / 100;
+            } else if (vPrice > 0 && (!baseV0Price || baseV0Price === 0) && vPrice > basePrice) {
+                priceDelta = Math.round((vPrice - basePrice) * 100) / 100;
+            }
+            return {
+                effectivePrice: Math.round((basePrice + priceDelta) * 100) / 100,
+                priceDelta,
+                matchedVariant: matched
+            };
+        }
+    }
+
+    // 2. Check product.sizes
+    if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+        const matched = product.sizes.find(s => {
+            if (!s) return false;
+            const sName = String(s.name || s.label || '').toLowerCase().trim();
+            return sName === cleanName || sName.includes(cleanName) || cleanName.includes(sName);
+        });
+        if (matched && matched.priceDelta) {
+            const priceDelta = parseFloat(matched.priceDelta) || 0;
+            return {
+                effectivePrice: Math.round((basePrice + priceDelta) * 100) / 100,
+                priceDelta,
+                matchedVariant: matched
+            };
+        }
+    }
+
+    return { effectivePrice: basePrice, priceDelta: 0, matchedVariant: null };
+}
+
 function formatCreatorProfile(store, rawUsername) {
     if (!store) return null;
     try {
@@ -782,8 +838,10 @@ export default function CreatorBioPage({ params }) {
                 : (parseFloat(product.price || 0) || 0);
             const unitPrice = bundle
                 ? (bundle.pricePerUnit ? (parseFloat(bundle.pricePerUnit) || 0) : Number((baseBundlePrice / qty).toFixed(2)))
-                : baseBundlePrice;
-            const sizeName = hasWearableSizes ? (typeof selectedSize === 'object' ? (selectedSize?.name || selectedSize?.label) : selectedSize) : null;
+                : (parseFloat(product.price || 0) || baseBundlePrice);
+            const sizeName = (product.variant && typeof product.variant === 'string')
+                ? product.variant
+                : (hasWearableSizes ? (typeof selectedSize === 'object' ? (selectedSize?.name || selectedSize?.label) : selectedSize) : null);
             const variantStr = [sizeName, bundle?.label].filter(Boolean).join(' • ');
 
             dispatch(addToCart({
@@ -813,14 +871,24 @@ export default function CreatorBioPage({ params }) {
         const baseBundlePrice = bundle 
             ? parseFloat(bundle.totalPrice || bundle.price || product.price) 
             : parseFloat(product.price || 0);
-        const effectiveDiscount = parseFloat(discountAmount || 0);
+
+        let effectiveDiscount = parseFloat(discountAmount || 0);
+        if (effectiveDiscount === 0 && stanAppliedCoupon) {
+            effectiveDiscount = stanAppliedCoupon.type === 'fixed'
+                ? Math.min(baseBundlePrice, parseFloat(stanAppliedCoupon.discount || 0))
+                : Math.round(baseBundlePrice * (parseFloat(stanAppliedCoupon.discount || 0) / 100) * 100) / 100;
+        }
+
         const finalPrice = Math.max(1.00, Math.round((baseBundlePrice - effectiveDiscount) * 100) / 100);
         const unitPrice = bundle
             ? (bundle.pricePerUnit ? parseFloat(bundle.pricePerUnit) : Number((baseBundlePrice / qty).toFixed(2)))
-            : baseBundlePrice;
+            : (parseFloat(product.price || 0) || baseBundlePrice);
+
+        const sizeName = (product.variant && typeof product.variant === 'string')
+            ? product.variant
+            : (hasWearableSizes ? (typeof selectedSize === 'object' ? (selectedSize?.name || selectedSize?.label) : selectedSize) : null);
+        const sizePrefix = sizeName ? `Option: ${sizeName}` : '';
         const bundleLabel = bundle?.label;
-        const sizeName = hasWearableSizes ? (typeof selectedSize === 'object' ? (selectedSize?.name || selectedSize?.label) : selectedSize) : null;
-        const sizePrefix = sizeName ? `Size: ${sizeName}` : '';
         const variantDesc = [sizePrefix, bundleLabel].filter(Boolean).join(' • ');
         const itemName = variantDesc ? `${product.name} (${variantDesc})` : product.name;
 
@@ -855,6 +923,7 @@ export default function CreatorBioPage({ params }) {
                         quantity: qty,
                         selectedSize: sizeName || '',
                         variant: sizeName || '',
+                        selectedVariantId: product.selectedVariantId || '',
                         image: product.image || product.images?.[0]
                     }],
                     discountAmount: effectiveDiscount,
@@ -875,7 +944,7 @@ export default function CreatorBioPage({ params }) {
             setCheckoutModal({
                 isOpen: true,
                 product: { ...product, name: itemName },
-                selectedBundle: bundle,
+                selectedBundle: bundle ? { ...bundle, pricePerUnit: unitPrice } : { qty: 1, totalPrice: finalPrice, pricePerUnit: unitPrice },
                 total: typeof data.total === 'number' ? data.total : finalPrice,
                 gumroadUrl: data.checkoutUrl || '',
                 orderSessionId: data.orderSessionId || orderSessionId,
@@ -1682,7 +1751,32 @@ export default function CreatorBioPage({ params }) {
 
                                             {/* Dynamic Multi-Pack Bundle Selector */}
                                             {(() => {
-                                                const bundles = (Array.isArray(heroItem.customBundles) && heroItem.customBundles.length > 0)
+                                                const rawSizes = (Array.isArray(heroItem.sizes) && heroItem.sizes.length > 0)
+                                                    ? heroItem.sizes
+                                                    : ((Array.isArray(heroItem.variants) && heroItem.variants.length > 0)
+                                                        ? heroItem.variants
+                                                        : (hasWearableSizes ? [
+                                                            { name: 'Small (S)', label: 'Small (S)' },
+                                                            { name: 'Medium (M)', label: 'Medium (M)', popular: true },
+                                                            { name: 'Large (L)', label: 'Large (L)' },
+                                                            { name: 'X-Large (XL)', label: 'X-Large (XL)' }
+                                                        ] : []));
+
+                                                const heroSizes = rawSizes.map(s => {
+                                                    if (typeof s === 'string') return { name: s, label: s };
+                                                    return {
+                                                        name: s.name || s.title || s.label || String(s),
+                                                        label: s.label || s.name || s.title || String(s),
+                                                        popular: Boolean(s.popular)
+                                                    };
+                                                });
+
+                                                const activeSizeName = selectedSize || heroSizes[1]?.name || heroSizes[0]?.name || '';
+                                                const sizePricing = getProductVariantPricing(heroItem, activeSizeName);
+                                                const sizePriceDelta = sizePricing.priceDelta;
+                                                const effectiveHeroPrice = sizePricing.effectivePrice;
+
+                                                const rawBundles = (Array.isArray(heroItem.customBundles) && heroItem.customBundles.length > 0)
                                                     ? heroItem.customBundles
                                                     : [
                                                         {
@@ -1710,8 +1804,22 @@ export default function CreatorBioPage({ params }) {
                                                             badge: "BEST VALUE"
                                                         }
                                                     ];
+
+                                                const bundles = rawBundles.map(b => {
+                                                    const qty = parseInt(b.qty, 10) || 1;
+                                                    const baseTotal = parseFloat(b.totalPrice || b.price || (heroPrice * qty));
+                                                    const scaledTotal = Math.round((baseTotal + (sizePriceDelta * qty)) * 100) / 100;
+                                                    const scaledUnit = Math.round((scaledTotal / qty) * 100) / 100;
+                                                    return {
+                                                        ...b,
+                                                        qty,
+                                                        totalPrice: scaledTotal,
+                                                        pricePerUnit: scaledUnit
+                                                    };
+                                                });
+
                                                 const activeBundle = bundles[selectedPackIndex] || bundles[0];
-                                                const activeBundlePrice = parseFloat(activeBundle.totalPrice || activeBundle.price || heroPrice);
+                                                const activeBundlePrice = parseFloat(activeBundle.totalPrice || activeBundle.price || effectiveHeroPrice);
                                                 const couponDiscountVal = stanAppliedCoupon 
                                                     ? (stanAppliedCoupon.type === 'fixed' 
                                                         ? Math.min(activeBundlePrice, stanAppliedCoupon.discount) 
@@ -1719,25 +1827,12 @@ export default function CreatorBioPage({ params }) {
                                                     : 0;
                                                 const finalDiscountedPrice = Math.max(1.00, Math.round((activeBundlePrice - couponDiscountVal) * 100) / 100);
 
-                                                const rawSizes = (Array.isArray(heroItem.sizes) && heroItem.sizes.length > 0)
-                                                    ? heroItem.sizes
-                                                    : ((Array.isArray(heroItem.variants) && heroItem.variants.length > 0)
-                                                        ? heroItem.variants
-                                                        : (hasWearableSizes ? [
-                                                            { name: 'Small (S)', label: 'Small (S)' },
-                                                            { name: 'Medium (M)', label: 'Medium (M)', popular: true },
-                                                            { name: 'Large (L)', label: 'Large (L)' },
-                                                            { name: 'X-Large (XL)', label: 'X-Large (XL)' }
-                                                        ] : []));
-
-                                                const heroSizes = rawSizes.map(s => {
-                                                    if (typeof s === 'string') return { name: s, label: s };
-                                                    return {
-                                                        name: s.name || s.title || s.label || String(s),
-                                                        label: s.label || s.name || s.title || String(s),
-                                                        popular: Boolean(s.popular)
-                                                    };
-                                                });
+                                                const heroItemWithVariant = {
+                                                    ...heroItem,
+                                                    variant: activeSizeName,
+                                                    selectedVariantId: sizePricing.matchedVariant?.id || '',
+                                                    price: activeBundle.pricePerUnit || effectiveHeroPrice
+                                                };
 
                                                 return (
                                                     <div className="space-y-3 pt-2 border-t border-slate-100">
@@ -1756,9 +1851,9 @@ export default function CreatorBioPage({ params }) {
                                                                             {stanAppliedCoupon.label}
                                                                         </span>
                                                                     </>
-                                                                ) : (heroCompare > heroPrice && (
+                                                                ) : ((heroCompare + sizePriceDelta) > effectiveHeroPrice && (
                                                                     <span className="text-sm text-slate-400 line-through font-semibold">
-                                                                        ${(heroCompare * (activeBundle.qty || 1)).toFixed(2)}
+                                                                        ${((heroCompare + sizePriceDelta) * (activeBundle.qty || 1)).toFixed(2)}
                                                                     </span>
                                                                 ))}
                                                             </div>
@@ -1768,26 +1863,26 @@ export default function CreatorBioPage({ params }) {
                                                             </span>
                                                         </div>
 
-                                                        {/* Interactive Size Selector */}
-                                                        {hasWearableSizes && heroSizes.length > 0 && (
+                                                        {/* Interactive Size / Option Selector */}
+                                                        {(hasWearableSizes || heroSizes.length > 1) && heroSizes.length > 0 && (
                                                             <div className="space-y-1.5 pt-1">
                                                                 <div className="flex items-center justify-between">
                                                                     <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                                                        <span>Select Size:</span>
-                                                                        <span className="text-amber-700 font-black">{selectedSize || heroSizes[1]?.name || heroSizes[0]?.name}</span>
+                                                                        <span>{hasWearableSizes ? 'Select Size:' : 'Select Option:'}</span>
+                                                                        <span className="text-amber-700 font-black">{activeSizeName}</span>
                                                                     </span>
                                                                     <button
                                                                         type="button"
-                                                                        onClick={() => setActiveStoryHighlight('sizing')}
+                                                                        onClick={() => setActiveStoryHighlight(hasWearableSizes ? 'sizing' : 'specs')}
                                                                         className="text-[11px] font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1 cursor-pointer transition underline underline-offset-2"
                                                                     >
-                                                                        <span>📏 Fit Guide</span>
+                                                                        <span>{hasWearableSizes ? '📏 Fit Guide' : '🛡️ Specs'}</span>
                                                                     </button>
                                                                 </div>
                                                                 <div className={`grid gap-1.5 ${heroSizes.length === 4 ? 'grid-cols-4' : (heroSizes.length <= 3 ? 'grid-cols-3' : 'grid-cols-4')}`}>
                                                                     {heroSizes.map((sz, sIdx) => {
                                                                         const sName = String(sz.name || sz.label || '');
-                                                                        const isSelected = selectedSize === sName || (!selectedSize && (sz.popular || sIdx === 1));
+                                                                        const isSelected = activeSizeName === sName || (!selectedSize && (sz.popular || sIdx === 1));
                                                                         const matchParen = sName.match(/\(([^)]+)\)/);
                                                                         const shortLabel = sz.short || (matchParen ? matchParen[1] : (sName.length <= 4 ? sName : sName.slice(0, 3)));
                                                                         const subLabel = sName.includes('(') ? sName.split('(')[0].trim() : sName;
@@ -1825,7 +1920,7 @@ export default function CreatorBioPage({ params }) {
                                                         <div className={`grid gap-2 ${bundles.length >= 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                                                             {bundles.map((bundle, bIdx) => {
                                                                 const isSelected = selectedPackIndex === bIdx;
-                                                                const bPrice = parseFloat(bundle.totalPrice || bundle.price || heroPrice);
+                                                                const bPrice = parseFloat(bundle.totalPrice || bundle.price || effectiveHeroPrice);
                                                                 return (
                                                                     <button
                                                                         key={bIdx}
@@ -1933,7 +2028,7 @@ export default function CreatorBioPage({ params }) {
                                                         {/* Dual Buying Actions: BUY NOW + Add to Cart */}
                                                         <div className="space-y-2">
                                                             <button
-                                                                onClick={() => handleInstantBuy(heroItem, activeBundle, couponDiscountVal, stanAppliedCoupon?.code)}
+                                                                onClick={() => handleInstantBuy(heroItemWithVariant, activeBundle, couponDiscountVal, stanAppliedCoupon?.code)}
                                                                 className="w-full py-3.5 px-6 rounded-2xl font-black text-base tracking-wider shadow-lg transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer hover:opacity-95 uppercase outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
                                                                 style={{ 
                                                                     backgroundColor: resolveCtaTheme(creator.themeColor || '#f97316', false).backgroundColor, 
@@ -1945,7 +2040,7 @@ export default function CreatorBioPage({ params }) {
                                                             </button>
                                                             <button
                                                                 type="button"
-                                                                onClick={() => handleAddToCart(heroItem, activeBundle)}
+                                                                onClick={() => handleAddToCart(heroItemWithVariant, activeBundle)}
                                                                 className="w-full py-2.5 px-6 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-extrabold text-xs tracking-wider transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer border border-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
                                                             >
                                                                 <ShoppingBag size={15} className="text-slate-700" />
@@ -2169,31 +2264,52 @@ export default function CreatorBioPage({ params }) {
                                                                     <Package size={11} className="text-emerald-600" />
                                                                     <span>Free Sample</span>
                                                                 </button>
-                                                            ) : (
-                                                                <div className="grid grid-cols-2 gap-1.5">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleAddToCart(item)}
-                                                                        className="py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-[11px] transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
-                                                                        title="Add to Cart"
-                                                                    >
-                                                                        <ShoppingBag size={11} className="text-slate-600" />
-                                                                        <span>+ Cart</span>
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleInstantBuy(item)}
-                                                                        className="py-1.5 rounded-xl font-black text-[11px] transition active:scale-95 shadow-xs flex items-center justify-center gap-1 tracking-tight uppercase cursor-pointer"
-                                                                        style={{ 
-                                                                            backgroundColor: resolveCtaTheme(creator.themeColor || '#ef4444', false).backgroundColor, 
-                                                                            color: resolveCtaTheme(creator.themeColor || '#ef4444', false).color 
-                                                                        }}
-                                                                    >
-                                                                        <Zap size={11} className={resolveCtaTheme(creator.themeColor || '#ef4444', false).fillClass} style={{ fill: resolveCtaTheme(creator.themeColor || '#ef4444', false).color }} />
-                                                                        <span>BUY</span>
-                                                                    </button>
-                                                                </div>
-                                                            )}
+                                                            ) : (() => {
+                                                                const hasMultipleOptions = (Array.isArray(item.variants) && item.variants.length > 1) || (Array.isArray(item.sizes) && item.sizes.length > 1);
+                                                                return (
+                                                                    <div className="grid grid-cols-2 gap-1.5">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                if (hasMultipleOptions) {
+                                                                                    setQuickViewProduct(item);
+                                                                                    setQuickViewActivePhoto(0);
+                                                                                    setQuickViewSelectedBundle(0);
+                                                                                    setQuickViewSelectedVariant('');
+                                                                                } else {
+                                                                                    handleAddToCart(item);
+                                                                                }
+                                                                            }}
+                                                                            className="py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-[11px] transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
+                                                                            title={hasMultipleOptions ? "Select Options" : "Add to Cart"}
+                                                                        >
+                                                                            <ShoppingBag size={11} className="text-slate-600" />
+                                                                            <span>{hasMultipleOptions ? 'Options' : '+ Cart'}</span>
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                if (hasMultipleOptions) {
+                                                                                    setQuickViewProduct(item);
+                                                                                    setQuickViewActivePhoto(0);
+                                                                                    setQuickViewSelectedBundle(0);
+                                                                                    setQuickViewSelectedVariant('');
+                                                                                } else {
+                                                                                    handleInstantBuy(item);
+                                                                                }
+                                                                            }}
+                                                                            className="py-1.5 rounded-xl font-black text-[11px] transition active:scale-95 shadow-xs flex items-center justify-center gap-1 tracking-tight uppercase cursor-pointer"
+                                                                            style={{ 
+                                                                                backgroundColor: resolveCtaTheme(creator.themeColor || '#ef4444', false).backgroundColor, 
+                                                                                color: resolveCtaTheme(creator.themeColor || '#ef4444', false).color 
+                                                                            }}
+                                                                        >
+                                                                            <Zap size={11} className={resolveCtaTheme(creator.themeColor || '#ef4444', false).fillClass} style={{ fill: resolveCtaTheme(creator.themeColor || '#ef4444', false).color }} />
+                                                                            <span>BUY</span>
+                                                                        </button>
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </div>
                                                 );
@@ -2280,31 +2396,52 @@ export default function CreatorBioPage({ params }) {
                                                                         <Package size={13} className="text-emerald-600" />
                                                                         <span>Claim Free Sample</span>
                                                                     </button>
-                                                                ) : (
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleAddToCart(item)}
-                                                                            className="py-1.5 px-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs transition active:scale-95 flex items-center gap-1 cursor-pointer"
-                                                                            title="Add to Cart"
-                                                                        >
-                                                                            <ShoppingBag size={12} className="text-slate-600" />
-                                                                            <span>+ Cart</span>
-                                                                        </button>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleInstantBuy(item)}
-                                                                            className="py-1.5 px-3 sm:px-3.5 rounded-xl font-black text-xs transition active:scale-95 shadow-xs flex items-center gap-1 tracking-tight uppercase cursor-pointer"
-                                                                            style={{ 
-                                                                                backgroundColor: resolveCtaTheme(creator.themeColor || '#ef4444', false).backgroundColor, 
-                                                                                color: resolveCtaTheme(creator.themeColor || '#ef4444', false).color 
-                                                                            }}
-                                                                        >
-                                                                            <Zap size={13} className={resolveCtaTheme(creator.themeColor || '#ef4444', false).fillClass} style={{ fill: resolveCtaTheme(creator.themeColor || '#ef4444', false).color }} />
-                                                                            <span>BUY NOW</span>
-                                                                        </button>
-                                                                    </div>
-                                                                )}
+                                                                ) : (() => {
+                                                                    const hasMultipleOptions = (Array.isArray(item.variants) && item.variants.length > 1) || (Array.isArray(item.sizes) && item.sizes.length > 1);
+                                                                    return (
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    if (hasMultipleOptions) {
+                                                                                        setQuickViewProduct(item);
+                                                                                        setQuickViewActivePhoto(0);
+                                                                                        setQuickViewSelectedBundle(0);
+                                                                                        setQuickViewSelectedVariant('');
+                                                                                    } else {
+                                                                                        handleAddToCart(item);
+                                                                                    }
+                                                                                }}
+                                                                                className="py-1.5 px-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs transition active:scale-95 flex items-center gap-1 cursor-pointer"
+                                                                                title={hasMultipleOptions ? "Select Options" : "Add to Cart"}
+                                                                            >
+                                                                                <ShoppingBag size={12} className="text-slate-600" />
+                                                                                <span>{hasMultipleOptions ? 'Options' : '+ Cart'}</span>
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    if (hasMultipleOptions) {
+                                                                                        setQuickViewProduct(item);
+                                                                                        setQuickViewActivePhoto(0);
+                                                                                        setQuickViewSelectedBundle(0);
+                                                                                        setQuickViewSelectedVariant('');
+                                                                                    } else {
+                                                                                        handleInstantBuy(item);
+                                                                                    }
+                                                                                }}
+                                                                                className="py-1.5 px-3 sm:px-3.5 rounded-xl font-black text-xs transition active:scale-95 shadow-xs flex items-center gap-1 tracking-tight uppercase cursor-pointer"
+                                                                                style={{ 
+                                                                                    backgroundColor: resolveCtaTheme(creator.themeColor || '#ef4444', false).backgroundColor, 
+                                                                                    color: resolveCtaTheme(creator.themeColor || '#ef4444', false).color 
+                                                                                }}
+                                                                            >
+                                                                                <Zap size={13} className={resolveCtaTheme(creator.themeColor || '#ef4444', false).fillClass} style={{ fill: resolveCtaTheme(creator.themeColor || '#ef4444', false).color }} />
+                                                                                <span>BUY NOW</span>
+                                                                            </button>
+                                                                        </div>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -2465,17 +2602,59 @@ export default function CreatorBioPage({ params }) {
             {showStickyBar && displayedProducts.length > 0 && (() => {
                 const heroItem = displayedProducts[0];
                 const heroPrice = parseFloat(heroItem?.price !== undefined && heroItem?.price !== null && heroItem?.price !== '' ? heroItem.price : 52.99);
-                const bundles = (Array.isArray(heroItem?.customBundles) && heroItem.customBundles.length > 0)
+
+                const rawSizes = (Array.isArray(heroItem.sizes) && heroItem.sizes.length > 0)
+                    ? heroItem.sizes
+                    : ((Array.isArray(heroItem.variants) && heroItem.variants.length > 0)
+                        ? heroItem.variants
+                        : (hasWearableSizes ? [
+                            { name: 'Small (S)', label: 'Small (S)' },
+                            { name: 'Medium (M)', label: 'Medium (M)', popular: true },
+                            { name: 'Large (L)', label: 'Large (L)' },
+                            { name: 'X-Large (XL)', label: 'X-Large (XL)' }
+                        ] : []));
+                const heroSizes = rawSizes.map(s => typeof s === 'string' ? { name: s, label: s } : { name: s.name || s.title || s.label || String(s), label: s.label || s.name || s.title || String(s) });
+                const activeSizeName = selectedSize || heroSizes[1]?.name || heroSizes[0]?.name || '';
+                const sizePricing = getProductVariantPricing(heroItem, activeSizeName);
+                const sizePriceDelta = sizePricing.priceDelta;
+                const effectiveHeroPrice = sizePricing.effectivePrice;
+
+                const rawBundles = (Array.isArray(heroItem?.customBundles) && heroItem.customBundles.length > 0)
                     ? heroItem.customBundles
-                    : [];
-                const activeBundle = bundles[selectedPackIndex] || (bundles.length > 0 ? bundles[0] : null);
-                const baseDisplayPrice = activeBundle ? parseFloat(activeBundle.totalPrice || activeBundle.price || heroPrice) : heroPrice;
+                    : [
+                        { qty: 1, label: `1 Unit`, totalPrice: heroPrice, pricePerUnit: heroPrice },
+                        { qty: 2, label: `2 Units`, totalPrice: Math.round(heroPrice * 1.4082075 * 100) / 100, pricePerUnit: Math.round((heroPrice * 1.4082075 / 2) * 100) / 100 },
+                        { qty: 3, label: `3 Units`, totalPrice: Math.round(heroPrice * 1.81623 * 100) / 100, pricePerUnit: Math.round((heroPrice * 1.81623 / 3) * 100) / 100 }
+                    ];
+
+                const bundles = rawBundles.map(b => {
+                    const qty = parseInt(b.qty, 10) || 1;
+                    const baseTotal = parseFloat(b.totalPrice || b.price || (heroPrice * qty));
+                    const scaledTotal = Math.round((baseTotal + (sizePriceDelta * qty)) * 100) / 100;
+                    const scaledUnit = Math.round((scaledTotal / qty) * 100) / 100;
+                    return {
+                        ...b,
+                        qty,
+                        totalPrice: scaledTotal,
+                        pricePerUnit: scaledUnit
+                    };
+                });
+
+                const activeBundle = bundles[selectedPackIndex] || bundles[0];
+                const baseDisplayPrice = parseFloat(activeBundle.totalPrice || activeBundle.price || effectiveHeroPrice);
                 const stickyDiscountVal = stanAppliedCoupon 
                     ? (stanAppliedCoupon.type === 'fixed' 
                         ? Math.min(baseDisplayPrice, stanAppliedCoupon.discount) 
                         : Math.round(baseDisplayPrice * (stanAppliedCoupon.discount / 100) * 100) / 100) 
                     : 0;
                 const displayPrice = Math.max(1.00, Math.round((baseDisplayPrice - stickyDiscountVal) * 100) / 100);
+
+                const heroItemWithVariant = {
+                    ...heroItem,
+                    variant: activeSizeName,
+                    selectedVariantId: sizePricing.matchedVariant?.id || '',
+                    price: activeBundle.pricePerUnit || effectiveHeroPrice
+                };
 
                 return (
                     <div 
@@ -2498,7 +2677,7 @@ export default function CreatorBioPage({ params }) {
                                     <p className="text-xs font-bold text-white truncate">{decodeHtmlEntities(displayedProducts[0].name)}</p>
                                     <p className="text-[11px] font-black text-emerald-400 flex items-center flex-wrap gap-1">
                                         <span>${displayPrice.toFixed(2)}</span>
-                                        {hasWearableSizes && selectedSize && <span className="text-[10px] text-amber-300 font-bold ml-1">• {selectedSize}</span>}
+                                        {activeSizeName && <span className="text-[10px] text-amber-300 font-bold ml-1">• {activeSizeName}</span>}
                                         {activeBundle && <span className="text-[10px] text-slate-400 font-normal ml-1">({activeBundle.label})</span>}
                                         {stickyDiscountVal > 0 && <span className="text-[9px] text-emerald-300 font-bold ml-1">({stanAppliedCoupon.label})</span>}
                                         <span className="text-[9px] text-yellow-300 font-mono font-bold ml-1">⚡ Hold: {formattedReserveTime}</span>
@@ -2508,7 +2687,7 @@ export default function CreatorBioPage({ params }) {
                             <div className="flex items-center gap-1.5 shrink-0">
                                 <button
                                     type="button"
-                                    onClick={() => handleAddToCart(displayedProducts[0], activeBundle)}
+                                    onClick={() => handleAddToCart(heroItemWithVariant, activeBundle)}
                                     className="px-2.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-1 transition cursor-pointer border border-slate-700 active:scale-95"
                                     title="Add to cart"
                                 >
@@ -2516,7 +2695,7 @@ export default function CreatorBioPage({ params }) {
                                     <span>+ Cart</span>
                                 </button>
                                 <button
-                                    onClick={() => handleInstantBuy(displayedProducts[0], activeBundle, stickyDiscountVal, stanAppliedCoupon?.code)}
+                                    onClick={() => handleInstantBuy(heroItemWithVariant, activeBundle, stickyDiscountVal, stanAppliedCoupon?.code)}
                                     className="px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1 shrink-0 shadow-sm active:scale-95 transition cursor-pointer uppercase tracking-wider"
                                     style={{ 
                                         backgroundColor: resolveCtaTheme(creator.themeColor, true).backgroundColor, 
@@ -2930,7 +3109,7 @@ export default function CreatorBioPage({ params }) {
                             </button>
                         </div>
 
-                        {/* Product Photo Gallery */}
+                        {/* Product Photo Gallery & Dynamic Pricing Engine */}
                         {(() => {
                             const galleryImages = Array.isArray(quickViewProduct.images) && quickViewProduct.images.length > 0
                                 ? quickViewProduct.images
@@ -2938,23 +3117,56 @@ export default function CreatorBioPage({ params }) {
                             const activePhoto = galleryImages[quickViewActivePhoto] || galleryImages[0];
                             
                             const qvBasePrice = parseFloat(quickViewProduct.price || 0);
-                            const qvComparePrice = parseFloat(quickViewProduct.compareAtPrice || quickViewProduct.comparePrice || (qvBasePrice > 0 ? Math.round(qvBasePrice * 1.35 * 100) / 100 : 0));
-                            
-                            const qvBundles = (Array.isArray(quickViewProduct.customBundles) && quickViewProduct.customBundles.length > 0)
-                                ? quickViewProduct.customBundles
-                                : [
-                                    { qty: 1, label: 'Single Unit (1-Pack)', totalPrice: qvBasePrice, badge: null },
-                                    { qty: 2, label: 'Double Pack (2-Pack)', totalPrice: Math.round(qvBasePrice * 1.4082075 * 100) / 100, badge: 'MOST POPULAR' },
-                                    { qty: 3, label: 'Triple Pack (3-Pack)', totalPrice: Math.round(qvBasePrice * 1.81623 * 100) / 100, badge: 'BEST VALUE' }
-                                ];
-                            const activeBundle = qvBundles[quickViewSelectedBundle] || qvBundles[0];
-                            const effectivePrice = parseFloat(activeBundle.totalPrice || qvBasePrice);
 
                             // Detect Variants / Sizes
                             const rawVariants = Array.isArray(quickViewProduct.variants) && quickViewProduct.variants.length > 0
                                 ? quickViewProduct.variants
                                 : (Array.isArray(quickViewProduct.sizes) && quickViewProduct.sizes.length > 0 ? quickViewProduct.sizes : []);
                             const optionsList = rawVariants.map(v => typeof v === 'string' ? v : (v.name || v.label || v.title || String(v)));
+                            const activeOptionName = quickViewSelectedVariant || optionsList[0] || '';
+                            
+                            const variantPricing = getProductVariantPricing(quickViewProduct, activeOptionName);
+                            const variantPriceDelta = variantPricing.priceDelta;
+                            const variantBasePrice = variantPricing.effectivePrice;
+
+                            const qvComparePrice = parseFloat(quickViewProduct.compareAtPrice || quickViewProduct.comparePrice || (qvBasePrice > 0 ? Math.round(qvBasePrice * 1.35 * 100) / 100 : 0));
+                            
+                            const rawQvBundles = (Array.isArray(quickViewProduct.customBundles) && quickViewProduct.customBundles.length > 0)
+                                ? quickViewProduct.customBundles
+                                : [
+                                    { qty: 1, label: 'Single Unit (1-Pack)', totalPrice: qvBasePrice, badge: null },
+                                    { qty: 2, label: 'Double Pack (2-Pack)', totalPrice: Math.round(qvBasePrice * 1.4082075 * 100) / 100, badge: 'MOST POPULAR' },
+                                    { qty: 3, label: 'Triple Pack (3-Pack)', totalPrice: Math.round(qvBasePrice * 1.81623 * 100) / 100, badge: 'BEST VALUE' }
+                                ];
+
+                            const qvBundles = rawQvBundles.map(b => {
+                                const qty = parseInt(b.qty, 10) || 1;
+                                const baseTotal = parseFloat(b.totalPrice || b.price || (qvBasePrice * qty));
+                                const scaledTotal = Math.round((baseTotal + (variantPriceDelta * qty)) * 100) / 100;
+                                const scaledUnit = Math.round((scaledTotal / qty) * 100) / 100;
+                                return {
+                                    ...b,
+                                    qty,
+                                    totalPrice: scaledTotal,
+                                    pricePerUnit: scaledUnit
+                                };
+                            });
+
+                            const activeBundle = qvBundles[quickViewSelectedBundle] || qvBundles[0];
+                            const rawBundleTotal = parseFloat(activeBundle.totalPrice || variantBasePrice);
+                            const qvCouponDiscount = stanAppliedCoupon
+                                ? (stanAppliedCoupon.type === 'fixed'
+                                    ? Math.min(rawBundleTotal, parseFloat(stanAppliedCoupon.discount || 0))
+                                    : Math.round(rawBundleTotal * (parseFloat(stanAppliedCoupon.discount || 0) / 100) * 100) / 100)
+                                : 0;
+                            const effectivePrice = Math.max(1.00, Math.round((rawBundleTotal - qvCouponDiscount) * 100) / 100);
+
+                            const productWithVariant = {
+                                ...quickViewProduct,
+                                variant: activeOptionName,
+                                selectedVariantId: variantPricing.matchedVariant?.id || '',
+                                price: activeBundle.pricePerUnit || variantBasePrice
+                            };
 
                             return (
                                 <div className="space-y-4 pt-3">
@@ -2994,11 +3206,20 @@ export default function CreatorBioPage({ params }) {
                                             <span className="text-2xl font-black text-slate-900">
                                                 ${effectivePrice.toFixed(2)}
                                             </span>
-                                            {qvComparePrice > qvBasePrice && (
+                                            {qvCouponDiscount > 0 ? (
+                                                <>
+                                                    <span className="text-xs text-slate-400 line-through font-semibold">
+                                                        ${rawBundleTotal.toFixed(2)}
+                                                    </span>
+                                                    <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                                                        {stanAppliedCoupon.label}
+                                                    </span>
+                                                </>
+                                            ) : ((qvComparePrice + variantPriceDelta) > variantBasePrice && (
                                                 <span className="text-xs text-slate-400 line-through font-semibold">
-                                                    ${(qvComparePrice * (activeBundle.qty || 1)).toFixed(2)}
+                                                    ${((qvComparePrice + variantPriceDelta) * (activeBundle.qty || 1)).toFixed(2)}
                                                 </span>
-                                            )}
+                                            ))}
                                         </div>
                                         <span className="text-xs font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full flex items-center gap-1">
                                             <span>📦</span> Order in {shippingCutoff} for Same-Day
@@ -3008,20 +3229,32 @@ export default function CreatorBioPage({ params }) {
                                     {/* Variant / Option Selector (if variants exist) */}
                                     {optionsList.length > 0 && (
                                         <div>
-                                            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">
-                                                Select Option / Model:
-                                            </label>
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                                                    Select Option / Model:
+                                                </label>
+                                                <span className="text-xs font-extrabold text-amber-600">
+                                                    {activeOptionName}
+                                                </span>
+                                            </div>
                                             <div className="flex flex-wrap gap-2">
                                                 {optionsList.map(opt => {
-                                                    const isSelected = (quickViewSelectedVariant || optionsList[0]) === opt;
+                                                    const isSelected = activeOptionName === opt;
+                                                    const optPricing = getProductVariantPricing(quickViewProduct, opt);
+                                                    const optDelta = optPricing.priceDelta;
                                                     return (
                                                         <button
                                                             key={opt}
                                                             type="button"
                                                             onClick={() => setQuickViewSelectedVariant(opt)}
-                                                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${isSelected ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`}
+                                                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border flex items-center gap-1.5 ${isSelected ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`}
                                                         >
-                                                            {opt}
+                                                            <span>{opt}</span>
+                                                            {optDelta > 0 && (
+                                                                <span className={`text-[10px] ${isSelected ? 'text-amber-300' : 'text-amber-600'}`}>
+                                                                    (+${optDelta.toFixed(2)})
+                                                                </span>
+                                                            )}
                                                         </button>
                                                     );
                                                 })}
@@ -3038,6 +3271,7 @@ export default function CreatorBioPage({ params }) {
                                             <div className="grid grid-cols-3 gap-2">
                                                 {qvBundles.map((b, bIdx) => {
                                                     const isSelected = quickViewSelectedBundle === bIdx;
+                                                    const bPrice = parseFloat(b.totalPrice || variantBasePrice);
                                                     return (
                                                         <button
                                                             key={bIdx}
@@ -3046,13 +3280,13 @@ export default function CreatorBioPage({ params }) {
                                                             className={`p-2.5 rounded-xl border text-left transition relative cursor-pointer ${isSelected ? 'border-slate-900 bg-slate-900 text-white shadow-md' : 'border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100'}`}
                                                         >
                                                             {b.badge && (
-                                                                <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full block mb-1 ${isSelected ? 'bg-emerald-400 text-slate-950' : 'bg-emerald-600 text-white'}`}>
+                                                                <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full block mb-1 truncate ${isSelected ? 'bg-emerald-400 text-slate-950' : 'bg-emerald-600 text-white'}`}>
                                                                     {b.badge}
                                                                 </span>
                                                             )}
                                                             <div className="text-xs font-black">{b.qty}x Unit{b.qty > 1 ? 's' : ''}</div>
                                                             <div className={`text-[11px] font-bold ${isSelected ? 'text-emerald-300' : 'text-emerald-700'}`}>
-                                                                ${parseFloat(b.totalPrice || qvBasePrice).toFixed(2)}
+                                                                ${bPrice.toFixed(2)}
                                                             </div>
                                                         </button>
                                                     );
@@ -3066,10 +3300,7 @@ export default function CreatorBioPage({ params }) {
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                const bundleToUse = qvBundles[quickViewSelectedBundle] || null;
-                                                const chosenVariant = quickViewSelectedVariant || optionsList[0] || '';
-                                                const productWithVariant = chosenVariant ? { ...quickViewProduct, variant: chosenVariant } : quickViewProduct;
-                                                handleInstantBuy(productWithVariant, bundleToUse);
+                                                handleInstantBuy(productWithVariant, activeBundle, qvCouponDiscount, stanAppliedCoupon?.code);
                                                 setQuickViewProduct(null);
                                             }}
                                             className="w-full py-3 rounded-2xl font-black text-xs sm:text-sm tracking-wider uppercase transition active:scale-98 shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
@@ -3085,10 +3316,7 @@ export default function CreatorBioPage({ params }) {
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                const bundleToUse = qvBundles[quickViewSelectedBundle] || null;
-                                                const chosenVariant = quickViewSelectedVariant || optionsList[0] || '';
-                                                const productWithVariant = chosenVariant ? { ...quickViewProduct, variant: chosenVariant } : quickViewProduct;
-                                                handleAddToCart(productWithVariant, bundleToUse);
+                                                handleAddToCart(productWithVariant, activeBundle);
                                                 setQuickViewProduct(null);
                                             }}
                                             className="w-full py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs tracking-wider transition active:scale-98 border border-slate-200 flex items-center justify-center gap-1.5 cursor-pointer"
