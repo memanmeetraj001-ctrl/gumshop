@@ -288,13 +288,43 @@ export default function CreatorBioPage({ params }) {
 
     // Automatic Niche/Category Detection (Apparel/Costumes vs Toys/Hardware/Tech)
     const hasWearableSizes = useMemo(() => {
-        return (products || []).some(p => {
-            if (Array.isArray(p?.sizes) && p.sizes.length > 0) return true;
-            const cat = (typeof p?.category === 'string' ? p.category : p?.category?.name || '').toLowerCase();
-            const name = (p?.name || '').toLowerCase();
-            return /apparel|clothing|costume|wear|shirt|jacket|shoes|pants|hoodie|harness|collar/.test(cat + ' ' + name);
-        });
-    }, [products]);
+        const targetProd = (products && products.length > 0 ? products[0] : null);
+        if (!targetProd) return false;
+
+        const cat = (typeof targetProd?.category === 'string' ? targetProd.category : targetProd?.category?.name || '').toLowerCase();
+        const name = (targetProd?.name || '').toLowerCase();
+        const storeName = (storeInfo?.name || '').toLowerCase();
+        const storeBio = (storeInfo?.bioProfile?.bio || storeInfo?.description || '').toLowerCase();
+        const combinedContext = `${name} ${cat} ${storeName} ${storeBio}`.toLowerCase();
+
+        // 1. Explicit negative exclusion: toys, guns, blasters, hardware, electronics, RC, batteries, ammo, tools, rubber
+        const isHardwareOrToy = /toy|gun|blaster|rifle|pistol|launcher|bullet|nerf|ammo|magazine|battery|charger|rc\b|drone|car\b|truck|motor|gadget|knife|blade|tool|electronics|gel\s*ball|rubber/i.test(
+            combinedContext
+        );
+        if (isHardwareOrToy) return false;
+
+        // 2. Explicit positive inclusion: must genuinely be apparel, clothing, or costumes
+        const isApparelOrCostume = /apparel|clothing|costume|outfit|shirt|jacket|shoes|pants|hoodie|harness|collar|vest|sweater|suit|dress|wear\b/i.test(
+            `${name} ${cat}`
+        );
+        if (!isApparelOrCostume) return false;
+
+        // 3. Size check: verify sizes are actual wearable sizes (S, M, L, XL, etc.)
+        const sizesList = Array.isArray(targetProd?.sizes) && targetProd.sizes.length > 0 
+            ? targetProd.sizes 
+            : (Array.isArray(targetProd?.variants) ? targetProd.variants : []);
+            
+        if (sizesList.length > 0) {
+            const hasClothingSizes = sizesList.some(s => {
+                const sName = typeof s === 'string' ? s : (s?.name || s?.label || s?.title || '');
+                return /^(xs|s|m|l|xl|xxl|2xl|3xl|small|medium|large|x-large)/i.test(sName.trim()) ||
+                       /\((xs|s|m|l|xl|xxl|2xl|3xl)\)/i.test(sName.trim());
+            });
+            return hasClothingSizes;
+        }
+
+        return true;
+    }, [products, storeInfo]);
 
     // Dynamic Package Bullets for Unboxing Highlight Modal
     const packageBullets = useMemo(() => {
@@ -1429,12 +1459,12 @@ export default function CreatorBioPage({ params }) {
                                                     ? heroItem.sizes
                                                     : ((Array.isArray(heroItem.variants) && heroItem.variants.length > 0)
                                                         ? heroItem.variants
-                                                        : [
+                                                        : (hasWearableSizes ? [
                                                             { name: 'Small (S)', label: 'Small (S)' },
                                                             { name: 'Medium (M)', label: 'Medium (M)', popular: true },
                                                             { name: 'Large (L)', label: 'Large (L)' },
                                                             { name: 'X-Large (XL)', label: 'X-Large (XL)' }
-                                                        ]);
+                                                        ] : []));
 
                                                 const heroSizes = rawSizes.map(s => {
                                                     if (typeof s === 'string') return { name: s, label: s };

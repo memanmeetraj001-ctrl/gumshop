@@ -147,13 +147,18 @@ const ProductDetails = ({ product, storeInfo }) => {
                 };
             });
         }
-        return [
-            { name: "Small (S)", priceDelta: 0, effectivePrice: unitPrice },
-            { name: "Medium (M)", priceDelta: 0, effectivePrice: unitPrice },
-            { name: "Large (L)", priceDelta: 0, effectivePrice: unitPrice },
-            { name: "X-Large (XL)", priceDelta: 0, effectivePrice: unitPrice }
-        ];
-    }, [hasExplicitSizes, product.sizes, hasVariantsArray, product.variants, unitPrice, discountRatio]);
+        const isApparel = /apparel|clothing|costume|outfit|shirt|jacket|shoes|pants|hoodie|harness|collar|vest|sweater|suit|dress|wear\b/i.test(`${product.name || ''} ${product.category || ''}`);
+        const isToyOrHardware = /toy|gun|blaster|rifle|pistol|launcher|bullet|nerf|ammo|magazine|battery|charger|rc\b|drone|car\b|truck|motor|gadget|knife|blade|tool|electronics|gel\s*ball|rubber/i.test(`${product.name || ''} ${product.category || ''}`);
+        if (isApparel && !isToyOrHardware) {
+            return [
+                { name: "Small (S)", priceDelta: 0, effectivePrice: unitPrice },
+                { name: "Medium (M)", priceDelta: 0, effectivePrice: unitPrice },
+                { name: "Large (L)", priceDelta: 0, effectivePrice: unitPrice },
+                { name: "X-Large (XL)", priceDelta: 0, effectivePrice: unitPrice }
+            ];
+        }
+        return [];
+    }, [hasExplicitSizes, product.sizes, hasVariantsArray, product.variants, unitPrice, discountRatio, product.name, product.category]);
 
     const [selectedColor, setSelectedColor] = useState(availableColors[0] || null);
 
