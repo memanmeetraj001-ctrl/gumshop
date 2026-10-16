@@ -1,862 +1,209 @@
-'use client'
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { 
-    Zap, 
-    Sparkles, 
-    ArrowRight, 
-    ShieldCheck, 
-    ChevronDown, 
-    ShoppingBag, 
-    CheckCircle2, 
-    Layers, 
-    Filter,
-    Store,
-    ExternalLink
-} from 'lucide-react';
-import Link from 'next/link';
-import ProductCard from '@/components/ProductCard';
-import CartDrawer from '@/components/CartDrawer';
-import WishlistDrawer from '@/components/WishlistDrawer';
-import MobileBottomNav from '@/components/MobileBottomNav';
-import LiveSalesToaster from '@/components/LiveSalesToaster';
-import { getAllProducts, getProductsByStore } from '@/lib/firebaseDb';
-import { getActiveStoreSync, getHomepageStoreSync, getHomepageStoreSlug, getHomepageSelectedStores, getHomepageMode } from '@/lib/activeStore';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchProducts } from '@/lib/features/product/productSlice';
+import { cookies } from 'next/headers';
+import { resolveHomepageStore } from '@/lib/serverDb';
+import { getAllProductsWithStores } from '@/lib/db/products';
+import HomeClient from './HomeClient';
 
-export default function SuperStorefront() {
-    const dispatch = useDispatch();
-    const reduxProducts = useSelector(state => state.product.list);
+export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
-    const initialMode = typeof window !== 'undefined' ? getHomepageMode() : 'single';
-    const [homepageMode, setHomepageModeState] = useState(initialMode);
+export async function generateMetadata() {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';
+    const title = 'GumShop.online — The Best E-Commerce Store for Best Deals & Viral Products';
+    const description = 'Discover trending viral products, curated creator storefronts, and exclusive deals. Fast worldwide delivery, 30-day buyer guarantee, and instant Gumroad checkout.';
 
-    const [activeStore, setActiveStore] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const mode = getHomepageMode();
-            if (mode === 'all') {
-                return {
-                    name: 'All Shops Marketplace',
-                    username: 'marketplace',
-                    isMarketplace: true,
-                    description: 'Browse verified top-selling products across our creator fleet.'
-                };
-            }
-            if (mode === 'custom') {
-                return {
-                    name: 'Combined Stores Showcase',
-                    username: 'showcase',
-                    isMarketplace: true,
-                    description: 'Explore featured products across our selected creator stores with direct merchant checkout.'
-                };
-            }
-            return getHomepageStoreSync() || getActiveStoreSync() || null;
+    return {
+        title,
+        description,
+        alternates: {
+            canonical: baseUrl
+        },
+        openGraph: {
+            title,
+            description,
+            url: baseUrl,
+            siteName: 'GumShop.online',
+            images: [
+                {
+                    url: `${baseUrl}/favicon.svg`,
+                    width: 800,
+                    height: 800,
+                    alt: 'GumShop.online'
+                }
+            ],
+            type: 'website'
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title,
+            description,
+            images: [`${baseUrl}/favicon.svg`]
         }
-        return null;
-    });
+    };
+}
 
-    const [products, setProducts] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const mode = getHomepageMode();
+export default async function HomePage() {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';
+    
+    let cookieSlug = '';
+    let cookieMode = 'single';
+    let selectedStores = [];
+    
+    try {
+        const cookieStore = await cookies();
+        cookieSlug = cookieStore.get('gumshop_homepage_store')?.value || '';
+        cookieMode = cookieStore.get('gumshop_homepage_mode')?.value || 'single';
+        const rawStores = cookieStore.get('gumshop_homepage_stores')?.value || '';
+        if (rawStores) {
             try {
-                const cached = localStorage.getItem(`gumshop_homepage_prods_${mode}`);
-                if (cached) {
-                    const parsed = JSON.parse(cached);
-                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                }
-            } catch {}
-
-            const s = getHomepageStoreSync() || getActiveStoreSync();
-            if (Array.isArray(s?.products) && s.products.length > 0) {
-                return s.products;
+                selectedStores = JSON.parse(rawStores);
+            } catch {
+                selectedStores = rawStores.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
             }
         }
-        return [];
-    });
+    } catch {}
 
-    const [loading, setLoading] = useState(false);
-    const [viewMode, setViewMode] = useState('by-store'); // 'by-store' | 'combined'
-    const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
-    const [wishlistDrawerOpen, setWishlistDrawerOpen] = useState(false);
+    const resolved = await resolveHomepageStore(cookieSlug).catch(() => ({ homepageStore: null, homepageSlug: '' }));
+    let products = [];
 
-    // Filters state
-    const [selectedStore, setSelectedStore] = useState('All');
-    const [selectedCategory, setSelectedCategory] = useState('All');
-    const [sortBy, setSortBy] = useState('featured');
-    const [searchTerm, setSearchTerm] = useState('');
-    const [inStockOnly, setInStockOnly] = useState(false);
-
-    const catalogRef = useRef(null);
-
-    // Fetch homepage store & isolated products
-    useEffect(() => {
-        const loadStoreAndCatalog = async () => {
-            try {
-                // 1. Resolve designated homepage store & mode directly from server (Highest priority)
-                let store = null;
-                let targetSlug = null;
-                let mode = getHomepageMode();
-                let selectedStores = [];
-                let resolvedProducts = null;
-
-                try {
-                    const hpRes = await fetch('/api/store/homepage', { cache: 'no-store' });
-                    if (hpRes.ok) {
-                        const hpData = await hpRes.json();
-                        if (hpData.homepageMode) mode = hpData.homepageMode;
-                        if (hpData.homepageStore) store = hpData.homepageStore;
-                        if (hpData.homepageSlug) targetSlug = hpData.homepageSlug;
-                        if (Array.isArray(hpData.selectedStores)) selectedStores = hpData.selectedStores;
-                        if (Array.isArray(hpData.products) && hpData.products.length > 0) {
-                            resolvedProducts = hpData.products;
-                        }
-                    }
-                } catch {}
-
-                if (selectedStores.length === 0) {
-                    selectedStores = getHomepageSelectedStores();
-                }
-
-                setHomepageModeState(mode);
-
-                // 1. If in All Shops Marketplace Mode
-                if (mode === 'all') {
-                    setActiveStore({
-                        name: 'All Shops Marketplace',
-                        username: 'marketplace',
-                        isMarketplace: true,
-                        description: 'Browse verified top-selling products across our creator fleet.'
-                    });
-                    if (Array.isArray(resolvedProducts) && resolvedProducts.length > 0) {
-                        setProducts(resolvedProducts);
-                        try {
-                            localStorage.setItem('gumshop_homepage_prods_all', JSON.stringify(resolvedProducts));
-                        } catch {}
-                        return;
-                    }
-                    try {
-                        const allProdsRes = await fetch('/api/products?mode=all', { cache: 'no-store' });
-                        if (allProdsRes.ok) {
-                            const pData = await allProdsRes.json();
-                            if (pData.success && Array.isArray(pData.products) && pData.products.length > 0) {
-                                setProducts(pData.products);
-                                try {
-                                    localStorage.setItem('gumshop_homepage_prods_all', JSON.stringify(pData.products));
-                                } catch {}
-                                return;
-                            }
-                        }
-                    } catch {}
-                    return;
-                }
-
-                // 2. If in Custom Multi-Store Selection Mode
-                if (mode === 'custom') {
-                    setActiveStore({
-                        name: 'Combined Stores Showcase',
-                        username: 'showcase',
-                        isMarketplace: true,
-                        description: 'Explore featured products across our selected creator stores with direct merchant checkout.'
-                    });
-                    if (Array.isArray(resolvedProducts) && resolvedProducts.length > 0) {
-                        setProducts(resolvedProducts);
-                        try {
-                            localStorage.setItem('gumshop_homepage_prods_custom', JSON.stringify(resolvedProducts));
-                        } catch {}
-                        return;
-                    }
-                    try {
-                        const storesParam = selectedStores.length > 0 ? `&stores=${encodeURIComponent(selectedStores.join(','))}` : '';
-                        const customProdsRes = await fetch(`/api/products?mode=custom${storesParam}`, { cache: 'no-store' });
-                        if (customProdsRes.ok) {
-                            const pData = await customProdsRes.json();
-                            if (pData.success && Array.isArray(pData.products)) {
-                                setProducts(pData.products);
-                                try {
-                                    localStorage.setItem('gumshop_homepage_prods_custom', JSON.stringify(pData.products));
-                                } catch {}
-                                return;
-                            }
-                        }
-                    } catch {}
-                    return;
-                }
-
-                // 3. Single Store Mode
-                if (!store) {
-                    store = getHomepageStoreSync();
-                    targetSlug = targetSlug || getHomepageStoreSlug();
-                }
-
-                // If targetSlug exists but store object not hydrated yet, resolve via direct API
-                if (!store && targetSlug) {
-                    try {
-                        const sRes = await fetch(`/api/store/data?slug=${encodeURIComponent(targetSlug)}`, { cache: 'no-store' });
-                        if (sRes.ok) {
-                            const sData = await sRes.json();
-                            if (sData.success && sData.store) {
-                                store = sData.store;
-                                if (Array.isArray(sData.products) && sData.products.length > 0) {
-                                    resolvedProducts = sData.products;
-                                }
-                            }
-                        }
-                    } catch {}
-                }
-
-                // 3. Fallback to active store if no homepage is explicitly chosen
-                if (!store) {
-                    store = getActiveStoreSync();
-                }
-
-                // 4. Fallback to active store from activeStore helper
-                if (!store) {
-                    const { getAllLocalStores } = await import('@/lib/activeStore');
-                    const localStores = getAllLocalStores();
-                    if (localStores && localStores.length > 0) {
-                        store = localStores[0];
-                    }
-                }
-
-                if (store) {
-                    setActiveStore(store);
-                    const prods = (Array.isArray(resolvedProducts) && resolvedProducts.length > 0)
-                        ? resolvedProducts
-                        : (Array.isArray(store.products) && store.products.length > 0
-                            ? store.products
-                            : await getProductsByStore(store.id || store.username));
-                    if (prods && prods.length > 0) {
-                        setProducts(prods);
-                        try {
-                            localStorage.setItem('gumshop_homepage_prods_single', JSON.stringify(prods));
-                        } catch {}
-                    } else {
-                        // Store catalog is clean and empty (0 products)
-                        setProducts([]);
-                    }
-                } else {
-                    // No stores registered or database reset to zero - keep catalog clean at 0 products
-                    setActiveStore(null);
-                    setProducts([]);
-                }
-            } catch (err) {
-                console.warn('Error loading storefront catalog:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadStoreAndCatalog();
-
-        if (typeof window !== 'undefined') {
-            window.addEventListener('homepage_store_changed', loadStoreAndCatalog);
-            window.addEventListener('homepage_mode_changed', loadStoreAndCatalog);
-            window.addEventListener('homepage_stores_changed', loadStoreAndCatalog);
-            window.addEventListener('active_store_changed', loadStoreAndCatalog);
+    if (cookieMode === 'all') {
+        products = await getAllProductsWithStores().catch(() => []);
+    } else if (cookieMode === 'custom' && selectedStores.length > 0) {
+        const all = await getAllProductsWithStores().catch(() => []);
+        const allowed = new Set(selectedStores.map(s => String(s).toLowerCase().replace(/^store_/, '')));
+        products = all.filter(p => allowed.has((p.storeSlug || p.storeId || '').toLowerCase().replace(/^store_/, '')));
+    } else {
+        products = resolved.homepageStore?.products || [];
+        if (products.length === 0) {
+            const all = await getAllProductsWithStores().catch(() => []);
+            products = all;
         }
+    }
 
-        return () => {
-            if (typeof window !== 'undefined') {
-                window.removeEventListener('homepage_store_changed', loadStoreAndCatalog);
-                window.removeEventListener('homepage_mode_changed', loadStoreAndCatalog);
-                window.removeEventListener('homepage_stores_changed', loadStoreAndCatalog);
-                window.removeEventListener('active_store_changed', loadStoreAndCatalog);
-            }
-        };
-    }, [dispatch]);
-
-    // Extract dynamic unique categories
-    const categories = useMemo(() => {
-        const set = new Set(['All']);
-        products.forEach(p => {
-            if (p.category) set.add(p.category);
-        });
-        return Array.from(set);
-    }, [products]);
-
-    const isMultiStore = homepageMode === 'all' || homepageMode === 'custom';
-
-    // Extract dynamic unique shops (for Multi-Store Modes)
-    const shopsList = useMemo(() => {
-        if (!isMultiStore) return [];
-        const map = new Map();
-        products.forEach(p => {
-            const slug = p.storeSlug || p.storeId?.replace(/^store_/, '');
-            const name = p.storeName || slug;
-            if (slug && !map.has(slug)) {
-                map.set(slug, { slug, name });
-            }
-        });
-        return Array.from(map.values());
-    }, [isMultiStore, products]);
-
-    // Filter and sort products
-    const filteredProducts = useMemo(() => {
-        let list = [...products];
-
-        // Store Filter (in Multi-Store modes)
-        if (isMultiStore && selectedStore !== 'All') {
-            list = list.filter(p => (p.storeSlug === selectedStore) || (p.storeId && (p.storeId === selectedStore || p.storeId === `store_${selectedStore}`)));
+    const initialStore = cookieMode === 'all'
+        ? {
+            name: 'All Shops Marketplace',
+            username: 'marketplace',
+            isMarketplace: true,
+            description: 'Browse verified top-selling products across our creator fleet.'
         }
-
-        // Search Filter
-        if (searchTerm.trim()) {
-            const query = searchTerm.toLowerCase().trim();
-            list = list.filter(p => 
-                (p.name && p.name.toLowerCase().includes(query)) ||
-                (p.description && p.description.toLowerCase().includes(query)) ||
-                (p.category && p.category.toLowerCase().includes(query)) ||
-                (p.storeName && p.storeName.toLowerCase().includes(query))
-            );
+        : cookieMode === 'custom'
+        ? {
+            name: 'Combined Stores Showcase',
+            username: 'showcase',
+            isMarketplace: true,
+            description: 'Explore featured products across our selected creator stores with direct merchant checkout.'
         }
+        : resolved.homepageStore;
 
-        // Category Filter
-        if (selectedCategory !== 'All') {
-            list = list.filter(p => p.category === selectedCategory);
-        }
-
-        // Stock Filter
-        if (inStockOnly) {
-            list = list.filter(p => p.inStock !== false);
-        }
-
-        // Sorting
-        if (sortBy === 'price-low') {
-            list.sort((a, b) => parseFloat(a.price || 0) - parseFloat(b.price || 0));
-        } else if (sortBy === 'price-high') {
-            list.sort((a, b) => parseFloat(b.price || 0) - parseFloat(a.price || 0));
-        } else if (sortBy === 'discount') {
-            list.sort((a, b) => {
-                const discA = (a.compareAtPrice || a.price) - a.price;
-                const discB = (b.compareAtPrice || b.price) - b.price;
-                return discB - discA;
-            });
-        }
-
-        return list;
-    }, [products, isMultiStore, selectedStore, searchTerm, selectedCategory, inStockOnly, sortBy]);
-
-    // Group filtered products by store for Grouped Store Showcases
-    const groupedStores = useMemo(() => {
-        if (!isMultiStore) return [];
-        const map = new Map();
-        filteredProducts.forEach(p => {
-            const slug = p.storeSlug || p.storeId?.replace(/^store_/, '') || 'store';
-            if (!map.has(slug)) {
-                map.set(slug, {
-                    slug,
-                    name: p.storeName || slug,
-                    avatar: p.storeAvatar || null,
-                    themeColor: p.storeTheme || null,
-                    products: []
-                });
-            }
-            map.get(slug).products.push(p);
-        });
-        return Array.from(map.values());
-    }, [isMultiStore, filteredProducts]);
-
-    // Discounted deals subset
-    const discountedDeals = useMemo(() => {
-        return products.filter(p => (p.compareAtPrice && p.compareAtPrice > p.price)).slice(0, 4);
-    }, [products]);
-
-    const scrollToCatalog = () => {
-        if (catalogRef.current) {
-            catalogRef.current.scrollIntoView({ behavior: 'smooth' });
+    // Structured Data: WebSite with SearchAction
+    const websiteSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'GumShop.online',
+        url: baseUrl,
+        potentialAction: {
+            '@type': 'SearchAction',
+            target: `${baseUrl}/shop?search={search_term_string}`,
+            'query-input': 'required name=search_term_string'
         }
     };
 
-    const storeTitle = activeStore?.name || 'GumShop Online';
-    const storeDescription = activeStore?.description || 'Independent curated digital commerce storefront. Direct merchant pricing and secure checkout powered by Gumroad.';
+    // Structured Data: Organization
+    const orgSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: 'GumShop.online',
+        url: baseUrl,
+        logo: `${baseUrl}/favicon.svg`,
+        description: 'Curated creator marketplace and viral e-commerce store with direct merchant checkout.'
+    };
 
-    if (!loading && !activeStore) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-center antialiased">
-                <div className="max-w-md w-full bg-white border border-slate-200 rounded-3xl p-8 shadow-sm space-y-4">
-                    <div className="size-16 rounded-3xl bg-slate-100 text-slate-400 border border-slate-200 flex items-center justify-center mx-auto shadow-xs">
-                        <Store size={28} />
-                    </div>
-                    <h1 className="text-xl font-black text-slate-900">No Store Configured</h1>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                        There is currently no active storefront designated for the homepage. Visit your Merchant Dashboard to create a store or set a store as your homepage.
-                    </p>
-                    <div className="pt-2">
-                        <Link
-                            href="/dashboard"
-                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 transition"
-                        >
-                            <span>Open Dashboard</span>
-                            <ArrowRight size={14} />
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    // Structured Data: ItemList of Top Active Products
+    const itemListSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        itemListElement: (products || []).slice(0, 12).map((item, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            item: {
+                '@type': 'Product',
+                name: item.name || item.title,
+                image: item.image || (Array.isArray(item.images) && item.images[0]) || `${baseUrl}/favicon.svg`,
+                description: item.description?.slice(0, 150) || `${item.name} online at GumShop.`,
+                offers: {
+                    '@type': 'Offer',
+                    price: Number(item.price || 52.99).toFixed(2),
+                    priceCurrency: 'USD',
+                    availability: 'https://schema.org/InStock',
+                    url: `${baseUrl}/product/${encodeURIComponent(item.id)}`
+                }
+            }
+        }))
+    };
+
+    // Structured Data: FAQPage for Answer Engine Optimization (Perplexity / ChatGPT Search / AI Overviews)
+    const faqSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: [
+            {
+                '@type': 'Question',
+                name: 'How does GumShop verify creators and products?',
+                acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'Every creator store and product catalog on GumShop is verified for authentic inventory, transparent pricing, and direct merchant order fulfillment.'
+                }
+            },
+            {
+                '@type': 'Question',
+                name: 'How does checkout and payment protection work?',
+                acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'Orders are processed through dynamic Gumroad checkout sessions with 256-bit SSL encryption, backed by standard 30-day buyer protection.'
+                }
+            },
+            {
+                '@type': 'Question',
+                name: 'How long does shipping and delivery take?',
+                acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'Orders are dispatched within 24 to 48 hours. Standard tracked worldwide delivery typically arrives within 5 to 10 business days with full tracking numbers provided.'
+                }
+            },
+            {
+                '@type': 'Question',
+                name: 'What is the return and refund policy on GumShop?',
+                acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'Refund and cancellation requests are handled directly by the store merchant in accordance with standard customer protection policies and 30-day money-back guarantees.'
+                }
+            }
+        ]
+    };
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 antialiased pb-16 sm:pb-0">
-
-            {/* 1. Hero Section */}
-            <section className="relative overflow-hidden bg-slate-950 text-white pt-10 pb-20 sm:pt-16 sm:pb-28">
-                {/* Background glow effects */}
-                <div className="absolute top-0 left-1/4 size-96 bg-emerald-600/15 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute bottom-0 right-1/4 size-96 bg-teal-500/15 rounded-full blur-3xl pointer-events-none" />
-
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-                    <div className="text-center max-w-3xl mx-auto">
-                        
-                        {/* Pill Badge */}
-                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-6">
-                            <Sparkles size={14} className="text-emerald-400" />
-                            <span>
-                                {homepageMode === 'all' 
-                                    ? 'Curated Marketplace · All Stores & Creators' 
-                                    : homepageMode === 'custom'
-                                    ? 'Featured Showcase · Multi-Store Collection'
-                                    : 'Curated Catalog · Independent Merchant'}
-                            </span>
-                        </div>
-
-                        {/* Bold Main Headline */}
-                        <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white leading-tight sm:leading-none">
-                            {homepageMode === 'all' ? (
-                                <>
-                                    Curated Marketplace & <br />
-                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-                                        All Shops Deals.
-                                    </span>
-                                </>
-                            ) : homepageMode === 'custom' ? (
-                                <>
-                                    Featured Creator Stores & <br />
-                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-                                        Combined Showcase.
-                                    </span>
-                                </>
-                            ) : activeStore?.name ? (
-                                <>
-                                    {activeStore.name} <br />
-                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-                                        Official Storefront.
-                                    </span>
-                                </>
-                            ) : (
-                                <>
-                                    Curated Products & <br />
-                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-                                        Everyday Essentials.
-                                    </span>
-                                </>
-                            )}
-                        </h1>
-
-                        {/* Subheadline */}
-                        <p className="mt-5 text-base sm:text-lg text-slate-300 leading-relaxed font-normal max-w-2xl mx-auto">
-                            {homepageMode === 'all'
-                                ? 'Browse verified top-selling products across our creator fleet with instant dynamic checkout.'
-                                : homepageMode === 'custom'
-                                ? 'Explore hand-picked creator collections in one unified storefront with direct merchant checkout.'
-                                : storeDescription}
-                        </p>
-
-                        {/* Hero CTAs */}
-                        <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-                            <button
-                                onClick={scrollToCatalog}
-                                className="px-8 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-98 text-slate-950 font-black text-sm shadow-xl shadow-emerald-500/25 flex items-center gap-2 transition"
-                            >
-                                <span>Browse Catalog</span>
-                                <ArrowRight size={16} />
-                            </button>
-                            {activeStore?.username && !activeStore?.isMarketplace && (
-                                <Link
-                                    href={`/creator/${activeStore.username}`}
-                                    className="px-6 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white font-bold text-sm flex items-center gap-2 transition"
-                                >
-                                    <span>📱 Stan Store / Bio Link</span>
-                                </Link>
-                            )}
-                            <Link
-                                href="/dashboard"
-                                className="px-6 py-4 rounded-2xl bg-slate-900/60 hover:bg-slate-800 border border-slate-800/80 text-slate-400 hover:text-white font-bold text-sm flex items-center gap-2 transition"
-                            >
-                                <Store size={16} className="text-emerald-400" />
-                                <span>Dashboard</span>
-                            </Link>
-                        </div>
-
-                        {/* Hero Trust Badges Strip (Honest & Factual) */}
-                        <div className="mt-14 pt-8 border-t border-slate-900 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-semibold text-slate-400">
-                            <div className="flex items-center justify-center gap-2">
-                                <ShieldCheck size={16} className="text-emerald-400" />
-                                <span>Encrypted Gumroad Checkout</span>
-                            </div>
-                            <div className="flex items-center justify-center gap-2">
-                                <Zap size={16} className="text-emerald-400" />
-                                <span>Direct Merchant Pricing</span>
-                            </div>
-                            <div className="flex items-center justify-center gap-2">
-                                <ShoppingBag size={16} className="text-emerald-400" />
-                                <span>Curated Quality Items</span>
-                            </div>
-                            <div className="flex items-center justify-center gap-2">
-                                <CheckCircle2 size={16} className="text-emerald-400" />
-                                <span>Verified Storefront</span>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </section>
-
-            {/* 2. Visual Category & Store Filter Bar */}
-            {(categories.length > 1 || (isMultiStore && shopsList.length > 1)) && (
-                <section className="bg-white border-b border-slate-200/80 py-5">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
-                        {/* Store Filter Pills (Multi-Store Mode) */}
-                        {isMultiStore && shopsList.length > 1 && (
-                            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1 shrink-0">
-                                    <Store size={12} /> Stores:
-                                </span>
-                                <button
-                                    onClick={() => setSelectedStore('All')}
-                                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                                        selectedStore === 'All'
-                                            ? 'bg-emerald-600 text-white shadow-xs'
-                                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                                    }`}
-                                >
-                                    All Stores ({products.length})
-                                </button>
-                                {shopsList.map(s => (
-                                    <button
-                                        key={s.slug}
-                                        onClick={() => setSelectedStore(s.slug)}
-                                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                                            selectedStore === s.slug
-                                                ? 'bg-emerald-600 text-white shadow-xs'
-                                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                                        }`}
-                                    >
-                                        {s.name}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Category Filter Pills */}
-                        {categories.length > 1 && (
-                            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                                {categories.map((cat) => {
-                                    const isSelected = selectedCategory === cat;
-                                    return (
-                                        <button
-                                            key={cat}
-                                            onClick={() => setSelectedCategory(cat)}
-                                            className={`px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-                                                isSelected 
-                                                    ? 'bg-slate-900 text-white shadow-md shadow-slate-900/20 scale-102' 
-                                                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                                            }`}
-                                        >
-                                            {cat}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </section>
-            )}
-
-            {/* 3. Featured Deals Strip */}
-            <div id="special-deals" className="scroll-mt-24" />
-            {discountedDeals.length > 0 && (
-                <section className="py-12 bg-emerald-50/50 border-b border-emerald-100/60">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                            <div>
-                                <div className="inline-flex items-center gap-1.5 text-emerald-700 font-extrabold text-xs uppercase tracking-wider">
-                                    <Sparkles size={14} className="text-emerald-600" />
-                                    <span>Special Pricing</span>
-                                </div>
-                                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">
-                                    Featured Discounted Items
-                                </h2>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {discountedDeals.map(product => (
-                                <ProductCard 
-                                    key={product.id} 
-                                    product={product} 
-                                    onOpenCart={() => setCartDrawerOpen(true)}
-                                    showShopName={isMultiStore}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                </section>
-            )}
-
-            {/* 4. Main Product Catalog & Faceted Filters */}
-            <section ref={catalogRef} id="catalog" className="py-12 sm:py-16">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-                    {/* Filter & Sorting Header Bar */}
-                    <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
-                                Featured Catalog
-                            </h2>
-                            <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-extrabold text-xs">
-                                {filteredProducts.length} items
-                            </span>
-                        </div>
-
-                        {/* Controls */}
-                        <div className="flex flex-wrap items-center gap-3">
-                            {/* View Mode Switcher (Grouped Shelves vs Combined Grid) for Multi-Store */}
-                            {isMultiStore && (
-                                <div className="flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200">
-                                    <button
-                                        type="button"
-                                        onClick={() => setViewMode('by-store')}
-                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                                            viewMode === 'by-store'
-                                                ? 'bg-emerald-600 text-white shadow-xs'
-                                                : 'text-slate-600 hover:text-slate-900'
-                                        }`}
-                                        title="Group products into store shelves"
-                                    >
-                                        <Store size={13} />
-                                        <span>Store Shelves</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setViewMode('combined')}
-                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                                            viewMode === 'combined'
-                                                ? 'bg-slate-900 text-white shadow-xs'
-                                                : 'text-slate-600 hover:text-slate-900'
-                                        }`}
-                                        title="View all products in a combined grid"
-                                    >
-                                        <Layers size={13} />
-                                        <span>Combined Grid</span>
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* Stock Toggle */}
-                            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-xl border border-slate-200 transition">
-                                <input 
-                                    type="checkbox"
-                                    checked={inStockOnly}
-                                    onChange={(e) => setInStockOnly(e.target.checked)}
-                                    className="rounded text-emerald-600 focus:ring-emerald-500"
-                                />
-                                <span>In Stock Only</span>
-                            </label>
-
-                            {/* Sort Selector */}
-                            <div className="relative">
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    className="appearance-none bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-4 py-2 pr-8 text-xs font-bold text-slate-700 outline-none focus:border-emerald-500 cursor-pointer transition"
-                                >
-                                    <option value="featured">Sort: Featured</option>
-                                    <option value="price-low">Price: Low to High</option>
-                                    <option value="price-high">Price: High to Low</option>
-                                    <option value="discount">Biggest Discount</option>
-                                </select>
-                                <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Product Cards Grid or Professional Empty State */}
-                    {loading ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {Array(4).fill(0).map((_, i) => (
-                                <div key={i} className="bg-white rounded-3xl p-4 border border-slate-200/80 animate-pulse space-y-4">
-                                    <div className="aspect-square bg-slate-100 rounded-2xl" />
-                                    <div className="h-4 bg-slate-100 rounded w-2/3" />
-                                    <div className="h-4 bg-slate-100 rounded w-1/3" />
-                                </div>
-                            ))}
-                        </div>
-                    ) : filteredProducts.length === 0 ? (
-                        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-lg mx-auto">
-                            <div className="size-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4 border border-emerald-100">
-                                <ShoppingBag size={28} />
-                            </div>
-                            <h3 className="text-lg font-bold text-slate-900">Storefront Inventory Updating</h3>
-                            <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                                {products.length === 0 
-                                    ? "There are currently no published products in this catalog. Store managers can add products or import inventory from Master HQ." 
-                                    : "No products matched your active filters. Try resetting your search or category."}
-                            </p>
-                            <div className="mt-6 flex items-center justify-center gap-3">
-                                {products.length === 0 ? (
-                                    <Link
-                                        href="/dashboard"
-                                        className="px-6 py-2.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs shadow-md transition flex items-center gap-1.5"
-                                    >
-                                        <Store size={14} />
-                                        <span>Manage in Master HQ</span>
-                                    </Link>
-                                ) : (
-                                    <button
-                                        onClick={() => { setSelectedCategory('All'); setSearchTerm(''); setInStockOnly(false); }}
-                                        className="px-6 py-2.5 rounded-full bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition"
-                                    >
-                                        Reset All Filters
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    ) : isMultiStore && viewMode === 'by-store' ? (
-                        <div className="space-y-12">
-                            {groupedStores.map(storeGroup => (
-                                <div key={storeGroup.slug} className="space-y-6">
-                                    {/* Store Showcase Header Banner */}
-                                    <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white p-5 sm:p-6 rounded-3xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 border border-slate-800">
-                                        <div className="flex items-center gap-3.5">
-                                            <div className="size-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-black text-lg flex items-center justify-center shrink-0">
-                                                {storeGroup.name.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
-                                                        {storeGroup.name}
-                                                    </h3>
-                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                                        <CheckCircle2 size={11} /> Verified Creator
-                                                    </span>
-                                                    <span className="text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700">
-                                                        {storeGroup.products.length} {storeGroup.products.length === 1 ? 'item' : 'items'}
-                                                    </span>
-                                                </div>
-                                                <p className="text-xs text-slate-300 mt-1">
-                                                    Direct creator storefront with instant Gumroad checkout.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2 flex-wrap shrink-0">
-                                            <Link
-                                                href={`/creator/${storeGroup.slug}`}
-                                                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 transition flex items-center gap-1.5"
-                                            >
-                                                <span>📱 Stan Store</span>
-                                            </Link>
-                                            <Link
-                                                href={`/shop/${storeGroup.slug}`}
-                                                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
-                                            >
-                                                <span>🏪 Shop Catalog</span>
-                                                <ArrowRight size={13} />
-                                            </Link>
-                                        </div>
-                                    </div>
-
-                                    {/* Store Products Grid */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                                        {storeGroup.products.map(product => (
-                                            <ProductCard 
-                                                key={product.id} 
-                                                product={product} 
-                                                onOpenCart={() => setCartDrawerOpen(true)}
-                                                showShopName={false}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {filteredProducts.map(product => (
-                                <ProductCard 
-                                    key={product.id} 
-                                    product={product} 
-                                    onOpenCart={() => setCartDrawerOpen(true)}
-                                    showShopName={isMultiStore}
-                                />
-                            ))}
-                        </div>
-                    )}
-
-                </div>
-            </section>
-
-            {/* 5. Factual & Honest FAQ Section */}
-            <section className="py-14 bg-white border-t border-slate-200/80">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6">
-                    <div className="text-center mb-10">
-                        <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Help & Details</span>
-                        <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">Frequently Asked Questions</h2>
-                    </div>
-
-                    <div className="space-y-4">
-                        {[
-                            {
-                                q: "How does checkout work?",
-                                a: "Checkout is processed directly through Gumroad. You will enter your customer and delivery details, then complete payment securely via Gumroad's encrypted checkout window."
-                            },
-                            {
-                                q: "What payment options are supported?",
-                                a: "We support all payment methods enabled by Gumroad, including major credit/debit cards, Apple Pay, Google Pay, and PayPal where available."
-                            },
-                            {
-                                q: "How do I receive order confirmation?",
-                                a: "Upon completing payment on Gumroad, you will receive an immediate automated email receipt and fulfillment updates directly from the merchant."
-                            },
-                            {
-                                q: "What is the return and refund policy?",
-                                a: "Refund and cancellation requests are handled directly by the store merchant in accordance with standard Gumroad customer protection policies."
-                            }
-                        ].map((faq, i) => (
-                            <details key={i} className="group bg-slate-50 p-5 rounded-2xl border border-slate-200/80 open:border-emerald-500/50 shadow-xs transition">
-                                <summary className="font-bold text-sm text-slate-900 cursor-pointer list-none flex items-center justify-between">
-                                    <span>{faq.q}</span>
-                                    <ChevronDown size={16} className="text-slate-400 group-open:rotate-180 transition-transform" />
-                                </summary>
-                                <p className="mt-3 text-xs text-slate-600 leading-relaxed font-normal">
-                                    {faq.a}
-                                </p>
-                            </details>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* 6. Slide Drawers & Sticky Mobile Navigation */}
-            <CartDrawer
-                isOpen={cartDrawerOpen}
-                onClose={() => setCartDrawerOpen(false)}
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
             />
-
-            <WishlistDrawer
-                isOpen={wishlistDrawerOpen}
-                onClose={() => setWishlistDrawerOpen(false)}
-                onOpenCart={() => setCartDrawerOpen(true)}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
             />
-
-            <MobileBottomNav
-                onOpenCart={() => setCartDrawerOpen(true)}
-                onOpenWishlist={() => setWishlistDrawerOpen(true)}
-                onFocusSearch={scrollToCatalog}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
             />
-
-            {/* 🔥 Live Verified Sales Pop-Up (Social Proof) */}
-            <LiveSalesToaster products={products} storeName={activeStore?.name} />
-
-        </div>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+            />
+            <HomeClient
+                initialStore={initialStore}
+                initialMode={cookieMode}
+                initialProducts={products}
+            />
+        </>
     );
 }

@@ -24,6 +24,8 @@ export async function generateMetadata({ params }) {
     const imageUrl = product.image || (Array.isArray(product.images) && product.images[0]) || `${baseUrl}/favicon.svg`;
     const canonical = `${baseUrl}/product/${encodeURIComponent(productId)}`;
 
+    const ogImageUrl = `${baseUrl}/api/og/product?id=${encodeURIComponent(productId)}`;
+
     return {
         title,
         description: cleanDesc,
@@ -37,6 +39,12 @@ export async function generateMetadata({ params }) {
             siteName: 'GumShop.online',
             images: [
                 {
+                    url: ogImageUrl,
+                    width: 1200,
+                    height: 630,
+                    alt: product.name
+                },
+                {
                     url: imageUrl,
                     width: 800,
                     height: 800,
@@ -49,7 +57,7 @@ export async function generateMetadata({ params }) {
             card: 'summary_large_image',
             title,
             description: cleanDesc,
-            images: [imageUrl]
+            images: [ogImageUrl, imageUrl]
         }
     };
 }

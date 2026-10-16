@@ -145,6 +145,11 @@ export default function RootLayout({ children }) {
                 {/* Google Fonts Preconnect */}
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                {/* Checkout DNS & Asset Preconnects for instant dynamic iframe checkout */}
+                <link rel="preconnect" href="https://gumroad.com" crossOrigin="anonymous" />
+                <link rel="preconnect" href="https://assets.gumroad.com" crossOrigin="anonymous" />
+                <link rel="dns-prefetch" href="https://gumroad.com" />
+                <link rel="dns-prefetch" href="https://assets.gumroad.com" />
                 {/* Favicons & PWA Manifest */}
                 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
                 <link rel="alternate icon" href="/favicon.ico" />

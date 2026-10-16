@@ -30,6 +30,7 @@ Allow: /
 # Block administrative, internal, and private API routes from search indexes
 Disallow: /api/
 Allow: /api/ai/
+Allow: /api/feed/
 Disallow: /dashboard
 Disallow: /store/
 Disallow: /login

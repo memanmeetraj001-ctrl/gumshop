@@ -797,19 +797,41 @@ const ProductDetails = ({ product, storeInfo }) => {
             </div>
 
             {/* Mobile Sticky Bottom Buy Bar */}
-            <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 sm:hidden shadow-2xl flex items-center justify-between gap-3 animate-in slide-in-from-bottom">
-                <div>
-                    <p className="text-xs font-bold text-slate-900 truncate max-w-36">{product.name}</p>
-                    <p className="text-sm font-black text-emerald-600">${currentTier.totalPrice.toFixed(2)}</p>
+            {/* High-Converting Sticky Bottom Buy Bar on Mobile Viewports */}
+            <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 sm:hidden shadow-[0_-4px_25px_rgba(0,0,0,0.12)] flex items-center justify-between gap-3 animate-in slide-in-from-bottom duration-200">
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <img 
+                        src={images[0] || product.image || '/favicon.svg'} 
+                        alt={product.name}
+                        className="size-11 rounded-xl object-cover border border-slate-200 shrink-0"
+                    />
+                    <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-900 truncate max-w-[130px]">{product.name}</p>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-black text-emerald-600">${currentTier.totalPrice.toFixed(2)}</span>
+                            {compareAtPrice > unitPrice && (
+                                <span className="text-[10px] text-slate-400 line-through">${(compareAtPrice * currentTier.qty).toFixed(2)}</span>
+                            )}
+                        </div>
+                    </div>
                 </div>
-                <button
-                    onClick={handleInstantBuyNow}
-                    disabled={isCheckingOut}
-                    className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5"
-                >
-                    <Zap size={15} className="fill-white" />
-                    <span>⚡ Buy Now</span>
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                    <button
+                        onClick={handleAddToCart}
+                        aria-label="Add to cart"
+                        className="p-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition flex items-center justify-center active:scale-95 cursor-pointer"
+                    >
+                        <ShoppingBag size={18} />
+                    </button>
+                    <button
+                        onClick={handleInstantBuyNow}
+                        disabled={isCheckingOut}
+                        className="py-3 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                        <Zap size={15} className="fill-white" />
+                        <span>Instant Buy</span>
+                    </button>
+                </div>
             </div>
 
             {/* In-Frame Checkout Modal */}

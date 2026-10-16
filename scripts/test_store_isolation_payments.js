@@ -74,7 +74,10 @@ it('Dynamic Checkout strictly scopes server token lookup to targetStoreKey', () 
 
 // 3. Check Homepage Empty State
 it('Homepage app/(public)/page.jsx renders "No Store Configured" when no store exists', () => {
-    const homepageCode = fs.readFileSync(path.join(ROOT, 'app/(public)/page.jsx'), 'utf-8');
+    const filePath = fs.existsSync(path.join(ROOT, 'app/(public)/HomeClient.jsx'))
+        ? path.join(ROOT, 'app/(public)/HomeClient.jsx')
+        : path.join(ROOT, 'app/(public)/page.jsx');
+    const homepageCode = fs.readFileSync(filePath, 'utf-8');
     assert.ok(homepageCode.includes('No Store Configured'), 'Missing No Store Configured empty state');
     assert.ok(homepageCode.includes('if (!loading && !activeStore)'), 'Missing early return for no active store');
 });
