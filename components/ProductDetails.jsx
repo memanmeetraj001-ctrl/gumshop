@@ -210,6 +210,15 @@ const ProductDetails = ({ product, storeInfo }) => {
     const [checkoutModal, setCheckoutModal] = useState({ isOpen: false, gumroadUrl: '', orderSessionId: '' });
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [hasShippingProtection, setHasShippingProtection] = useState(true);
+    const [showStickyBar, setShowStickyBar] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setShowStickyBar(window.scrollY > 320);
+        };
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     const images = (product.images && product.images.length > 0) 
         ? product.images 
@@ -1001,41 +1010,52 @@ const ProductDetails = ({ product, storeInfo }) => {
 
             </div>
 
-            {/* Mobile Sticky Bottom Buy Bar */}
-            {/* High-Converting Sticky Bottom Buy Bar on Mobile Viewports */}
-            <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 sm:hidden shadow-[0_-4px_25px_rgba(0,0,0,0.12)] flex items-center justify-between gap-3 animate-in slide-in-from-bottom duration-200">
-                <div className="flex items-center gap-2.5 min-w-0">
-                    <img 
-                        src={images[0] || product.image || '/favicon.svg'} 
-                        alt={product.name}
-                        className="size-11 rounded-xl object-cover border border-slate-200 shrink-0"
-                    />
-                    <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-900 truncate max-w-[130px]">{product.name}</p>
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-black text-emerald-600">${(currentTier.totalPrice + protectionFee).toFixed(2)}</span>
-                            {compareAtPrice > unitPrice && (
-                                <span className="text-[10px] text-slate-400 line-through">${(compareAtPrice * currentTier.qty).toFixed(2)}</span>
-                            )}
+            {/* High-Converting Mobile Sticky Bottom Buy Bar on Mobile Viewports */}
+            <div 
+                className={`fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_25px_rgba(0,0,0,0.12)] sm:hidden transition-transform duration-300 ease-in-out ${
+                    showStickyBar ? 'translate-y-0' : 'translate-y-full pointer-events-none'
+                }`}
+                style={{ paddingBottom: 'max(0.6rem, env(safe-area-inset-bottom))' }}
+            >
+                <div className="px-3 pt-2.5 pb-1 flex items-center justify-between gap-2 max-w-lg mx-auto">
+                    {/* Product Thumbnail & Price */}
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <img 
+                            src={images[0] || product.image || '/favicon.svg'} 
+                            alt={product.name}
+                            className="size-10 rounded-xl object-cover border border-slate-200 shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-slate-900 truncate leading-tight">{product.name}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-sm font-black text-emerald-600 font-mono tracking-tight">${(currentTier.totalPrice + protectionFee).toFixed(2)}</span>
+                                {compareAtPrice > unitPrice && (
+                                    <span className="text-[10px] text-slate-400 line-through">
+                                        ${(compareAtPrice * currentTier.qty).toFixed(2)}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                    <button
-                        onClick={handleAddToCart}
-                        aria-label="Add to cart"
-                        className="p-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition flex items-center justify-center active:scale-95 cursor-pointer"
-                    >
-                        <ShoppingBag size={18} />
-                    </button>
-                    <button
-                        onClick={handleInstantBuyNow}
-                        disabled={isCheckingOut}
-                        className="py-3 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    >
-                        <Zap size={15} className="fill-white" />
-                        <span>Instant Buy</span>
-                    </button>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                            onClick={handleAddToCart}
+                            aria-label="Add to cart"
+                            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition flex items-center justify-center active:scale-95 cursor-pointer shrink-0"
+                        >
+                            <ShoppingBag size={17} />
+                        </button>
+                        <button
+                            onClick={handleInstantBuyNow}
+                            disabled={isCheckingOut || isOutOfStock}
+                            className="py-2.5 px-3.5 sm:px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0"
+                        >
+                            <Zap size={14} className="fill-white shrink-0" />
+                            <span>Instant Buy</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 

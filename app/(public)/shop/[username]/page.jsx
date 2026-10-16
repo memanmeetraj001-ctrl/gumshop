@@ -66,16 +66,24 @@ export default async function StoreShopPage({ params }) {
     if (store) {
         const storeUrl = `${baseUrl}/shop/${encodeURIComponent(username)}`;
         
-        // 1. schema.org/Store
+        // 1. schema.org/OnlineStore
         const storeSchema = {
-            "@context": "https://schema.org",
-            "@type": "Store",
-            "name": store.name,
-            "url": storeUrl,
-            "description": store.description || `Official store for ${store.name}.`,
-            "image": store.logo_url || store.avatar || `${baseUrl}/favicon.svg`,
-            "priceRange": "$$",
-            "paymentAccepted": "Credit Card, Debit Card, PayPal, Apple Pay, Google Pay"
+            '@context': 'https://schema.org',
+            '@type': 'OnlineStore',
+            name: store.name,
+            url: storeUrl,
+            description: store.description || `Official store for ${store.name}.`,
+            image: store.logo_url || store.avatar || `${baseUrl}/favicon.svg`,
+            priceRange: '$$',
+            paymentAccepted: 'Credit Card, Debit Card, PayPal, Apple Pay, Google Pay',
+            hasMerchantReturnPolicy: {
+                '@type': 'MerchantReturnPolicy',
+                applicableCountry: 'US',
+                returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+                merchantReturnDays: 30,
+                returnMethod: 'https://schema.org/ReturnByMail',
+                returnFees: 'https://schema.org/FreeReturn'
+            }
         };
 
         // 2. schema.org/CollectionPage with ItemList

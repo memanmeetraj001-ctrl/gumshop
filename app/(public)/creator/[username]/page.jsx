@@ -1931,9 +1931,12 @@ export default function CreatorBioPage({ params }) {
                 const displayPrice = Math.max(1.00, Math.round((baseDisplayPrice - stickyDiscountVal) * 100) / 100);
 
                 return (
-                    <div className="fixed bottom-3 left-0 right-0 z-40 px-4 max-w-[420px] mx-auto animate-in slide-in-from-bottom-4 duration-300">
-                        <div className="bg-slate-950/95 backdrop-blur-md text-white p-2.5 px-3.5 rounded-2xl shadow-2xl border border-slate-800 flex items-center justify-between gap-3 ring-1 ring-white/10">
-                            <div className="flex items-center gap-2.5 min-w-0">
+                    <div 
+                        className="fixed left-0 right-0 z-40 px-3 sm:px-4 max-w-[420px] mx-auto animate-in slide-in-from-bottom-4 duration-300"
+                        style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+                    >
+                        <div className="bg-slate-950/95 backdrop-blur-md text-white p-2.5 px-3 sm:px-3.5 rounded-2xl shadow-2xl border border-slate-800 flex items-center justify-between gap-2.5 sm:gap-3 ring-1 ring-white/10">
+                            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
                                 <div className="size-9 rounded-xl overflow-hidden bg-slate-800 shrink-0 border border-slate-700">
                                     <img 
                                         src={getSafeImageUrl(displayedProducts[0].image || (displayedProducts[0].images && displayedProducts[0].images[0]))} 
@@ -1944,7 +1947,7 @@ export default function CreatorBioPage({ params }) {
                                         className="w-full h-full object-cover" 
                                     />
                                 </div>
-                                <div className="min-w-0">
+                                <div className="min-w-0 flex-1">
                                     <p className="text-xs font-bold text-white truncate">{decodeHtmlEntities(displayedProducts[0].name)}</p>
                                     <p className="text-[11px] font-black text-emerald-400">
                                         ${displayPrice.toFixed(2)}

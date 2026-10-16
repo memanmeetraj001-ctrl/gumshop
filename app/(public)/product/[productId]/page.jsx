@@ -80,28 +80,28 @@ export default async function ProductPage({ params }) {
 
         // 1. schema.org/Product
         const productSchema = {
-            "@context": "https://schema.org/",
-            "@type": "Product",
-            "name": product.name,
-            "image": images,
-            "description": product.description || `Buy ${product.name} with instant tracking and secure Gumroad checkout.`,
-            "sku": product.id,
-            "brand": {
-                "@type": "Brand",
-                "name": storeName
+            '@context': 'https://schema.org/',
+            '@type': 'Product',
+            name: product.name,
+            image: images,
+            description: product.description || `Buy ${product.name} with instant tracking and secure Gumroad checkout.`,
+            sku: product.id,
+            brand: {
+                '@type': 'Brand',
+                name: storeName
             },
-            "offers": {
-                "@type": "Offer",
-                "url": `${baseUrl}/product/${encodeURIComponent(product.id)}`,
-                "priceCurrency": "USD",
-                "price": price,
-                "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                "itemCondition": "https://schema.org/NewCondition",
-                "availability": product.inStock !== false ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-                "seller": {
-                    "@type": "Organization",
-                    "name": storeName,
-                    "url": `${baseUrl}/shop/${storeSlug}`
+            offers: {
+                '@type': 'Offer',
+                url: `${baseUrl}/product/${encodeURIComponent(product.id)}`,
+                priceCurrency: 'USD',
+                price: price,
+                priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                itemCondition: 'https://schema.org/NewCondition',
+                availability: product.inStock !== false ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+                seller: {
+                    '@type': 'Organization',
+                    name: storeName,
+                    url: `${baseUrl}/shop/${storeSlug}`
                 }
             },
             "aggregateRating": {

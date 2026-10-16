@@ -94,7 +94,7 @@ export default function AiShoppingAssistant({ products = [], storeName = 'Store'
     };
 
     return (
-        <aside aria-label="AI Shopping Assistant" className="fixed bottom-4 right-4 z-40">
+        <aside aria-label="AI Shopping Assistant" className="fixed bottom-20 sm:bottom-6 right-3 sm:right-6 z-40">
             {/* Floating Trigger Pill */}
             {!isOpen && (
                 <button

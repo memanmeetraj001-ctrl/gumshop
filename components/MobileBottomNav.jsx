@@ -10,7 +10,10 @@ export default function MobileBottomNav({ onOpenCart, onOpenWishlist, onFocusSea
     const { count: wishlistCount } = useWishlist();
 
     return (
-        <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 py-2 sm:hidden shadow-lg">
+        <div 
+            className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 py-2 sm:hidden shadow-lg"
+            style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+        >
             <div className="flex items-center justify-around">
                 <Link href="/" className="flex flex-col items-center gap-1 text-slate-700 hover:text-emerald-600 transition">
                     <Home size={20} />
