@@ -22,7 +22,8 @@ import {
     Calendar,
     DollarSign,
     Printer,
-    ExternalLink
+    ExternalLink,
+    Trash2
 } from "lucide-react";
 
 export default function StoreOrders() {
@@ -403,6 +404,90 @@ export default function StoreOrders() {
         }
     };
 
+    const handleDeleteOrder = async (orderId) => {
+        if (!confirm(`Are you sure you want to delete order #${orderId}? This cannot be undone.`)) return;
+        try {
+            const storeSlug = currentStore?.username || currentStore?.id || '';
+            // 1. Remove from local state
+            setOrders(prev => prev.filter(o => o.id !== orderId));
+            
+            // 2. Remove from localStorage
+            if (typeof window !== 'undefined') {
+                try {
+                    const keys = [
+                        'gumshop_recent_orders',
+                        `gumshop_recent_orders_${currentStore?.id}`,
+                        `gumshop_recent_orders_${storeSlug}`,
+                        `gumshop_recent_orders_store_${storeSlug}`
+                    ];
+                    keys.forEach(k => {
+                        const raw = localStorage.getItem(k);
+                        if (raw) {
+                            const parsed = JSON.parse(raw);
+                            if (Array.isArray(parsed)) {
+                                localStorage.setItem(k, JSON.stringify(parsed.filter(o => o.id !== orderId)));
+                            }
+                        }
+                    });
+                } catch {}
+            }
+
+            // 3. Delete from backend API
+            await fetch(`/api/store/orders?id=${encodeURIComponent(orderId)}&store=${encodeURIComponent(storeSlug)}`, {
+                method: 'DELETE'
+            });
+
+            toast.success("Order deleted successfully!");
+        } catch (e) {
+            toast.error("Failed to delete order");
+        }
+    };
+
+    const handleDeleteUnpaidOrders = async () => {
+        const unpaidCount = orders.filter(o => !o.isPaid && o.paymentStatus !== 'PAID').length;
+        if (unpaidCount === 0) {
+            toast.error("No unpaid or test orders found to delete.");
+            return;
+        }
+        if (!confirm(`Delete all ${unpaidCount} unpaid/test orders for this store?`)) return;
+
+        try {
+            const storeSlug = currentStore?.username || currentStore?.id || '';
+            // 1. Remove from local state
+            setOrders(prev => prev.filter(o => o.isPaid === true || o.paymentStatus === 'PAID'));
+
+            // 2. Remove from localStorage
+            if (typeof window !== 'undefined') {
+                try {
+                    const keys = [
+                        'gumshop_recent_orders',
+                        `gumshop_recent_orders_${currentStore?.id}`,
+                        `gumshop_recent_orders_${storeSlug}`,
+                        `gumshop_recent_orders_store_${storeSlug}`
+                    ];
+                    keys.forEach(k => {
+                        const raw = localStorage.getItem(k);
+                        if (raw) {
+                            const parsed = JSON.parse(raw);
+                            if (Array.isArray(parsed)) {
+                                localStorage.setItem(k, JSON.stringify(parsed.filter(o => o.isPaid === true || o.paymentStatus === 'PAID')));
+                            }
+                        }
+                    });
+                } catch {}
+            }
+
+            // 3. Delete via backend API
+            const res = await fetch(`/api/store/orders?clearUnpaid=true&store=${encodeURIComponent(storeSlug)}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json().catch(() => ({}));
+            toast.success(data.message || `Purged ${unpaidCount} unpaid/test orders!`);
+        } catch (e) {
+            toast.error("Failed to clear unpaid orders");
+        }
+    };
+
     const filteredOrders = useMemo(() => {
         return orders.filter(o => {
             const query = searchTerm.toLowerCase().trim();
@@ -447,7 +532,15 @@ export default function StoreOrders() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                    <button
+                        onClick={handleDeleteUnpaidOrders}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-xs font-bold text-rose-700 border border-rose-200 transition"
+                        title="Delete all unpaid checkout sessions and fake test orders"
+                    >
+                        <Trash2 size={14} />
+                        <span>Delete Fake Orders</span>
+                    </button>
                     <button
                         onClick={handleSyncGumroad}
                         disabled={isSyncing}
@@ -666,6 +759,13 @@ export default function StoreOrders() {
                                                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shadow-xs"
                                                     >
                                                         <span>Update Status</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteOrder(order.id)}
+                                                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition"
+                                                        title="Delete Order"
+                                                    >
+                                                        <Trash2 size={15} />
                                                     </button>
                                                 </div>
                                             </td>

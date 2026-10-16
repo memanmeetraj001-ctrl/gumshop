@@ -16,7 +16,8 @@ import {
     Sparkles, 
     Filter,
     ArrowUpRight,
-    CheckCircle2
+    CheckCircle2,
+    Trash2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/AuthContext';
@@ -239,6 +240,116 @@ export default function StoreCustomersPage() {
         toast.success(`Exported ${customers.length} customer profiles to CSV!`);
     };
 
+    const handleDeleteCustomer = async (customer) => {
+        if (!confirm(`Are you sure you want to delete customer "${customer.name}" and remove their associated test records?`)) return;
+        try {
+            const storeSlug = currentStore?.username || currentStore?.name || '';
+            const storeId = currentStore?.id || 'store_default';
+            const orderIds = (customer.orders || []).map(o => o.id);
+
+            // 1. Remove from orders state
+            setOrders(prev => prev.filter(o => !orderIds.includes(o.id)));
+
+            // 2. Remove from bio leads if lead
+            setBioLeads(prev => prev.filter(l => l.email !== customer.email));
+
+            // 3. Remove orders from localStorage
+            if (typeof window !== 'undefined') {
+                try {
+                    const keys = [
+                        'gumshop_recent_orders',
+                        `gumshop_recent_orders_${storeId}`,
+                        `gumshop_recent_orders_${storeSlug}`,
+                        `gumshop_recent_orders_store_${storeSlug}`
+                    ];
+                    keys.forEach(k => {
+                        const raw = localStorage.getItem(k);
+                        if (raw) {
+                            const parsed = JSON.parse(raw);
+                            if (Array.isArray(parsed)) {
+                                localStorage.setItem(k, JSON.stringify(parsed.filter(o => !orderIds.includes(o.id))));
+                            }
+                        }
+                    });
+
+                    // Remove lead from localStorage
+                    const lKeys = [`gumshop_customers_${storeSlug}`, `gumshop_customers_${storeId}`];
+                    lKeys.forEach(k => {
+                        const raw = localStorage.getItem(k);
+                        if (raw) {
+                            const parsed = JSON.parse(raw);
+                            if (Array.isArray(parsed)) {
+                                localStorage.setItem(k, JSON.stringify(parsed.filter(l => l.email !== customer.email)));
+                            }
+                        }
+                    });
+                } catch {}
+            }
+
+            // 4. Delete orders on backend
+            for (const oId of orderIds) {
+                await fetch(`/api/store/orders?id=${encodeURIComponent(oId)}&store=${encodeURIComponent(storeSlug)}`, {
+                    method: 'DELETE'
+                }).catch(() => {});
+            }
+
+            toast.success(`Customer "${customer.name}" deleted.`);
+            if (selectedCustomer?.id === customer.id) setSelectedCustomer(null);
+        } catch (e) {
+            toast.error("Failed to delete customer");
+        }
+    };
+
+    const handleClearGuestCustomers = async () => {
+        const guestCustomers = customers.filter(c => c.name === 'Guest Customer' || c.email === 'No email provided' || c.ordersCount === 0 || c.orders.every(o => !o.isPaid && o.paymentStatus !== 'PAID'));
+        if (guestCustomers.length === 0) {
+            toast.error("No guest or test customers found to delete.");
+            return;
+        }
+        if (!confirm(`Delete ${guestCustomers.length} guest/unpaid test customers?`)) return;
+
+        try {
+            const storeSlug = currentStore?.username || currentStore?.name || '';
+            const storeId = currentStore?.id || 'store_default';
+            const allOrderIds = guestCustomers.flatMap(c => (c.orders || []).map(o => o.id));
+
+            // 1. Remove from local state
+            setOrders(prev => prev.filter(o => !allOrderIds.includes(o.id)));
+            setBioLeads(prev => prev.filter(l => !guestCustomers.some(g => g.email === l.email)));
+
+            // 2. Remove from localStorage
+            if (typeof window !== 'undefined') {
+                try {
+                    const keys = [
+                        'gumshop_recent_orders',
+                        `gumshop_recent_orders_${storeId}`,
+                        `gumshop_recent_orders_${storeSlug}`,
+                        `gumshop_recent_orders_store_${storeSlug}`
+                    ];
+                    keys.forEach(k => {
+                        const raw = localStorage.getItem(k);
+                        if (raw) {
+                            const parsed = JSON.parse(raw);
+                            if (Array.isArray(parsed)) {
+                                localStorage.setItem(k, JSON.stringify(parsed.filter(o => !allOrderIds.includes(o.id))));
+                            }
+                        }
+                    });
+                } catch {}
+            }
+
+            // 3. Purge backend unpaid orders
+            await fetch(`/api/store/orders?clearUnpaid=true&store=${encodeURIComponent(storeSlug)}`, {
+                method: 'DELETE'
+            }).catch(() => {});
+
+            toast.success(`Cleared ${guestCustomers.length} test customers!`);
+            setSelectedCustomer(null);
+        } catch (e) {
+            toast.error("Failed to clear guest customers");
+        }
+    };
+
     if (loading) return <Loading />;
 
     return (
@@ -257,7 +368,15 @@ export default function StoreCustomersPage() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                    <button
+                        onClick={handleClearGuestCustomers}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-xs font-bold text-rose-700 border border-rose-200 transition"
+                        title="Delete all fake or guest test customers"
+                    >
+                        <Trash2 size={14} />
+                        <span>Delete Fake Customers</span>
+                    </button>
                     <button
                         onClick={handleExportCSV}
                         className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 font-bold text-xs shadow-xs transition"
@@ -432,16 +551,28 @@ export default function StoreCustomersPage() {
 
                                         {/* Actions */}
                                         <td className="py-4 px-6 text-right">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedCustomer(customer);
-                                                }}
-                                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] transition"
-                                            >
-                                                <span>View History</span>
-                                                <ArrowUpRight size={12} />
-                                            </button>
+                                            <div className="inline-flex items-center gap-2">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedCustomer(customer);
+                                                    }}
+                                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] transition"
+                                                >
+                                                    <span>View History</span>
+                                                    <ArrowUpRight size={12} />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteCustomer(customer);
+                                                    }}
+                                                    className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                                                    title="Delete Customer Profile"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))

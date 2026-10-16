@@ -1,6 +1,6 @@
 'use client'
 import { usePathname } from "next/navigation"
-import { HomeIcon, SquarePenIcon, SquarePlusIcon, TicketPercentIcon, SettingsIcon, Sparkles, ExternalLink, Smartphone, Package, Users, Tag, BarChart3 } from "lucide-react"
+import { HomeIcon, SquarePenIcon, SquarePlusIcon, TicketPercentIcon, SettingsIcon, Sparkles, ExternalLink, Smartphone, Package, Users, BarChart3, CreditCard } from "lucide-react"
 import Link from "next/link"
 import { getActiveStoreSync } from "@/lib/activeStore"
 
@@ -19,8 +19,7 @@ const StoreSidebar = ({ storeInfo }) => {
         { name: 'Orders & Shipping', href: `/store/orders?store=${storeSlug}`, icon: Package },
         { name: 'Customers CRM', href: `/store/customers?store=${storeSlug}`, icon: Users },
         { name: 'Coupons & Discounts', href: `/store/coupons?store=${storeSlug}`, icon: TicketPercentIcon },
-        { name: 'Marketing & Upsells', href: `/store/marketing?store=${storeSlug}`, icon: Tag },
-        { name: 'Gumroad Payments', href: `/store/settings?tab=gumroad&store=${storeSlug}`, icon: SettingsIcon },
+        { name: 'Gumroad Payments', href: `/store/settings?tab=gumroad&store=${storeSlug}`, icon: CreditCard },
         { name: 'Store Settings', href: `/store/settings?store=${storeSlug}`, icon: SettingsIcon },
     ];
 

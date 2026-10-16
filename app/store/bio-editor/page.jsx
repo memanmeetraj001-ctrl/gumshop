@@ -91,17 +91,14 @@ export default function StanStoreBioEditor() {
             twitch: initialExistingBio.socials?.twitch || initialStore?.socials?.twitch || '',
             spotify: initialExistingBio.socials?.spotify || initialStore?.socials?.spotify || ''
         },
-        customLinks: initialExistingBio.customLinks || [
-            { id: 'lnk_1', title: '📅 Book a 1:1 Coaching Call', url: 'https://calendly.com', highlight: true, badge: '⭐ Most Popular' },
-            { id: 'lnk_2', title: '🎙️ Listen to the Creator Podcast', url: 'https://spotify.com', highlight: false, badge: '' }
-        ],
+        customLinks: Array.isArray(initialExistingBio.customLinks) ? initialExistingBio.customLinks : [],
         productDisplayMode: initialExistingBio.productDisplayMode || 'all', // 'all' | 'curated'
         featuredProductIds: initialExistingBio.featuredProductIds || [],
         leadMagnet: initialExistingBio.leadMagnet || {
-            enabled: true,
-            title: '🎁 Free Creator Starter Playbook',
-            subtitle: 'Get our battle-tested Notion templates & presets directly to your inbox.',
-            buttonText: 'Claim Free Access'
+            enabled: false,
+            title: '',
+            subtitle: '',
+            buttonText: 'Claim Free'
         }
     });
 
@@ -157,17 +154,14 @@ export default function StanStoreBioEditor() {
                         twitch: existingBio.socials?.twitch || store.socials?.twitch || '',
                         spotify: existingBio.socials?.spotify || store.socials?.spotify || ''
                     },
-                    customLinks: existingBio.customLinks || [
-                        { id: 'lnk_1', title: '📅 Book a 1:1 Coaching Call', url: 'https://calendly.com', highlight: true, badge: '⭐ Most Popular' },
-                        { id: 'lnk_2', title: '🎙️ Listen to the Creator Podcast', url: 'https://spotify.com', highlight: false, badge: '' }
-                    ],
+                    customLinks: Array.isArray(existingBio.customLinks) ? existingBio.customLinks : [],
                     productDisplayMode: existingBio.productDisplayMode || 'all',
                     featuredProductIds: existingBio.featuredProductIds || [],
                     leadMagnet: existingBio.leadMagnet || {
-                        enabled: true,
-                        title: '🎁 Free Creator Starter Playbook',
-                        subtitle: 'Get our battle-tested Notion templates & presets directly to your inbox.',
-                        buttonText: 'Claim Free Access'
+                        enabled: false,
+                        title: '',
+                        subtitle: '',
+                        buttonText: 'Claim Free'
                     }
                 });
 
@@ -175,7 +169,16 @@ export default function StanStoreBioEditor() {
                 if (Array.isArray(store.products) && store.products.length > 0) {
                     setCatalogProducts(store.products);
                 } else {
-                    const prods = await getProductsByStore(store.id || store.username);
+                    let prods = await getProductsByStore(store.id || store.username);
+                    if (!Array.isArray(prods) || prods.length === 0) {
+                        try {
+                            const res = await fetch(`/api/store/data?slug=${encodeURIComponent(storeSlug)}`, { cache: 'no-store' });
+                            if (res.ok) {
+                                const d = await res.json();
+                                if (Array.isArray(d.products)) prods = d.products;
+                            }
+                        } catch {}
+                    }
                     setCatalogProducts(prods || []);
                 }
             } catch (err) {
