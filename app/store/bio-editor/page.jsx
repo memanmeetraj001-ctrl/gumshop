@@ -56,7 +56,11 @@ const BACKGROUND_PRESETS = [
 
 export default function StanStoreBioEditor() {
     const { user, loading: authLoading } = useAuth();
-    const [loading, setLoading] = useState(true);
+    const initialStore = getActiveStoreSync();
+    const initialExistingBio = initialStore?.bioProfile || {};
+    const initialStoreSlug = (initialStore?.username || (initialStore?.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'shop';
+
+    const [loading, setLoading] = useState(!initialStore);
     const [saving, setSaving] = useState(false);
     const [autoSaveStatus, setAutoSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
     const isInitialMount = useRef(true);
@@ -65,35 +69,35 @@ export default function StanStoreBioEditor() {
     const [activeTab, setActiveTab] = useState('branding'); // 'branding' | 'socials' | 'links' | 'products'
     
     // Store reference
-    const [currentStore, setCurrentStore] = useState(null);
-    const [catalogProducts, setCatalogProducts] = useState([]);
+    const [currentStore, setCurrentStore] = useState(initialStore);
+    const [catalogProducts, setCatalogProducts] = useState(initialStore?.products || []);
 
     // Bio Profile State
     const [profile, setProfile] = useState({
-        displayName: '',
-        handle: '',
-        tagline: '',
-        avatar: '',
-        verified: true,
-        themeColor: '#10B981',
-        backgroundPreset: 'warm_studio',
+        displayName: initialExistingBio.displayName || initialStore?.name || '',
+        handle: initialExistingBio.handle || (initialStore ? initialStoreSlug : ''),
+        tagline: initialExistingBio.tagline || initialStore?.bio || initialStore?.description || '',
+        avatar: initialExistingBio.avatar || initialStore?.logo || initialStore?.avatar || '',
+        verified: initialExistingBio.verified !== undefined ? initialExistingBio.verified : true,
+        themeColor: initialExistingBio.themeColor || initialStore?.themeColor || '#10B981',
+        backgroundPreset: initialExistingBio.backgroundPreset || 'warm_studio',
         socials: {
-            instagram: '',
-            tiktok: '',
-            youtube: '',
-            twitter: '',
-            discord: '',
-            whatsapp: '',
-            twitch: '',
-            spotify: ''
+            instagram: initialExistingBio.socials?.instagram || initialStore?.socials?.instagram || '',
+            tiktok: initialExistingBio.socials?.tiktok || initialStore?.socials?.tiktok || '',
+            youtube: initialExistingBio.socials?.youtube || initialStore?.socials?.youtube || '',
+            twitter: initialExistingBio.socials?.twitter || initialStore?.socials?.twitter || '',
+            discord: initialExistingBio.socials?.discord || initialStore?.socials?.discord || '',
+            whatsapp: initialExistingBio.socials?.whatsapp || initialStore?.socials?.whatsapp || '',
+            twitch: initialExistingBio.socials?.twitch || initialStore?.socials?.twitch || '',
+            spotify: initialExistingBio.socials?.spotify || initialStore?.socials?.spotify || ''
         },
-        customLinks: [
+        customLinks: initialExistingBio.customLinks || [
             { id: 'lnk_1', title: '📅 Book a 1:1 Coaching Call', url: 'https://calendly.com', highlight: true, badge: '⭐ Most Popular' },
             { id: 'lnk_2', title: '🎙️ Listen to the Creator Podcast', url: 'https://spotify.com', highlight: false, badge: '' }
         ],
-        productDisplayMode: 'all', // 'all' | 'curated'
-        featuredProductIds: [],
-        leadMagnet: {
+        productDisplayMode: initialExistingBio.productDisplayMode || 'all', // 'all' | 'curated'
+        featuredProductIds: initialExistingBio.featuredProductIds || [],
+        leadMagnet: initialExistingBio.leadMagnet || {
             enabled: true,
             title: '🎁 Free Creator Starter Playbook',
             subtitle: 'Get our battle-tested Notion templates & presets directly to your inbox.',
@@ -168,8 +172,12 @@ export default function StanStoreBioEditor() {
                 });
 
                 // Load products
-                const prods = await getProductsByStore(store.id || store.username);
-                setCatalogProducts(prods || store.products || []);
+                if (Array.isArray(store.products) && store.products.length > 0) {
+                    setCatalogProducts(store.products);
+                } else {
+                    const prods = await getProductsByStore(store.id || store.username);
+                    setCatalogProducts(prods || []);
+                }
             } catch (err) {
                 console.error("Error loading bio editor:", err);
             } finally {

@@ -461,10 +461,10 @@ export default function CreatorBioPage({ params }) {
 
     useEffect(() => {
         let isMounted = true;
-        // Generous safety timer to prevent premature "Store Not Found" flashes on cold mobile loads
+        // Safety timer to prevent perpetual loading spinner if network drops
         const safetyTimer = setTimeout(() => {
             if (isMounted) setLoading(false);
-        }, 8000);
+        }, 3000);
 
         const loadCreatorStore = async (isRetry = false) => {
             try {

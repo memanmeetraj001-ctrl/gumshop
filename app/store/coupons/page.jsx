@@ -20,10 +20,11 @@ import Loading from "@/components/Loading"
 
 export default function StoreCoupons() {
     const { user, loading: authLoading } = useAuth()
-    const [store, setStore] = useState(() => getActiveStoreSync())
-    const [products, setProducts] = useState([])
+    const initialStore = getActiveStoreSync()
+    const [store, setStore] = useState(initialStore)
+    const [products, setProducts] = useState(initialStore?.products || [])
     const [coupons, setCoupons] = useState([])
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(!initialStore)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [copiedCode, setCopiedCode] = useState(null)
 
@@ -60,8 +61,12 @@ export default function StoreCoupons() {
             }
             setStore(currentStore);
 
-            const storeProducts = await getProductsByStore(currentStore.id)
-            setProducts(storeProducts || [])
+            if (Array.isArray(currentStore.products) && currentStore.products.length > 0) {
+                setProducts(currentStore.products)
+            } else {
+                const storeProducts = await getProductsByStore(currentStore.id)
+                setProducts(storeProducts || [])
+            }
 
             const data = await getAllCoupons()
             setCoupons((data || []).filter(c => c.storeId === currentStore.id))

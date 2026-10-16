@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import Loading from "@/components/Loading";
 import { useAuth } from "@/lib/AuthContext";
 import { getOrdersByStore, updateOrder } from "@/lib/firebaseDb";
-import { getActiveStore } from "@/lib/activeStore";
+import { getActiveStore, getActiveStoreSync, getAllLocalStores } from "@/lib/activeStore";
 import toast from "react-hot-toast";
 import { 
     ShoppingBag, 
@@ -26,8 +26,36 @@ import {
 } from "lucide-react";
 
 export default function StoreOrders() {
-    const [orders, setOrders] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { user, loading: authLoading } = useAuth();
+
+    const [currentStore, setCurrentStore] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const sp = new URLSearchParams(window.location.search);
+            const targetSlug = sp.get('store');
+            if (targetSlug) {
+                const localStores = getAllLocalStores();
+                const clean = targetSlug.toLowerCase().replace(/^store_/, '');
+                const found = localStores.find(s => (s.username || s.slug || s.id || '').toLowerCase().replace(/^store_/, '') === clean);
+                if (found) return found;
+            }
+        }
+        return getActiveStoreSync();
+    });
+
+    const [orders, setOrders] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const rawGen = localStorage.getItem('gumshop_recent_orders');
+                if (rawGen) {
+                    const parsed = JSON.parse(rawGen);
+                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                }
+            } catch {}
+        }
+        return [];
+    });
+
+    const [loading, setLoading] = useState(false);
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [searchTerm, setSearchTerm] = useState('');
     
@@ -40,10 +68,7 @@ export default function StoreOrders() {
 
     // Order Details Modal State
     const [viewingOrder, setViewingOrder] = useState(null);
-
-    const { user, loading: authLoading } = useAuth();
     const [isSyncing, setIsSyncing] = useState(false);
-    const [currentStore, setCurrentStore] = useState(null);
 
     const handleSyncGumroad = async () => {
         setIsSyncing(true);
@@ -98,43 +123,32 @@ export default function StoreOrders() {
 
                 let store = null;
                 if (targetSlug) {
-                    const { resolveStoreFromSlug } = await import('@/lib/resolveStoreServer');
-                    const resolved = await resolveStoreFromSlug(targetSlug, user);
-                    if (resolved) {
-                        store = resolved;
-                        const { setActiveStoreSlug } = await import('@/lib/activeStore');
-                        setActiveStoreSlug(store);
-                    }
+                    try {
+                        const cleanSlug = targetSlug.toLowerCase().replace(/^store_/, '');
+                        const res = await fetch(`/api/store/data?slug=${encodeURIComponent(cleanSlug)}`, { cache: 'no-store' });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.success && data.store) {
+                                store = data.store;
+                                const { setActiveStoreSlug } = await import('@/lib/activeStore');
+                                setActiveStoreSlug(store);
+                            }
+                        }
+                    } catch {}
                 }
 
                 if (!store) {
-                    store = await getActiveStore(user);
-                }
-                if (!store) {
-                    const { getActiveStoreSync } = await import('@/lib/activeStore');
-                    store = getActiveStoreSync();
+                    store = await getActiveStore(user) || getActiveStoreSync();
                 }
 
                 if (!isMounted) return;
-                setCurrentStore(store);
+                if (store) setCurrentStore(store);
 
                 const storeId = store?.id || (targetSlug ? `store_${targetSlug}` : 'store_default');
                 const storeSlug = store?.username || targetSlug || '';
                 const cleanSid = (storeId || storeSlug).toLowerCase().replace(/^store_/, '');
 
-                let fetchedOrders = [];
-
-                // 1. Fetch from database with safe timeout
-                try {
-                    fetchedOrders = await Promise.race([
-                        getOrdersByStore(storeId),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
-                    ]);
-                } catch (e) {
-                    console.warn("Orders fetch fallback:", e);
-                }
-
-                // 2. Fetch server-persisted completed orders from API bridge
+                // 1. Fetch server-persisted completed orders directly from API bridge
                 let serverOrders = [];
                 try {
                     const queryParam = storeSlug || cleanSid || storeId;
@@ -142,7 +156,7 @@ export default function StoreOrders() {
                         cache: 'no-store'
                     });
                     if (res.ok) {
-                        const data = await res.json();
+                        const data = await res.json().catch(() => ({}));
                         if (data.success && Array.isArray(data.orders)) {
                             serverOrders = data.orders;
                         }
@@ -179,12 +193,6 @@ export default function StoreOrders() {
                     if (id) orderMap.set(id, { id, ...o });
                 });
                 (localOrders || []).forEach(o => {
-                    const id = o.id || o.orderId || o.orderSessionId;
-                    if (id && !orderMap.has(id)) {
-                        orderMap.set(id, { id, ...o });
-                    }
-                });
-                (fetchedOrders || []).forEach(o => {
                     const id = o.id || o.orderId || o.orderSessionId;
                     if (id && !orderMap.has(id)) {
                         orderMap.set(id, { id, ...o });

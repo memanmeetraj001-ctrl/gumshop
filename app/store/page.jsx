@@ -29,7 +29,7 @@ import {
 import Loading from "@/components/Loading";
 import { useAuth } from "@/lib/AuthContext";
 import { getProductsByStore, getOrdersByStore, isProductDeleted } from "@/lib/firebaseDb";
-import { getActiveStore, getActiveStoreSync } from "@/lib/activeStore";
+import { getActiveStore, getActiveStoreSync, getAllLocalStores } from "@/lib/activeStore";
 import toast from "react-hot-toast";
 
 export default function StoreAnalyticsDashboard() {
@@ -37,11 +37,26 @@ export default function StoreAnalyticsDashboard() {
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
 
-    const [loading, setLoading] = useState(true);
-    const [currentStore, setCurrentStore] = useState(null);
+    const [currentStore, setCurrentStore] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const sp = new URLSearchParams(window.location.search);
+            const targetSlug = sp.get('store');
+            if (targetSlug) {
+                const localStores = getAllLocalStores();
+                const clean = targetSlug.toLowerCase().replace(/^store_/, '');
+                const found = localStores.find(s => (s.username || s.slug || s.id || '').toLowerCase().replace(/^store_/, '') === clean);
+                if (found) return found;
+            }
+        }
+        return getActiveStoreSync();
+    });
+    const [products, setProducts] = useState(() => {
+        const init = (typeof window !== 'undefined') ? getActiveStoreSync() : null;
+        return Array.isArray(init?.products) ? init.products : [];
+    });
+    const [loading, setLoading] = useState(false);
     const [copiedBio, setCopiedBio] = useState(false);
     const [timeRange, setTimeRange] = useState('all'); // 'today' | '7d' | '30d' | 'all'
-    const [products, setProducts] = useState([]);
     const [orders, setOrders] = useState([]);
     const [mountedOrigin, setMountedOrigin] = useState('');
 
@@ -58,14 +73,21 @@ export default function StoreAnalyticsDashboard() {
             }
 
             let store = null;
+            let preloadedProducts = [];
             if (targetSlug) {
-                const { resolveStoreFromSlug } = await import('@/lib/resolveStoreServer');
-                const resolved = await resolveStoreFromSlug(targetSlug, user);
-                if (resolved) {
-                    store = resolved;
-                    const { setActiveStoreSlug } = await import('@/lib/activeStore');
-                    setActiveStoreSlug(store);
-                }
+                try {
+                    const cleanSlug = targetSlug.toLowerCase().replace(/^store_/, '');
+                    const res = await fetch(`/api/store/data?slug=${encodeURIComponent(cleanSlug)}`, { cache: 'no-store' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.success && data.store) {
+                            store = data.store;
+                            if (Array.isArray(data.products)) preloadedProducts = data.products;
+                            const { setActiveStoreSlug } = await import('@/lib/activeStore');
+                            setActiveStoreSlug(store);
+                        }
+                    }
+                } catch {}
             }
 
             if (!store) {
@@ -77,22 +99,36 @@ export default function StoreAnalyticsDashboard() {
             }
             setCurrentStore(store);
 
-            let [storeProducts, storeOrders] = await Promise.all([
-                getProductsByStore(store.id).catch(() => []),
-                getOrdersByStore(store.id).catch(() => []),
-            ]);
+            const storeId = store.id || `store_${(store.username || store.slug || '').toLowerCase().replace(/^store_/, '')}`;
+            const cleanSid = (store.username || store.id || '').toLowerCase().replace(/^store_/, '');
 
-            if ((!storeProducts || storeProducts.length === 0) && store.products && store.products.length > 0) {
-                storeProducts = store.products;
+            // 1. Resolve Products (use preloaded, or store.products, or API)
+            let activeProds = preloadedProducts;
+            if (activeProds.length === 0 && Array.isArray(store.products) && store.products.length > 0) {
+                activeProds = store.products;
             }
-            const activeProds = (storeProducts || []).filter(p => p && p.id && !isProductDeleted(p.id));
-            setProducts(activeProds);
+            if (activeProds.length === 0) {
+                try {
+                    const fetchedProds = await getProductsByStore(storeId);
+                    if (Array.isArray(fetchedProds)) activeProds = fetchedProds;
+                } catch {}
+            }
+            setProducts(activeProds.filter(p => p && p.id && !isProductDeleted(p.id)));
 
-            // Merge local orders strictly filtered by storeId
+            // 2. Fetch Orders via fast /api/store/orders
+            let storeOrders = [];
+            try {
+                const res = await fetch(`/api/store/orders?store=${encodeURIComponent(cleanSid)}&storeId=${encodeURIComponent(storeId)}`, { cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    if (Array.isArray(data.orders)) storeOrders = data.orders;
+                }
+            } catch {}
+
+            // Merge local edge orders
             let localOrders = [];
             if (typeof window !== 'undefined') {
                 try {
-                    const cleanSid = (store.id || store.username || '').toLowerCase().replace(/^store_/, '');
                     const storeScopedRaw = localStorage.getItem(`gumshop_recent_orders_${store.id}`) ||
                                            localStorage.getItem(`gumshop_recent_orders_store_${cleanSid}`) ||
                                            localStorage.getItem(`gumshop_recent_orders_${cleanSid}`);
@@ -132,11 +168,9 @@ export default function StoreAnalyticsDashboard() {
     };
 
     useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 3000);
         if (!authLoading) {
-            fetchDashboardData().finally(() => clearTimeout(timer));
+            fetchDashboardData();
         }
-        return () => clearTimeout(timer);
     }, [user, authLoading]);
 
     // Filter orders by selected timeRange

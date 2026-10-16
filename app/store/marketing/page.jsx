@@ -26,7 +26,7 @@ import toast from "react-hot-toast";
 
 export default function StoreMarketingLaunchKit() {
     const { user } = useAuth();
-    const [storeInfo, setStoreInfo] = useState(null);
+    const [storeInfo, setStoreInfo] = useState(() => getActiveStoreSync());
     const [activeTab, setActiveTab] = useState('content'); // 'content' | 'utm' | 'qr' | 'leads'
     const [copiedIndex, setCopiedIndex] = useState(null);
     const [copiedBio, setCopiedBio] = useState(false);

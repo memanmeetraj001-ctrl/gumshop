@@ -20,14 +20,13 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/AuthContext';
-import { getActiveStore } from '@/lib/activeStore';
-import { getOrdersByStore } from '@/lib/firebaseDb';
+import { getActiveStore, getActiveStoreSync } from '@/lib/activeStore';
 import Loading from '@/components/Loading';
 
 export default function StoreCustomersPage() {
     const { user } = useAuth();
-    const [currentStore, setCurrentStore] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [currentStore, setCurrentStore] = useState(() => getActiveStoreSync());
+    const [loading, setLoading] = useState(false);
     const [orders, setOrders] = useState([]);
     const [bioLeads, setBioLeads] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -38,19 +37,20 @@ export default function StoreCustomersPage() {
         let isMounted = true;
         const loadCustomerData = async () => {
             try {
-                const store = await getActiveStore(user);
+                const store = await getActiveStore(user) || getActiveStoreSync();
                 if (!isMounted) return;
-                setCurrentStore(store);
+                if (store) setCurrentStore(store);
 
                 const storeId = store?.id || 'store_default';
                 const cleanSlug = (store?.username || store?.name || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
                 let fetchedOrders = [];
 
                 try {
-                    fetchedOrders = await Promise.race([
-                        getOrdersByStore(storeId),
-                        new Promise(res => setTimeout(() => res([]), 8000))
-                    ]);
+                    const res = await fetch(`/api/store/orders?store=${encodeURIComponent(cleanSlug)}&storeId=${encodeURIComponent(storeId)}`, { cache: 'no-store' });
+                    if (res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        if (Array.isArray(data.orders)) fetchedOrders = data.orders;
+                    }
                 } catch {}
 
                 // Merge edge orders from localStorage

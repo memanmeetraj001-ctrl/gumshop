@@ -28,11 +28,26 @@ export default function SuperStorefront() {
     const dispatch = useDispatch();
     const reduxProducts = useSelector(state => state.product.list);
 
-    const [products, setProducts] = useState([]);
-    const [activeStore, setActiveStore] = useState(null);
+    const [activeStore, setActiveStore] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return getHomepageStoreSync() || getActiveStoreSync() || null;
+        }
+        return null;
+    });
+
+    const [products, setProducts] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const s = getHomepageStoreSync() || getActiveStoreSync();
+            if (Array.isArray(s?.products) && s.products.length > 0) {
+                return s.products;
+            }
+        }
+        return [];
+    });
+
+    const [loading, setLoading] = useState(false);
     const [homepageMode, setHomepageModeState] = useState('single');
     const [viewMode, setViewMode] = useState('by-store'); // 'by-store' | 'combined'
-    const [loading, setLoading] = useState(true);
     const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
     const [wishlistDrawerOpen, setWishlistDrawerOpen] = useState(false);
 
@@ -48,7 +63,6 @@ export default function SuperStorefront() {
     // Fetch homepage store & isolated products
     useEffect(() => {
         const loadStoreAndCatalog = async () => {
-            setLoading(true);
             try {
                 // 1. Resolve designated homepage store & mode directly from server (Highest priority)
                 let store = null;
@@ -153,7 +167,10 @@ export default function SuperStorefront() {
 
                 if (store) {
                     setActiveStore(store);
-                    const storeProducts = await getProductsByStore(store.id || store.username);
+                    let storeProducts = Array.isArray(store.products) && store.products.length > 0 ? store.products : null;
+                    if (!storeProducts) {
+                        storeProducts = await getProductsByStore(store.id || store.username);
+                    }
                     if (storeProducts && storeProducts.length > 0) {
                         setProducts(storeProducts);
                     } else {

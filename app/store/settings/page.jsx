@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/lib/AuthContext";
 import { updateStore, updateUser } from "@/lib/firebaseDb";
-import { getActiveStore, setActiveStoreSlug } from "@/lib/activeStore";
+import { getActiveStore, getActiveStoreSync, setActiveStoreSlug } from "@/lib/activeStore";
 const database = null;
 const ref = () => null;
 const update = () => Promise.resolve();
@@ -32,7 +32,8 @@ import Loading from "@/components/Loading";
 
 export default function StoreSettings() {
     const { user, loading: authLoading } = useAuth();
-    const [loading, setLoading] = useState(true);
+    const initialStore = getActiveStoreSync();
+    const [loading, setLoading] = useState(!initialStore);
     const [activeTab, setActiveTab] = useState('general');
 
     // Parse ?tab= on mount so /settings/integrations/gumroad lands directly on the requested tab
@@ -58,40 +59,40 @@ export default function StoreSettings() {
 
     // Store state
     const [storeInfo, setStoreInfo] = useState({
-        id: "",
-        name: "",
-        username: "",
-        description: "",
-        logo: "",
-        avatar: "",
-        singleProductStore: false,
-        bioProfile: null,
-        gumroadToken: "",
-        gumroadProductUrl: "",
-        themeColor: "#10B981",
+        id: initialStore?.id || "",
+        name: initialStore?.name || "",
+        username: initialStore?.username || "",
+        description: initialStore?.description || "",
+        logo: initialStore?.logo || "",
+        avatar: initialStore?.avatar || "",
+        singleProductStore: initialStore?.singleProductStore || false,
+        bioProfile: initialStore?.bioProfile || null,
+        gumroadToken: initialStore?.gumroadToken || "",
+        gumroadProductUrl: initialStore?.gumroadProductUrl || "",
+        themeColor: initialStore?.themeColor || "#10B981",
         socials: {
-            instagram: "",
-            tiktok: "",
-            youtube: "",
-            twitter: "",
-            pinterest: ""
+            instagram: initialStore?.socials?.instagram || "",
+            tiktok: initialStore?.socials?.tiktok || "",
+            youtube: initialStore?.socials?.youtube || "",
+            twitter: initialStore?.socials?.twitter || "",
+            pinterest: initialStore?.socials?.pinterest || ""
         },
         shipping: {
-            standardFee: 4.99,
-            expressFee: 9.99,
-            freeShippingThreshold: 50.00,
-            enableFreeShipping: true
+            standardFee: initialStore?.shipping?.standardFee ?? 4.99,
+            expressFee: initialStore?.shipping?.expressFee ?? 9.99,
+            freeShippingThreshold: initialStore?.shipping?.freeShippingThreshold ?? 50.00,
+            enableFreeShipping: initialStore?.shipping?.enableFreeShipping ?? true
         },
         flashSale: {
-            enabled: true,
-            text: "⚡ FLASH SALE: 25% OFF STOREWIDE — Today Only!",
-            countdownHours: 3
+            enabled: initialStore?.flashSale?.enabled ?? true,
+            text: initialStore?.flashSale?.text || "⚡ FLASH SALE: 25% OFF STOREWIDE — Today Only!",
+            countdownHours: initialStore?.flashSale?.countdownHours ?? 3
         },
-        customDomain: "",
+        customDomain: initialStore?.customDomain || "",
         tracking: {
-            metaPixelId: "",
-            tiktokPixelId: "",
-            googleAnalyticsId: ""
+            metaPixelId: initialStore?.tracking?.metaPixelId || "",
+            tiktokPixelId: initialStore?.tracking?.tiktokPixelId || "",
+            googleAnalyticsId: initialStore?.tracking?.googleAnalyticsId || ""
         }
     });
 

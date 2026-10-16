@@ -47,7 +47,7 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
 
         const safetyTimer = setTimeout(() => {
             setLoading(false);
-        }, 8000);
+        }, 3000);
 
         const fetchStoreData = async () => {
             try {

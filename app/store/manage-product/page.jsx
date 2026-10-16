@@ -29,9 +29,30 @@ export default function StoreManageProducts() {
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
 
-    const [loading, setLoading] = useState(true);
-    const [products, setProducts] = useState([]);
-    const [activeStore, setActiveStore] = useState(null);
+    const [activeStore, setActiveStore] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const sp = new URLSearchParams(window.location.search);
+            const targetSlug = sp.get('store');
+            if (targetSlug) {
+                const clean = targetSlug.toLowerCase().replace(/^store_/, '');
+                const curr = getActiveStoreSync();
+                if (curr && (curr.username || curr.slug || '').toLowerCase().replace(/^store_/, '') === clean) {
+                    return curr;
+                }
+            }
+        }
+        return getActiveStoreSync();
+    });
+
+    const [products, setProducts] = useState(() => {
+        const init = (typeof window !== 'undefined') ? getActiveStoreSync() : null;
+        if (Array.isArray(init?.products) && init.products.length > 0) {
+            return init.products.filter(p => p && p.id && !isProductDeleted(p.id) && !isJunkProductName(p.name || p.title));
+        }
+        return [];
+    });
+
+    const [loading, setLoading] = useState(false);
 
     // Filters and Search State (Pic 4)
     const [searchTerm, setSearchTerm] = useState('');
@@ -56,34 +77,56 @@ export default function StoreManageProducts() {
 
     const fetchProducts = async () => {
         try {
-            let store = await Promise.race([
-                getActiveStore(user),
-                new Promise(resolve => setTimeout(() => resolve(getActiveStoreSync()), 8000))
-            ]);
-            if (!store) store = getActiveStoreSync();
+            let targetSlug = '';
+            if (typeof window !== 'undefined') {
+                const sp = new URLSearchParams(window.location.search);
+                targetSlug = sp.get('store') || '';
+            }
+
+            let store = null;
+            let preloadedProducts = [];
+            if (targetSlug) {
+                try {
+                    const cleanSlug = targetSlug.toLowerCase().replace(/^store_/, '');
+                    const res = await fetch(`/api/store/data?slug=${encodeURIComponent(cleanSlug)}`, { cache: 'no-store' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.success && data.store) {
+                            store = data.store;
+                            if (Array.isArray(data.products)) preloadedProducts = data.products;
+                        }
+                    }
+                } catch {}
+            }
+
+            if (!store) {
+                store = await getActiveStore(user) || getActiveStoreSync();
+            }
+            if (!store) {
+                setLoading(false);
+                return;
+            }
             setActiveStore(store);
 
-            if (store) {
-                const storeSlug = (store.username || store.name || 'shop').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
-                const storeId = store.id || `store_${storeSlug}`;
+            const storeSlug = (store.username || store.name || 'shop').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+            const storeId = store.id || `store_${storeSlug}`;
 
-                // 1. Query products strictly scoped to this store
-                let data = [];
+            // 1. Query products strictly scoped to this store
+            let data = preloadedProducts;
+            if (data.length === 0 && Array.isArray(store.products) && store.products.length > 0) {
+                data = store.products;
+            }
+            if (data.length === 0) {
                 try {
-                    data = await Promise.race([
-                        getProductsByStore(storeId),
-                        new Promise(resolve => setTimeout(() => resolve([]), 8000))
-                    ]);
+                    data = await getProductsByStore(storeId);
                 } catch (e) {
                     console.warn("Products query fallback:", e);
                 }
-
-
-
-                // Filter out any tombstoned deleted products and dummy/placeholder items (Partial Payment, etc.)
-                const sanitized = (data || []).filter(p => p && p.id && !isProductDeleted(p.id) && !isJunkProductName(p.name || p.title) && (p.price === undefined || parseFloat(p.price) > 0));
-                setProducts(sanitized);
             }
+
+            // Filter out any tombstoned deleted products and dummy/placeholder items (Partial Payment, etc.)
+            const sanitized = (data || []).filter(p => p && p.id && !isProductDeleted(p.id) && !isJunkProductName(p.name || p.title) && (p.price === undefined || parseFloat(p.price) > 0));
+            setProducts(sanitized);
         } catch (err) {
             console.error("Error fetching products:", err);
         } finally {
@@ -299,15 +342,9 @@ export default function StoreManageProducts() {
     };
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setLoading(false);
-        }, 8000);
-
         if (!authLoading) {
             fetchProducts();
         }
-
-        return () => clearTimeout(timer);
     }, [user, authLoading]);
 
     // Unique Categories for Filter Dropdown
