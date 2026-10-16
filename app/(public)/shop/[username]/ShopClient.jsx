@@ -150,12 +150,12 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
                 isOpen={cartDrawerOpen} 
                 onClose={() => setCartDrawerOpen(false)} 
                 products={products}
-                storeSlug={storeInfo.username || storeInfo.slug || rawUsername}
+                storeSlug={storeInfo?.username || storeInfo?.slug || rawUsername}
                 store={storeInfo}
             />
-            <ExitIntentModal storeName={storeInfo.name} />
+            <ExitIntentModal storeName={storeInfo?.name} />
             <AiShoppingAssistant store={storeInfo} products={products} />
-            <LiveSalesToaster storeSlug={storeInfo.username || storeInfo.slug} />
+            <LiveSalesToaster storeSlug={storeInfo?.username || storeInfo?.slug || rawUsername} />
         </div>
     );
 }

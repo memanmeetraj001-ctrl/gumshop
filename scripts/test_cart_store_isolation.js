@@ -90,7 +90,7 @@ test('StorefrontNavbar.jsx isolates cartCount to active store with storeCartCoun
 // 3. Static inspection of caller pages
 const shopClientSource = fs.readFileSync(path.join(ROOT, 'app/(public)/shop/[username]/ShopClient.jsx'), 'utf8');
 test('ShopClient.jsx passes isOpen, products, storeSlug, and store to CartDrawer', () => {
-    assert.ok(shopClientSource.includes('storeSlug={storeInfo.username || storeInfo.slug || rawUsername}'), 'ShopClient must pass storeSlug');
+    assert.ok(shopClientSource.includes('storeSlug={storeInfo?.username || storeInfo?.slug || rawUsername}') || shopClientSource.includes('storeSlug={storeInfo.username || storeInfo.slug || rawUsername}'), 'ShopClient must pass storeSlug');
     assert.ok(shopClientSource.includes('store={storeInfo}'), 'ShopClient must pass store');
     assert.ok(shopClientSource.includes('isOpen={cartDrawerOpen}'), 'ShopClient must pass isOpen');
 });

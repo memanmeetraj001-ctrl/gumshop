@@ -14,7 +14,13 @@ import { trackEvent } from './AnalyticsTracker';
 
 export default function CartDrawer({ isOpen, open, onClose, products: propProducts, storeSlug, store }) {
     const isVisible = Boolean(isOpen || open);
-    if (!isVisible) return null;
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!isVisible || !mounted) return null;
 
     return (
         <CartDrawerErrorBoundary onClose={onClose}>
@@ -42,25 +48,51 @@ class CartDrawerErrorBoundary extends React.Component {
 
     componentDidCatch(error, errorInfo) {
         console.error("[CartDrawer Caught Error]:", error, errorInfo);
+        // Self-heal: If localStorage has corrupted JSON or bad state, reset safely
+        if (typeof window !== 'undefined') {
+            try {
+                const raw = localStorage.getItem('gumshop_cart');
+                if (raw) {
+                    try { JSON.parse(raw); } catch { localStorage.removeItem('gumshop_cart'); }
+                }
+            } catch {}
+        }
     }
 
     render() {
         if (this.state.hasError) {
+            const handleResetAndClose = () => {
+                if (typeof window !== 'undefined') {
+                    try {
+                        sessionStorage.removeItem('active_coupon');
+                    } catch {}
+                }
+                this.setState({ hasError: false });
+                if (this.props.onClose) this.props.onClose();
+            };
+
             const fallback = (
-                <div className="fixed inset-0 z-50 overflow-hidden animate-in fade-in duration-200">
+                <div role="dialog" aria-modal="true" aria-label="Shopping Cart" className="fixed inset-0 z-50 overflow-hidden animate-in fade-in duration-200">
                     <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs transition-opacity" onClick={this.props.onClose} />
                     <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col justify-between h-full p-6 z-10 overflow-hidden">
                         <div className="flex items-center justify-between border-b pb-4">
                             <h3 className="text-base font-bold text-slate-900">Your Cart</h3>
-                            <button onClick={this.props.onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl">✕</button>
+                            <button type="button" onClick={this.props.onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer">✕</button>
                         </div>
-                        <div className="text-center py-12">
-                            <p className="text-sm text-slate-600 mb-4">Cart temporarily re-synced.</p>
+                        <div className="text-center py-12 flex flex-col items-center justify-center flex-1">
+                            <div className="size-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
+                                <ShoppingBag size={26} />
+                            </div>
+                            <h4 className="text-base font-extrabold text-slate-900 mb-1">Your cart is empty</h4>
+                            <p className="text-xs text-slate-500 max-w-xs mb-6">
+                                Discover our top trending products and add them with one click.
+                            </p>
                             <button 
-                                onClick={() => { this.setState({ hasError: false }); if (this.props.onClose) this.props.onClose(); }} 
-                                className="px-6 py-2.5 rounded-full bg-emerald-600 text-white font-bold text-xs"
+                                type="button"
+                                onClick={handleResetAndClose} 
+                                className="px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-md transition cursor-pointer"
                             >
-                                Continue Shopping
+                                Start Shopping
                             </button>
                         </div>
                     </div>
@@ -133,63 +165,72 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts, storeSlug: p
     // Memoize resolved items and subtotal to avoid synchronous storage scans on every render
     const { allResolvedItems, items, subtotal, otherStoresCount } = useMemo(() => {
         if (!isOpen) return { allResolvedItems: [], items: [], subtotal: 0, otherStoresCount: 0 };
-        const resolvedItems = [];
+        try {
+            const resolvedItems = [];
 
-        for (const [rawKey, qty] of Object.entries(cartItems || {})) {
-            const numQty = parseInt(qty || 0);
-            if (!numQty || numQty <= 0) continue;
-            const key = String(rawKey || '');
-            if (!key) continue;
-            const baseId = key.includes('__') ? key.split('__')[0] : key;
-            const variant = key.includes('__') ? key.split('__')[1] : '';
-            let product = cartProducts[key] || cartProducts[baseId] || Object.values(cartProducts).find(p => p && (p.id === key || p.id === baseId)) || (products || []).find(p => p && (p.id === key || p.id === baseId));
+            for (const [rawKey, qty] of Object.entries(cartItems || {})) {
+                const numQty = parseInt(qty || 0);
+                if (!numQty || numQty <= 0) continue;
+                const key = String(rawKey || '');
+                if (!key) continue;
+                const baseId = key.includes('__') ? key.split('__')[0] : key;
+                const variant = key.includes('__') ? key.split('__')[1] : '';
+                let product = cartProducts[key] || cartProducts[baseId] || Object.values(cartProducts || {}).find(p => p && (p.id === key || p.id === baseId)) || (products || []).find(p => p && (p.id === key || p.id === baseId));
 
-            const rawPrice = product?.price !== undefined && product?.price !== null ? product.price : 0;
-            const price = parseFloat(rawPrice) || 0;
-            const name = product?.name || 'Featured Item';
-            const image = product?.image || (Array.isArray(product?.images) && product.images[0]) || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200';
+                const rawPrice = product?.price !== undefined && product?.price !== null ? product.price : 0;
+                const price = Math.max(0, parseFloat(rawPrice) || 0);
+                const name = product?.name || 'Featured Item';
+                const image = product?.image || (Array.isArray(product?.images) && product.images[0]) || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200';
 
-            const rawStoreSlug = product?.storeSlug || product?.storeUsername || (product?.storeId ? String(product.storeId).replace(/^store_/, '') : (product?.store_id ? String(product.store_id).replace(/^store_/, '') : ''));
-            const cleanSlug = rawStoreSlug ? String(rawStoreSlug).toLowerCase().trim().replace(/^store_/, '') : '';
-            const cleanStoreId = product?.storeId || (cleanSlug ? `store_${cleanSlug}` : 'store_default');
+                const rawStoreSlug = product?.storeSlug || product?.storeUsername || (product?.storeId ? String(product.storeId).replace(/^store_/, '') : (product?.store_id ? String(product.store_id).replace(/^store_/, '') : ''));
+                const cleanSlug = rawStoreSlug ? String(rawStoreSlug).toLowerCase().trim().replace(/^store_/, '') : '';
+                const cleanStoreId = product?.storeId || (cleanSlug ? `store_${cleanSlug}` : 'store_default');
 
-            resolvedItems.push({
-                id: key,
-                name,
-                variant,
-                price,
-                image,
-                quantity: numQty,
-                storeId: cleanStoreId,
-                storeSlug: cleanSlug,
-                storeName: product?.storeName || cleanSlug,
-                gumroadUrl: product?.gumroadUrl || ''
-            });
+                resolvedItems.push({
+                    id: key,
+                    name,
+                    variant,
+                    price,
+                    image,
+                    quantity: numQty,
+                    storeId: cleanStoreId,
+                    storeSlug: cleanSlug,
+                    storeName: product?.storeName || cleanSlug,
+                    gumroadUrl: product?.gumroadUrl || ''
+                });
+            }
+
+            let filtered = resolvedItems;
+            let otherCount = 0;
+            if (effectiveScope !== 'all') {
+                filtered = resolvedItems.filter(i => !i.storeSlug || i.storeSlug === effectiveScope || i.storeId === `store_${effectiveScope}`);
+                const otherItems = resolvedItems.filter(i => i.storeSlug && i.storeSlug !== effectiveScope && i.storeId !== `store_${effectiveScope}`);
+                otherCount = otherItems.reduce((acc, curr) => acc + (Number(curr?.quantity) || 0), 0);
+            }
+
+            const calculatedSubtotal = filtered.reduce((sum, item) => sum + ((Number(item?.price) || 0) * (Number(item?.quantity) || 1)), 0);
+
+            return { 
+                allResolvedItems: resolvedItems, 
+                items: filtered, 
+                subtotal: Math.max(0, Math.round(calculatedSubtotal * 100) / 100), 
+                otherStoresCount: otherCount 
+            };
+        } catch (err) {
+            console.error('[Cart Items Resolution Error]:', err);
+            return { allResolvedItems: [], items: [], subtotal: 0, otherStoresCount: 0 };
         }
-
-        let filtered = resolvedItems;
-        let otherCount = 0;
-        if (effectiveScope !== 'all') {
-            filtered = resolvedItems.filter(i => !i.storeSlug || i.storeSlug === effectiveScope || i.storeId === `store_${effectiveScope}`);
-            const otherItems = resolvedItems.filter(i => i.storeSlug && i.storeSlug !== effectiveScope && i.storeId !== `store_${effectiveScope}`);
-            otherCount = otherItems.reduce((acc, curr) => acc + curr.quantity, 0);
-        }
-
-        const calculatedSubtotal = filtered.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-        return { 
-            allResolvedItems: resolvedItems, 
-            items: filtered, 
-            subtotal: Math.round(calculatedSubtotal * 100) / 100, 
-            otherStoresCount: otherCount 
-        };
     }, [isOpen, cartItems, cartProducts, products, effectiveScope]);
 
     // Frequently Bought Together Companion Recommendation
     const crossSellProduct = useMemo(() => {
-        if (!items.length || !Array.isArray(products) || !products.length) return null;
-        const inCartIds = new Set(items.map(i => String(i.id || '').split('__')[0]));
-        return products.find(p => p && p.id && !inCartIds.has(String(p.id)) && !inCartIds.has(String(p.id).split('__')[0]) && (parseFloat(p.price || 0) || 0) > 0) || null;
+        try {
+            if (!items.length || !Array.isArray(products) || !products.length) return null;
+            const inCartIds = new Set(items.map(i => String(i?.id || '').split('__')[0]));
+            return products.find(p => p && p.id && !inCartIds.has(String(p.id)) && !inCartIds.has(String(p.id).split('__')[0]) && (parseFloat(p.price || 0) || 0) > 0) || null;
+        } catch {
+            return null;
+        }
     }, [items, products]);
 
     if (!isOpen) return null;
