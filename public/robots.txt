@@ -4,12 +4,35 @@ Allow: /
 Allow: /shop/
 Allow: /creator/
 Allow: /product/
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /api/ai/
+
+# Explicit permissions for AI Search & Citation Bots
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
 
 # Block administrative, internal, and private API routes from search indexes
 Disallow: /api/
+Allow: /api/ai/
 Disallow: /dashboard
 Disallow: /store/
 Disallow: /login
 
-# Declared Dynamic XML Sitemap
+# Declared Dynamic XML Sitemap & AI Discovery
 Sitemap: https://gumshop.online/sitemap.xml

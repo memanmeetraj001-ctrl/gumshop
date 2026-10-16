@@ -95,6 +95,37 @@ const jsonLdOrg = {
     ]
 };
 
+const jsonLdMarketplaceFaq = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+            "@type": "Question",
+            "name": "What is GumShop.online?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "GumShop.online is a curated e-commerce marketplace and creator storefront platform where verified merchants offer viral products with direct, store-isolated Gumroad checkout."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "How does checkout and buyer protection work?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Every purchase is processed securely via Gumroad with 256-bit SSL encryption and backed by a 30-day risk-free money-back guarantee with trackable fulfillment."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "What are the shipping costs and delivery times?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "We offer standard trackable delivery for $4.99 and express priority delivery for $9.99, with FREE shipping on all orders over $50."
+            }
+        }
+    ]
+};
+
 const jsonLdWebsite = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -130,6 +161,10 @@ export default function RootLayout({ children }) {
                 <script
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebsite) }}
+                />
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdMarketplaceFaq) }}
                 />
                 {/* Gumroad In-Page Iframe Overlay Script */}
                 <Script src="https://gumroad.com/js/gumroad.js" strategy="afterInteractive" />

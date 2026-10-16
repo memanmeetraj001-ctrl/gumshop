@@ -1,0 +1,13 @@
+# AI Indexing & Search Agent Policy
+Site-Name: GumShop.online
+Site-URL: https://gumshop.online
+Description: Verified e-commerce creator marketplace and direct Gumroad-powered storefronts.
+Contact: support@gumshop.online
+
+# Directives
+AI-Search-Indexing: Allowed
+AI-Citations: Allowed
+AI-Catalog-Endpoint: https://gumshop.online/api/ai/catalog
+LLMs-Summary: https://gumshop.online/llms.txt
+LLMs-Full: https://gumshop.online/llms-full.txt
+Sitemap: https://gumshop.online/sitemap.xml

@@ -1,314 +1,133 @@
-'use client'
-import { useParams } from "next/navigation";
-import { useEffect, useState, use } from "react";
-import Loading from "@/components/Loading";
-import ProductCard from "@/components/ProductCard";
-import StorefrontNavbar from "@/components/StorefrontNavbar";
-import StoreHeroBanner from "@/components/StoreHeroBanner";
-import ExitIntentModal from "@/components/ExitIntentModal";
-import AiShoppingAssistant from "@/components/AiShoppingAssistant";
-import LiveSalesToaster from "@/components/LiveSalesToaster";
-import CartDrawer from "@/components/CartDrawer";
-import StorefrontFooter from "@/components/StorefrontFooter";
-import { useAuth } from "@/lib/AuthContext";
-import Link from "next/link";
-import { 
-    Zap, 
-    Truck, 
-    ShieldCheck, 
-    Sparkles, 
-    Store,
-    ShoppingBag
-} from "lucide-react";
+import { getStoreBySlug } from '@/lib/db/stores.js';
+import { getProductsByStore } from '@/lib/db/products.js';
+import ShopClient from './ShopClient';
 
-import { 
-    getStoreAndCatalogSync
-} from "@/lib/storePresets";
+export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
-export default function StoreShop({ params }) {
-    const unwrappedParams = params ? (typeof params.then === 'function' ? use(params) : params) : null;
-    const clientParams = useParams();
-    const rawUsername = unwrappedParams?.username || clientParams?.username || '';
-    const username = rawUsername;
-    const cleanUser = rawUsername.toLowerCase().trim();
-    const { user } = useAuth();
+export async function generateMetadata({ params }) {
+    const { username } = await params;
+    const store = await getStoreBySlug(username);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';
 
-    const initialData = getStoreAndCatalogSync(rawUsername);
-    const [products, setProducts] = useState(initialData.products || []);
-    const [storeInfo, setStoreInfo] = useState(initialData.store || null);
-    const [loading, setLoading] = useState(!initialData.store);
-    const [activeCategory, setActiveCategory] = useState('All');
-    const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
-
-    useEffect(() => {
-        // Safety timeout so merchant stores NEVER get stuck on loading screen (generous to allow network fetch)
-        const safetyTimer = setTimeout(() => {
-            setLoading(false);
-        }, 8000);
-
-        const fetchStoreData = async () => {
-            try {
-                // 1. Authoritative Supabase / serverDb fetch
-                const res = await fetch(`/api/store/data?slug=${encodeURIComponent(rawUsername)}`, { cache: 'no-store' });
-                if (res.ok) {
-                    const apiData = await res.json();
-                    if (apiData.success && apiData.store) {
-                        const s = apiData.store;
-                        if (!s.gumroadToken && typeof window !== 'undefined') {
-                            s.gumroadToken = localStorage.getItem('gumshop_gumroad_token') || '';
-                        }
-                        setStoreInfo(s);
-                        setProducts(Array.isArray(apiData.products) ? apiData.products : []);
-                        if (typeof document !== 'undefined') {
-                            document.title = `${s.name || rawUsername} — Official Storefront | GumShop`;
-                        }
-                        return;
-                    }
-                }
-
-                // 2. Fallback: direct Supabase data layer
-                try {
-                    const { resolveStoreAndProducts } = await import('@/lib/storePresets');
-                    const { store: fbStore, products: fbProducts } = await resolveStoreAndProducts(rawUsername);
-                    if (fbStore) {
-                        if (!fbStore.gumroadToken && typeof window !== 'undefined') {
-                            fbStore.gumroadToken = localStorage.getItem('gumshop_gumroad_token') || '';
-                        }
-                        setStoreInfo(fbStore);
-                        setProducts(fbProducts || []);
-                        if (typeof document !== 'undefined') {
-                            document.title = `${fbStore.name || rawUsername} — Official Storefront | GumShop`;
-                        }
-                        return;
-                    }
-                } catch (e) {
-                    console.warn("Direct data layer fallback error in shop:", e);
-                }
-            } catch (err) {
-                console.error("Error fetching store data:", err);
-            } finally {
-                clearTimeout(safetyTimer);
-                setLoading(false);
-            }
+    if (!store) {
+        return {
+            title: `Store Not Found | GumShop.online`,
+            description: `The requested creator or merchant store could not be found.`
         };
+    }
 
-        fetchStoreData();
+    const title = `${store.name} — Official Storefront | GumShop`;
+    const description = store.description 
+        ? `${store.description.slice(0, 150)}... Browse verified products with fast delivery, buyer protection, and direct Gumroad checkout.`
+        : `Shop official products from ${store.name}. Verified authentic quality and secure checkout.`;
 
-        const handleSync = () => {
-            fetchStoreData();
-        };
+    const imageUrl = store.logo_url || store.avatar || `${baseUrl}/favicon.svg`;
+    const canonical = `${baseUrl}/shop/${encodeURIComponent(username)}`;
 
-        if (typeof window !== 'undefined') {
-            window.addEventListener('products_updated', handleSync);
-            window.addEventListener('active_store_changed', handleSync);
+    return {
+        title,
+        description,
+        alternates: {
+            canonical
+        },
+        openGraph: {
+            title,
+            description,
+            url: canonical,
+            siteName: 'GumShop.online',
+            images: [
+                {
+                    url: imageUrl,
+                    width: 600,
+                    height: 600,
+                    alt: store.name
+                }
+            ],
+            type: 'website'
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title,
+            description,
+            images: [imageUrl]
         }
+    };
+}
 
-        return () => {
-            clearTimeout(safetyTimer);
-            if (typeof window !== 'undefined') {
-                window.removeEventListener('products_updated', handleSync);
-                window.removeEventListener('active_store_changed', handleSync);
+export default async function StoreShopPage({ params }) {
+    const { username } = await params;
+    const store = await getStoreBySlug(username);
+    const products = store ? await getProductsByStore(username) : [];
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';
+
+    let jsonLdSchemas = [];
+
+    if (store) {
+        const storeUrl = `${baseUrl}/shop/${encodeURIComponent(username)}`;
+        
+        // 1. schema.org/Store
+        const storeSchema = {
+            "@context": "https://schema.org",
+            "@type": "Store",
+            "name": store.name,
+            "url": storeUrl,
+            "description": store.description || `Official store for ${store.name}.`,
+            "image": store.logo_url || store.avatar || `${baseUrl}/favicon.svg`,
+            "priceRange": "$$",
+            "paymentAccepted": "Credit Card, Debit Card, PayPal, Apple Pay, Google Pay"
+        };
+
+        // 2. schema.org/CollectionPage with ItemList
+        const collectionSchema = {
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            "name": `${store.name} Products Catalog`,
+            "url": storeUrl,
+            "mainEntity": {
+                "@type": "ItemList",
+                "itemListElement": products.slice(0, 20).map((p, idx) => ({
+                    "@type": "ListItem",
+                    "position": idx + 1,
+                    "url": `${baseUrl}/product/${p.id}`,
+                    "name": p.name
+                }))
             }
         };
-    }, [username, cleanUser, rawUsername]);
 
-    if (loading) return <Loading />;
+        // 3. schema.org/BreadcrumbList
+        const breadcrumbSchema = {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "Home",
+                    "item": baseUrl
+                },
+                {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "name": store.name,
+                    "item": storeUrl
+                }
+            ]
+        };
 
-    if (!storeInfo) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-center px-4">
-                <div className="size-20 rounded-3xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-emerald-600 mb-4">
-                    <Store size={36} />
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Store Not Found</h2>
-                <p className="text-sm text-slate-500 mt-2 max-w-md leading-relaxed">
-                    The store <code className="font-mono text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded">@{username}</code> may have been renamed or is still propagating.
-                </p>
-                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                    <Link href="/store/import" className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition">
-                        Import A Store
-                    </Link>
-                    <Link href="/dashboard" className="px-6 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 transition">
-                        Master HQ
-                    </Link>
-                </div>
-            </div>
-        );
+        jsonLdSchemas = [storeSchema, collectionSchema, breadcrumbSchema];
     }
-
-    if (storeInfo.status === 'archived') {
-        return (
-            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-center px-4">
-                <div className="size-20 rounded-3xl bg-amber-50 border border-amber-200 shadow-sm flex items-center justify-center text-amber-600 mb-4">
-                    <Store size={36} />
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Store Inactive</h2>
-                <p className="text-sm text-slate-500 mt-2 max-w-md leading-relaxed">
-                    The storefront <code className="font-mono text-amber-700 font-bold bg-amber-100/60 px-2 py-0.5 rounded">@{username}</code> is currently archived and inactive.
-                </p>
-                <div className="mt-6 flex items-center justify-center gap-3">
-                    <Link href="/dashboard" className="px-6 py-2.5 rounded-2xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition">
-                        Manage in Master HQ
-                    </Link>
-                </div>
-            </div>
-        );
-    }
-
-    const getSafeCategory = (p) => typeof p?.category === 'string' ? p.category : (p?.category?.name || 'Featured');
-    const categories = ['All', ...new Set(products.map(getSafeCategory))];
-    const filteredProducts = activeCategory === 'All' 
-        ? products 
-        : products.filter(p => getSafeCategory(p) === activeCategory);
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
-            {/* 100% White-Labeled Merchant Header */}
-            <StorefrontNavbar store={storeInfo} onOpenCart={() => setCartDrawerOpen(true)} />
-
-            {/* Merchant High-Converting Hero Store Banner */}
-            <StoreHeroBanner store={storeInfo} totalProducts={products.length} />
-
-            {/* Main Products Catalog Section */}
-            <main id="catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14">
-                
-                {/* Category Filter Navigation */}
-                {categories.length > 2 && (
-                    <div className="flex items-center justify-between pb-6 border-b border-slate-200/80 gap-4 flex-wrap">
-                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-                            {categories.map((cat, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => setActiveCategory(cat)}
-                                    className={`px-4 py-2 rounded-full text-xs font-bold transition shrink-0 ${
-                                        activeCategory === cat
-                                            ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
-                                            : 'bg-white border border-slate-200 hover:border-slate-300 text-slate-700'
-                                    }`}
-                                >
-                                    {cat}
-                                </button>
-                            ))}
-                        </div>
-                        <span className="text-xs text-slate-400 font-medium">
-                            Showing {filteredProducts.length} items
-                        </span>
-                    </div>
-                )}
-
-                {/* Product Catalog Grid */}
-                <div className="mt-8">
-                    {filteredProducts.length === 1 && storeInfo?.singleProductStore ? (
-                        <div className="max-w-xl mx-auto">
-                            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 mb-6 text-center text-xs text-emerald-800 flex items-center justify-between gap-3 shadow-xs">
-                                <span className="font-bold flex items-center gap-1.5">
-                                    <Sparkles size={14} className="text-emerald-600" />
-                                    <span>Single-Product Featured Lander Active</span>
-                                </span>
-                                <Link 
-                                    href={`/creator/${username}`}
-                                    className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition"
-                                >
-                                    View Bio Lander →
-                                </Link>
-                            </div>
-                            <ProductCard 
-                                product={filteredProducts[0]} 
-                                onOpenCart={() => setCartDrawerOpen(true)} 
-                            />
-                        </div>
-                    ) : filteredProducts.length === 0 ? (
-                        <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200 shadow-sm">
-                            <ShoppingBag size={40} className="mx-auto text-slate-300 mb-3" />
-                            <p className="text-base font-bold text-slate-800">No products found in "{activeCategory}"</p>
-                            <p className="text-xs text-slate-500 mt-1">Check back soon or explore all products from this store.</p>
-                            <button
-                                onClick={() => setActiveCategory('All')}
-                                className="mt-4 px-5 py-2.5 rounded-full bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition"
-                            >
-                                View All Products
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                            {filteredProducts.map(product => (
-                                <ProductCard 
-                                    key={product.id} 
-                                    product={product} 
-                                    onOpenCart={() => setCartDrawerOpen(true)} 
-                                />
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* Trust Guarantees Strip (Honest & Factual) */}
-                <div className="mt-20 py-8 border-t border-slate-200/80 grid grid-cols-2 sm:grid-cols-4 gap-6 text-center text-xs text-slate-600">
-                    <div className="flex flex-col items-center">
-                        <ShieldCheck size={22} className="text-emerald-600 mb-1.5" />
-                        <strong className="text-slate-900 font-bold">Secure Checkout</strong>
-                        <span className="text-[11px] text-slate-400">Encrypted Gumroad Window</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                        <Truck size={22} className="text-emerald-600 mb-1.5" />
-                        <strong className="text-slate-900 font-bold">Fulfillment Updates</strong>
-                        <span className="text-[11px] text-slate-400">Direct Email Confirmations</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                        <Zap size={22} className="text-emerald-600 mb-1.5" />
-                        <strong className="text-slate-900 font-bold">Direct Pricing</strong>
-                        <span className="text-[11px] text-slate-400">Straight from Merchant</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                        <Sparkles size={22} className="text-emerald-600 mb-1.5" />
-                        <strong className="text-slate-900 font-bold">Curated Catalog</strong>
-                        <span className="text-[11px] text-slate-400">Verified Independent Store</span>
-                    </div>
-                </div>
-
-            </main>
-
-            {/* Exit Intent Discount Modal */}
-            <ExitIntentModal />
-
-            {/* AI Shopping Assistant (generative_ui) */}
-            <AiShoppingAssistant 
-                products={products} 
-                storeName={storeInfo?.name || 'Store'} 
-                themeColor="#10B981" 
-            />
-
-            {/* Schema.org Store Structured Data for SEO Rich Snippets */}
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
-                        '@context': 'https://schema.org',
-                        '@type': 'OnlineStore',
-                        name: storeInfo?.name || `${username} Store`,
-                        description: storeInfo?.description || `Official store for ${storeInfo?.name || username} on GumShop.`,
-                        url: `https://www.gumshop.online/shop/${encodeURIComponent(username || '')}`,
-                        hasMerchantReturnPolicy: {
-                            '@type': 'MerchantReturnPolicy',
-                            applicableCountry: 'US',
-                            returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
-                            merchantReturnDays: 30
-                        }
-                    })
-                }}
-            />
-
-            {/* 🔥 Live Verified Sales Pop-Up (Social Proof) */}
-            <LiveSalesToaster products={products} storeName={storeInfo?.name} />
-
-            {/* Merchant Storefront Footer with Policy Pages */}
-            <StorefrontFooter store={storeInfo} />
-
-            {/* Slide-Over Shopping Bag Drawer */}
-            <CartDrawer
-                isOpen={cartDrawerOpen}
-                onClose={() => setCartDrawerOpen(false)}
-            />
-        </div>
+        <>
+            {jsonLdSchemas.map((schema, index) => (
+                <script
+                    key={index}
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+                />
+            ))}
+            <ShopClient initialStore={store} initialProducts={products} username={username} />
+        </>
     );
 }
