@@ -44,9 +44,12 @@ function getOrCreateSessionId() {
 export function trackEvent(eventType, metadata = {}) {
     if (typeof window === 'undefined') return;
     try {
+        const pathname = window.location.pathname;
+        if (!pathname || pathname.startsWith('/dashboard') || pathname.startsWith('/store') || pathname.startsWith('/admin') || pathname.startsWith('/api')) {
+            return;
+        }
         const vid = getOrCreateVisitorId();
         const sid = getOrCreateSessionId();
-        const pathname = window.location.pathname;
 
         const payload = {
             visitorId: vid,
@@ -102,7 +105,7 @@ export default function AnalyticsTracker() {
 
     // Automated Pageview Tracking on Route Change
     useEffect(() => {
-        if (!pathname) return;
+        if (!pathname || pathname.startsWith('/dashboard') || pathname.startsWith('/store') || pathname.startsWith('/admin') || pathname.startsWith('/api')) return;
         const fullPath = searchParams?.toString() ? `${pathname}?${searchParams.toString()}` : pathname;
         if (fullPath === lastTrackedPath.current) return;
         lastTrackedPath.current = fullPath;
@@ -138,7 +141,10 @@ export default function AnalyticsTracker() {
     useEffect(() => {
         const interval = setInterval(() => {
             if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-                trackEvent('heartbeat');
+                const p = window.location.pathname;
+                if (p && !p.startsWith('/dashboard') && !p.startsWith('/store') && !p.startsWith('/admin') && !p.startsWith('/api')) {
+                    trackEvent('heartbeat');
+                }
             }
         }, 30000);
 
