@@ -3,7 +3,7 @@ import { getStoreBySlug } from '@/lib/db/stores.js';
 import { getProductsByStore } from '@/lib/db/products.js';
 import CreatorClient from './CreatorClient';
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 const getCachedStore = cache(async (slug) => {
     return await getStoreBySlug(slug);
