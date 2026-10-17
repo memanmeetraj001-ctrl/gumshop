@@ -1,9 +1,8 @@
-import { cookies } from 'next/headers';
 import { resolveHomepageStore, PRIMARY_FALLBACK_STORE } from '@/lib/serverDb';
 import { getAllProductsWithStores } from '@/lib/db/products';
 import HomeClient from './HomeClient';
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 export async function generateMetadata() {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';
@@ -43,60 +42,17 @@ export async function generateMetadata() {
 export default async function HomePage() {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';
     
-    let cookieSlug = '';
-    let cookieMode = 'single';
-    let selectedStores = [];
-    
-    try {
-        const cookieStore = await cookies();
-        cookieSlug = cookieStore.get('gumshop_homepage_store')?.value || '';
-        cookieMode = cookieStore.get('gumshop_homepage_mode')?.value || 'single';
-        const rawStores = cookieStore.get('gumshop_homepage_stores')?.value || '';
-        if (rawStores) {
-            try {
-                selectedStores = JSON.parse(rawStores);
-            } catch {
-                selectedStores = rawStores.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-            }
-        }
-    } catch {}
-
-    const resolved = await resolveHomepageStore(cookieSlug).catch(() => ({ 
+    const resolved = await resolveHomepageStore('').catch(() => ({ 
         homepageStore: PRIMARY_FALLBACK_STORE, 
         homepageSlug: 'rubber-couch-toys-official-store' 
     }));
     const resolvedStore = resolved.homepageStore || PRIMARY_FALLBACK_STORE;
-    let products = [];
-
-    if (cookieMode === 'all') {
+    let products = resolvedStore?.products || [];
+    if (products.length === 0) {
         products = await getAllProductsWithStores().catch(() => []);
-    } else if (cookieMode === 'custom' && selectedStores.length > 0) {
-        const all = await getAllProductsWithStores().catch(() => []);
-        const allowed = new Set(selectedStores.map(s => String(s).toLowerCase().replace(/^store_/, '')));
-        products = all.filter(p => allowed.has((p.storeSlug || p.storeId || '').toLowerCase().replace(/^store_/, '')));
-    } else {
-        products = resolvedStore?.products || [];
-        if (products.length === 0) {
-            const all = await getAllProductsWithStores().catch(() => []);
-            products = all;
-        }
     }
 
-    const initialStore = cookieMode === 'all'
-        ? {
-            name: 'All Shops Marketplace',
-            username: 'marketplace',
-            isMarketplace: true,
-            description: 'Browse verified top-selling products across our creator fleet.'
-        }
-        : cookieMode === 'custom'
-        ? {
-            name: 'Combined Stores Showcase',
-            username: 'showcase',
-            isMarketplace: true,
-            description: 'Explore featured products across our selected creator stores with direct merchant checkout.'
-        }
-        : resolvedStore;
+    const initialStore = resolvedStore;
 
     // Structured Data: WebSite with SearchAction
     const websiteSchema = {
@@ -206,7 +162,7 @@ export default async function HomePage() {
             <div id="catalog" className="scroll-mt-24" />
             <HomeClient
                 initialStore={initialStore}
-                initialMode={cookieMode}
+                initialMode="single"
                 initialProducts={products}
             />
         </>

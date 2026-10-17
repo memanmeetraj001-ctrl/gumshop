@@ -59,7 +59,12 @@ export function middleware(request) {
         }
     }
 
-    return NextResponse.next();
+    const response = NextResponse.next();
+    if (pathname === '/' || pathname.startsWith('/shop/') || pathname.startsWith('/creator/')) {
+        response.headers.set('CDN-Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+        response.headers.set('Cloudflare-CDN-Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    }
+    return response;
 }
 
 export const config = {

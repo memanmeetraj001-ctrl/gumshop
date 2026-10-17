@@ -3,7 +3,7 @@ import { getStoreBySlug } from '@/lib/db/stores.js';
 import { getProductsByStore } from '@/lib/db/products.js';
 import ShopClient from './ShopClient';
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 const getCachedStore = cache(async (slug) => {
     return await getStoreBySlug(slug);
@@ -65,8 +65,10 @@ export async function generateMetadata({ params }) {
 
 export default async function StoreShopPage({ params }) {
     const { username } = await params;
-    const store = await getCachedStore(username);
-    const products = store ? await getCachedProducts(username) : [];
+    const [store, products] = await Promise.all([
+        getCachedStore(username),
+        getCachedProducts(username)
+    ]);
     const leanStore = store ? { ...store, products: [] } : null;
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';
 

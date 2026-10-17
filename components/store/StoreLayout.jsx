@@ -16,22 +16,34 @@ const StoreLayout = ({ children }) => {
             let targetSlug = '';
             if (typeof window !== 'undefined') {
                 const sp = new URLSearchParams(window.location.search);
-                targetSlug = sp.get('store') || '';
+                targetSlug = (sp.get('store') || '').toLowerCase().trim().replace(/^store_/, '');
             }
 
             let store = null;
             if (targetSlug) {
-                const { resolveStoreFromSlug } = await import('@/lib/resolveStoreServer');
-                const resolved = await resolveStoreFromSlug(targetSlug, user);
-                if (resolved) {
-                    store = resolved;
-                    const { setActiveStoreSlug } = await import('@/lib/activeStore');
+                const { getAllLocalStores, setActiveStoreSlug } = await import('@/lib/activeStore');
+                const localStores = getAllLocalStores();
+                const found = localStores.find(s => (s.username || s.slug || s.id || '').toLowerCase().replace(/^store_/, '') === targetSlug);
+                if (found) {
+                    store = found;
+                } else {
+                    try {
+                        const res = await fetch(`/api/store/data?slug=${encodeURIComponent(targetSlug)}`, { cache: 'no-store' });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.success && data.store) {
+                                store = data.store;
+                            }
+                        }
+                    } catch {}
+                }
+                if (store) {
                     setActiveStoreSlug(store);
                 }
             }
 
             if (!store) {
-                store = await getActiveStore(user);
+                store = await getActiveStore(user) || getActiveStoreSync();
             }
             if (store) setStoreInfo(store);
         } catch (err) {
@@ -50,7 +62,10 @@ const StoreLayout = ({ children }) => {
             initStoreAccess();
         }
 
-        const handleStoreChange = () => initStoreAccess();
+        const handleStoreChange = () => {
+            const active = getActiveStoreSync();
+            if (active) setStoreInfo(active);
+        };
         window.addEventListener('active_store_changed', handleStoreChange);
         return () => {
             clearTimeout(timer);

@@ -40,6 +40,7 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
     const [storeInfo, setStoreInfo] = useState(initialStore || initialData.store || null);
     const [loading, setLoading] = useState(!initialStore && !initialData.store);
     const [activeCategory, setActiveCategory] = useState('All');
+    const [visibleCount, setVisibleCount] = useState(24);
     const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
 
     // High-Converting Sticky Flash Sale Announcement Bar State
@@ -149,6 +150,7 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
     const filteredProducts = activeCategory === 'All'
         ? products
         : products.filter(p => p.category === activeCategory);
+    const displayedProducts = filteredProducts.slice(0, visibleCount);
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -205,11 +207,14 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
                             {categories.map(cat => (
                                 <button
                                     key={cat}
-                                    onClick={() => setActiveCategory(cat)}
+                                    onClick={() => {
+                                        setActiveCategory(cat);
+                                        setVisibleCount(24);
+                                    }}
                                     className={`px-4 py-2 rounded-full text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                                         activeCategory === cat
                                             ? 'bg-slate-900 text-white shadow-sm'
-                                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                                             : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
                                     }`}
                                 >
                                     {cat}
@@ -226,18 +231,32 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
                             <p className="text-xs text-slate-400 mt-1">This collection does not have any items listed yet.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                            {filteredProducts.map((prod, idx) => (
-                                <ProductCard 
-                                    key={prod.id || idx} 
-                                    product={prod} 
-                                    showShopName={false}
-                                    store={storeInfo}
-                                    cardIndex={idx}
-                                    onOpenCart={() => setCartDrawerOpen(true)}
-                                />
-                            ))}
-                        </div>
+                        <>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                                {displayedProducts.map((prod, idx) => (
+                                    <ProductCard 
+                                        key={prod.id || idx} 
+                                        product={prod} 
+                                        showShopName={false}
+                                        store={storeInfo}
+                                        cardIndex={idx}
+                                        onOpenCart={() => setCartDrawerOpen(true)}
+                                    />
+                                ))}
+                            </div>
+
+                            {visibleCount < filteredProducts.length && (
+                                <div className="mt-12 text-center">
+                                    <button
+                                        type="button"
+                                        onClick={() => setVisibleCount(prev => Math.min(prev + 24, filteredProducts.length))}
+                                        className="px-8 py-3.5 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-extrabold text-xs shadow-xs hover:border-slate-300 transition cursor-pointer"
+                                    >
+                                        Load More Products ({filteredProducts.length - visibleCount} remaining) ↓
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </main>

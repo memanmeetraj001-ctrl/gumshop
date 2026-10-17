@@ -85,8 +85,6 @@ export default function StoreAnalyticsDashboard() {
                         if (data.success && data.store) {
                             store = data.store;
                             if (Array.isArray(data.products)) preloadedProducts = data.products;
-                            const { setActiveStoreSlug } = await import('@/lib/activeStore');
-                            setActiveStoreSlug(store);
                         }
                     }
                 } catch {}

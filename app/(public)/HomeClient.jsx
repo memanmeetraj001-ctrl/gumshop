@@ -102,6 +102,7 @@ export default function HomeClient({ initialStore = null, initialMode = 'single'
     const [viewMode, setViewMode] = useState('by-store'); // 'by-store' | 'combined'
     const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
     const [wishlistDrawerOpen, setWishlistDrawerOpen] = useState(false);
+    const [visibleCount, setVisibleCount] = useState(24);
 
     // Filters state
     const [selectedStore, setSelectedStore] = useState('All');
@@ -116,10 +117,20 @@ export default function HomeClient({ initialStore = null, initialMode = 'single'
     useEffect(() => {
         const loadStoreAndCatalog = async () => {
             try {
+                let mode = getHomepageMode();
+
+                // Fast path for 99.9% of visits: If SSR already provided store & catalog and no custom admin mode is active, skip network fetch!
+                if (initialStore && Array.isArray(initialProducts) && initialProducts.length > 0 && mode === 'single') {
+                    setHomepageModeState('single');
+                    setActiveStore(initialStore);
+                    setProducts(initialProducts);
+                    setLoading(false);
+                    return;
+                }
+
                 // 1. Resolve designated homepage store & mode directly from server (Highest priority)
                 let store = null;
                 let targetSlug = null;
-                let mode = getHomepageMode();
                 let selectedStores = [];
                 let resolvedProducts = null;
 
@@ -365,6 +376,10 @@ export default function HomeClient({ initialStore = null, initialMode = 'single'
 
         return list;
     }, [products, isMultiStore, selectedStore, searchTerm, selectedCategory, inStockOnly, sortBy]);
+
+    const displayedProducts = useMemo(() => {
+        return filteredProducts.slice(0, visibleCount);
+    }, [filteredProducts, visibleCount]);
 
     // Group filtered products by store for Grouped Store Showcases
     const groupedStores = useMemo(() => {
@@ -810,16 +825,31 @@ export default function HomeClient({ initialStore = null, initialMode = 'single'
                             ))}
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {filteredProducts.map(product => (
-                                <ProductCard 
-                                    key={product.id} 
-                                    product={product} 
-                                    onOpenCart={() => setCartDrawerOpen(true)}
-                                    showShopName={isMultiStore}
-                                />
-                            ))}
-                        </div>
+                        <>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                {displayedProducts.map((product, idx) => (
+                                    <ProductCard 
+                                        key={product.id} 
+                                        product={product} 
+                                        cardIndex={idx}
+                                        onOpenCart={() => setCartDrawerOpen(true)}
+                                        showShopName={isMultiStore}
+                                    />
+                                ))}
+                            </div>
+
+                            {visibleCount < filteredProducts.length && (
+                                <div className="mt-12 text-center">
+                                    <button
+                                        type="button"
+                                        onClick={() => setVisibleCount(prev => Math.min(prev + 24, filteredProducts.length))}
+                                        className="px-8 py-3.5 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-extrabold text-xs shadow-xs hover:border-slate-300 transition cursor-pointer"
+                                    >
+                                        Load More Products ({filteredProducts.length - visibleCount} remaining) ↓
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
 
                 </div>

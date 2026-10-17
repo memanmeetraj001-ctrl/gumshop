@@ -130,7 +130,8 @@ export default function ProductCard({ product, onOpenCart, showShopName = false,
                         <img 
                             src={mainImage}
                             alt={product.name || 'Product'}
-                            loading="lazy"
+                            loading={cardIndex < 4 ? "eager" : "lazy"}
+                            fetchPriority={cardIndex < 4 ? "high" : "auto"}
                             decoding="async"
                             className="max-h-full max-w-full object-contain group-hover:scale-108 transition-transform duration-500"
                             onError={(e) => handleImageError(e, 'product')}
