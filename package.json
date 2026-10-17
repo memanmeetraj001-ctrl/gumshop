@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "build:cf": "opennextjs-cloudflare build",
+    "deploy:cf": "opennextjs-cloudflare deploy",
     "start": "next start",
     "lint": "node -e \"console.log('Linting passed')\"",
     "test": "node scripts/comprehensive_test_suite.js"
@@ -23,7 +25,9 @@
     "recharts": "^3.10.1"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.12",
     "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4"
+    "tailwindcss": "^4",
+    "wrangler": "^4.148.0"
   }
 }

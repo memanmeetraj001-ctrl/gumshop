@@ -12,6 +12,13 @@ const NO_CACHE_HEADERS = {
     'Expires': '0'
 };
 
+const EDGE_CACHE_HEADERS = {
+    'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+    'CDN-Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+    'Cloudflare-CDN-Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+    'Vercel-CDN-Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300'
+};
+
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
@@ -19,12 +26,14 @@ export async function GET(req) {
     const storeId = searchParams.get('store_id') || searchParams.get('store');
     const idParam = searchParams.get('id');
     const storesParam = searchParams.get('stores');
+    const isFresh = searchParams.get('fresh') === 'true';
+    const responseHeaders = isFresh ? NO_CACHE_HEADERS : EDGE_CACHE_HEADERS;
 
     if (idParam) {
       const { getProductById } = await import('@/lib/db/products');
       const singleProduct = await getProductById(idParam);
       if (singleProduct) {
-        return NextResponse.json({ success: true, product: singleProduct, products: [singleProduct] }, { headers: NO_CACHE_HEADERS });
+        return NextResponse.json({ success: true, product: singleProduct, products: [singleProduct] }, { headers: responseHeaders });
       }
     }
 
@@ -41,11 +50,11 @@ export async function GET(req) {
           });
         }
       }
-      return NextResponse.json({ success: true, products }, { headers: NO_CACHE_HEADERS });
+      return NextResponse.json({ success: true, products }, { headers: responseHeaders });
     }
 
     const products = await dbGetProducts(storeId);
-    return NextResponse.json({ success: true, products }, { headers: NO_CACHE_HEADERS });
+    return NextResponse.json({ success: true, products }, { headers: responseHeaders });
   } catch (err) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500, headers: NO_CACHE_HEADERS });
   }

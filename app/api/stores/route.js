@@ -11,10 +11,21 @@ const NO_CACHE_HEADERS = {
   'Expires': '0'
 };
 
-export async function GET() {
+const EDGE_CACHE_HEADERS = {
+  'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+  'CDN-Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+  'Cloudflare-CDN-Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+  'Vercel-CDN-Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300'
+};
+
+export async function GET(req) {
   try {
+    const { searchParams } = new URL(req?.url || 'http://localhost/api/stores');
+    const isFresh = searchParams.get('fresh') === 'true';
+    const responseHeaders = isFresh ? NO_CACHE_HEADERS : EDGE_CACHE_HEADERS;
+
     const stores = await dbGetAllStores();
-    return NextResponse.json({ success: true, stores }, { headers: NO_CACHE_HEADERS });
+    return NextResponse.json({ success: true, stores }, { headers: responseHeaders });
   } catch (err) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500, headers: NO_CACHE_HEADERS });
   }

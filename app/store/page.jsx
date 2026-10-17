@@ -189,12 +189,14 @@ export default function StoreAnalyticsDashboard() {
         }
     }, [user, authLoading, timeRange]);
 
-    // Live Pulse Telemetry Auto-Refresh (Every 15s)
+    // Live Pulse Telemetry Auto-Refresh (Throttled to 60s with Tab Visibility Guard)
     useEffect(() => {
         if (!currentStore) return;
         const cleanSid = (currentStore.username || currentStore.id || '').toLowerCase().replace(/^store_/, '');
         const tfParam = timeRange === 'all' ? 'all' : (timeRange === 'today' ? 'today' : (timeRange === '7d' ? '7d' : '30d'));
         const interval = setInterval(async () => {
+            // Guard: Pause polling if user is on another tab or browser is minimized
+            if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
             try {
                 const aRes = await fetch(`/api/analytics/stats?timeframe=${encodeURIComponent(tfParam)}&store=${encodeURIComponent(cleanSid)}`, { cache: 'no-store' });
                 if (aRes.ok) {
@@ -204,7 +206,7 @@ export default function StoreAnalyticsDashboard() {
                     }
                 }
             } catch {}
-        }, 15000);
+        }, 60000);
         return () => clearInterval(interval);
     }, [currentStore, timeRange]);
 

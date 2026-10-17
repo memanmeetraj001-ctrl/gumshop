@@ -692,14 +692,14 @@ export default function MasterDashboardPage() {
         }
     }, [activeNavTab, analyticsTimeframe, analyticsStoreFilter]);
 
-    // Live Pulse 10-Second Auto-Refresh
+    // Live Pulse Auto-Refresh (Throttled to 60s to conserve serverless invocations)
     useEffect(() => {
         if (activeNavTab !== 'analytics' || !livePulseEnabled) return;
         const interval = setInterval(() => {
             if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
                 loadAnalytics();
             }
-        }, 10000);
+        }, 60000);
         return () => clearInterval(interval);
     }, [activeNavTab, livePulseEnabled, analyticsTimeframe, analyticsStoreFilter]);
 

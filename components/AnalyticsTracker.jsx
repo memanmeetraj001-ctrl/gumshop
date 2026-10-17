@@ -137,8 +137,9 @@ export default function AnalyticsTracker() {
         });
     }, [pathname, searchParams]);
 
-    // 30-Second Active Heartbeat
+    // Throttled Presence Pulse (120s) & Session Exit Beacon
     useEffect(() => {
+        // 1. Throttled Presence Pulse (Reduced from 30s to 120s to conserve serverless/edge compute)
         const interval = setInterval(() => {
             if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
                 const p = window.location.pathname;
@@ -146,9 +147,24 @@ export default function AnalyticsTracker() {
                     trackEvent('heartbeat');
                 }
             }
-        }, 30000);
+        }, 120000);
 
-        return () => clearInterval(interval);
+        // 2. Beacon on page hide / exit
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                const p = window.location.pathname;
+                if (p && !p.startsWith('/dashboard') && !p.startsWith('/store') && !p.startsWith('/admin') && !p.startsWith('/api')) {
+                    trackEvent('session_pause');
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, []);
 
     return null;

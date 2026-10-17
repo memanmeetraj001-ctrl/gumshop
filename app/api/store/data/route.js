@@ -22,10 +22,19 @@ const NO_CACHE_HEADERS = {
     'Expires': '0'
 };
 
+const EDGE_CACHE_HEADERS = {
+    'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+    'CDN-Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+    'Cloudflare-CDN-Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+    'Vercel-CDN-Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300'
+};
+
 export async function GET(req) {
     try {
         const { searchParams } = new URL(req.url);
         const slug = searchParams.get('slug') || searchParams.get('username') || searchParams.get('id');
+        const isFresh = searchParams.get('fresh') === 'true';
+        const responseHeaders = isFresh ? NO_CACHE_HEADERS : EDGE_CACHE_HEADERS;
 
         if (!slug) {
             const allStores = await serverGetAllStores();
@@ -33,7 +42,7 @@ export async function GET(req) {
                 success: true,
                 isSupabase: isSupabaseConfigured(),
                 stores: allStores
-            }, { headers: NO_CACHE_HEADERS });
+            }, { headers: responseHeaders });
         }
 
         const store = await serverGetStore(slug);
@@ -46,7 +55,7 @@ export async function GET(req) {
             isSupabase: isSupabaseConfigured(),
             store,
             products
-        }, { headers: NO_CACHE_HEADERS });
+        }, { headers: responseHeaders });
     } catch (e) {
         return NextResponse.json({ success: false, error: e.message }, { status: 500, headers: NO_CACHE_HEADERS });
     }
