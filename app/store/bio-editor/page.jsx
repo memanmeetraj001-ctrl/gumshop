@@ -158,8 +158,8 @@ export default function StanStoreBioEditor() {
                 const initialBioState = {
                     displayName: existingBio.displayName || store.name || 'Creator Store',
                     handle: existingBio.handle || storeSlug,
-                    tagline: existingBio.tagline || store.bio || store.description || 'Curated creator products & digital downloads.',
-                    avatar: existingBio.avatar || store.logo || store.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(store.name || 'Store')}`,
+                    tagline: existingBio.tagline || store.description || store.bio || 'Curated creator products & digital downloads.',
+                    avatar: existingBio.avatar || store.logo || store.avatar || store.logo_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(store.name || 'Store')}`,
                     verified: existingBio.verified !== undefined ? existingBio.verified : true,
                     themeColor: existingBio.themeColor || store.themeColor || '#10B981',
                     backgroundPreset: existingBio.backgroundPreset || 'warm_studio',

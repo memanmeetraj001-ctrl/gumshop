@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { 
     serverGetStore, 
     serverGetAllStores, 
@@ -84,6 +85,16 @@ export async function POST(req) {
 
         if (storeProducts) {
             await serverSaveProducts(storeId, storeProducts);
+        }
+
+        try {
+            revalidatePath(`/creator/${cleanSlug}`);
+            revalidatePath(`/shop/${cleanSlug}`);
+            revalidatePath('/creator/[username]', 'page');
+            revalidatePath('/shop/[username]', 'page');
+            revalidatePath('/', 'page');
+        } catch (revalErr) {
+            console.warn('[StoreData] Edge revalidation notice:', revalErr.message);
         }
 
         return NextResponse.json({

@@ -211,7 +211,7 @@ function formatCreatorProfile(store, rawUsername) {
         const defaultSocials = storeClean === 'demo' ? DEFAULT_DEMO_CREATOR.socials : {};
         const mergedSocials = { ...defaultSocials, ...(store.socials || {}), ...(bioProfile.socials || {}) };
 
-        const rawBio = bioProfile.tagline || store.bio || store.description || store.tagline || `Official storefront for ${displayName}. Browse our curated collection.`;
+        const rawBio = bioProfile.tagline || store.description || store.bio || store.tagline || `Official storefront for ${displayName}. Browse our curated collection.`;
         const cleanBio = decodeHtmlEntities(String(rawBio || ''));
 
         return {
@@ -719,7 +719,7 @@ export default function CreatorClient({ initialStore = null, initialProducts = [
                 let store = null;
                 let resolvedProducts = [];
                 try {
-                    const res = await fetch(`/api/store/data?slug=${encodeURIComponent(rawUsername)}`, { cache: 'no-store' });
+                    const res = await fetch(`/api/store/data?slug=${encodeURIComponent(rawUsername)}&fresh=true`, { cache: 'no-store' });
                     if (res.ok) {
                         const apiData = await res.json();
                         if (apiData.success && apiData.store) {
@@ -795,7 +795,7 @@ export default function CreatorClient({ initialStore = null, initialProducts = [
         loadCreatorStore();
 
         const handleSync = () => {
-            loadCreatorStore();
+            loadCreatorStore(true);
         };
 
         if (typeof window !== 'undefined') {

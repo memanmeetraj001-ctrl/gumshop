@@ -110,18 +110,21 @@ export default function StoreSettings() {
                 }
 
                 let store = null;
-                if (targetSlug) {
-                    const cleanSlug = targetSlug.toLowerCase().replace(/^store_/, '');
-                    const localStores = getAllLocalStores();
-                    store = localStores.find(s => (s.username || s.slug || s.id || '').toLowerCase().replace(/^store_/, '') === cleanSlug);
+                const cleanSlug = targetSlug ? targetSlug.toLowerCase().replace(/^store_/, '') : '';
+
+                if (cleanSlug) {
+                    try {
+                        const res = await fetch(`/api/store/data?slug=${encodeURIComponent(cleanSlug)}&fresh=true`, { cache: 'no-store' });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.success && data.store) store = data.store;
+                        }
+                    } catch (e) {
+                        console.warn("Direct API store fetch notice:", e);
+                    }
                     if (!store) {
-                        try {
-                            const res = await fetch(`/api/store/data?slug=${encodeURIComponent(cleanSlug)}`, { cache: 'no-store' });
-                            if (res.ok) {
-                                const data = await res.json();
-                                if (data.success && data.store) store = data.store;
-                            }
-                        } catch {}
+                        const localStores = getAllLocalStores();
+                        store = localStores.find(s => (s.username || s.slug || s.id || '').toLowerCase().replace(/^store_/, '') === cleanSlug);
                     }
                 }
 
@@ -150,18 +153,29 @@ export default function StoreSettings() {
 
                 const baseStore = store;
                 const cleanId = baseStore.id || `store_${baseStore.username || 'shop'}`;
-                const resolvedAvatar = baseStore.logo || baseStore.avatar || baseStore.bioProfile?.avatar || "";
+                const resolvedAvatar = baseStore.logo || baseStore.avatar || baseStore.logo_url || baseStore.bioProfile?.avatar || "";
+                const resolvedBio = baseStore.description || baseStore.bio || baseStore.bioProfile?.tagline || "";
+                const resolvedBioProfile = baseStore.bioProfile || {
+                    displayName: baseStore.name || "My Store",
+                    avatar: resolvedAvatar,
+                    tagline: resolvedBio,
+                    themeColor: baseStore.themeColor || "#10B981"
+                };
 
                 setStoreInfo(prev => ({
                     ...prev,
                     ...baseStore,
                     id: cleanId,
+                    name: baseStore.name || prev.name || "My Store",
+                    description: resolvedBio,
+                    bio: resolvedBio,
                     logo: resolvedAvatar || prev.logo || "",
                     avatar: resolvedAvatar || prev.avatar || "",
-                    bioProfile: baseStore.bioProfile || prev.bioProfile || {
-                        displayName: baseStore.name || "My Store",
-                        avatar: resolvedAvatar,
-                        tagline: baseStore.description || ""
+                    bioProfile: {
+                        ...resolvedBioProfile,
+                        displayName: baseStore.name || resolvedBioProfile.displayName || "My Store",
+                        avatar: resolvedAvatar || resolvedBioProfile.avatar || "",
+                        tagline: resolvedBio || resolvedBioProfile.tagline || ""
                     },
                     gumroadToken: persistentToken,
                     gumroadProductUrl: persistentProductUrl || baseStore.gumroadProductUrl || "",
@@ -197,17 +211,20 @@ export default function StoreSettings() {
                 targetStoreId = targetStoreId.replace(/^store_store_/, 'store_');
 
                 const activeAvatar = storeInfo.logo || storeInfo.avatar || storeInfo.bioProfile?.avatar || "";
+                const activeBio = storeInfo.description || storeInfo.bio || storeInfo.bioProfile?.tagline || "";
                 const payload = {
                     ...storeInfo,
                     id: targetStoreId,
                     username: cleanSlug,
+                    description: activeBio,
+                    bio: activeBio,
                     logo: activeAvatar,
                     avatar: activeAvatar,
                     bioProfile: {
                         ...(storeInfo.bioProfile || {}),
                         displayName: storeInfo.name || storeInfo.bioProfile?.displayName || 'My Store',
                         avatar: activeAvatar || storeInfo.bioProfile?.avatar || '',
-                        tagline: storeInfo.description || storeInfo.bioProfile?.tagline || '',
+                        tagline: activeBio || storeInfo.bioProfile?.tagline || '',
                         themeColor: storeInfo.themeColor || storeInfo.bioProfile?.themeColor || '#10B981'
                     },
                     updatedAt: new Date().toISOString()
@@ -430,19 +447,21 @@ export default function StoreSettings() {
             const currentProducts = storeInfo.products || [];
 
             const activeAvatar = storeInfo.logo || storeInfo.avatar || storeInfo.bioProfile?.avatar || "";
+            const activeBio = storeInfo.description || storeInfo.bio || storeInfo.bioProfile?.tagline || "";
             const payloadToSave = {
                 id: targetStoreId,
                 userId: user?.uid || targetStoreId,
                 name: storeInfo.name || "My Store",
                 username: cleanSlug,
-                description: storeInfo.description || "",
+                description: activeBio,
+                bio: activeBio,
                 logo: activeAvatar,
                 avatar: activeAvatar,
                 bioProfile: {
                     ...(storeInfo.bioProfile || {}),
                     displayName: storeInfo.name || storeInfo.bioProfile?.displayName || "My Store",
                     avatar: activeAvatar,
-                    tagline: storeInfo.description || storeInfo.bioProfile?.tagline || "",
+                    tagline: activeBio || storeInfo.bioProfile?.tagline || "",
                     themeColor: storeInfo.themeColor || storeInfo.bioProfile?.themeColor || "#10B981"
                 },
                 gumroadToken: persistentToken,
@@ -744,7 +763,7 @@ export default function StoreSettings() {
                                 value={storeInfo.description}
                                 onChange={(e) => setStoreInfo({ ...storeInfo, description: e.target.value })}
                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-emerald-500 focus:bg-white transition"
-                                placeholder="Viral beauty and wellness essentials curated for daily glow."
+                                placeholder="e.g. Premium high-performance tech and hobby essentials."
                             />
                         </div>
 
