@@ -89,7 +89,17 @@ export default function EditProductPage() {
                     setSku(prod.sku || `SKU-${prod.id?.substring(0, 6)?.toUpperCase() || 'PROD'}`);
                     setStockQuantity(prod.stockQuantity !== undefined ? prod.stockQuantity : 50);
                     setColorVariants(Array.isArray(prod.colors) ? prod.colors : []);
-                    setSizeVariants(Array.isArray(prod.sizes) ? prod.sizes : []);
+                    let loadedSizes = [];
+                    if (Array.isArray(prod.sizes) && prod.sizes.length > 0) {
+                        loadedSizes = prod.sizes;
+                    } else if (Array.isArray(prod.variants) && prod.variants.length > 0) {
+                        loadedSizes = prod.variants.map(v => ({
+                            id: v.id,
+                            name: v.name || v.title,
+                            priceDelta: v.priceDelta !== undefined ? v.priceDelta : (v.price && retail ? Math.max(0, Number((v.price - retail).toFixed(2))) : 0)
+                        }));
+                    }
+                    setSizeVariants(loadedSizes);
                 } else {
                     toast.error('Product not found');
                 }
@@ -121,6 +131,10 @@ export default function EditProductPage() {
         setSizeVariants(prev => [...prev, { name: newSizeName.trim(), priceDelta: parseFloat(newSizeDelta) || 0 }]);
         setNewSizeName('');
         setNewSizeDelta(0);
+    };
+
+    const handleUpdateSize = (idx, field, value) => {
+        setSizeVariants(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
     };
 
     const handleRemoveSize = (idx) => {
@@ -156,6 +170,13 @@ export default function EditProductPage() {
                 stockQuantity: Number(stockQuantity) || 0,
                 colors: colorVariants,
                 sizes: sizeVariants,
+                variants: sizeVariants.map((s, idx) => ({
+                    id: s.id || `var_${idx}_${Date.now()}`,
+                    name: s.name,
+                    price: Number((retail + (parseFloat(s.priceDelta) || 0)).toFixed(2)),
+                    priceDelta: parseFloat(s.priceDelta) || 0,
+                    effectivePrice: Number((retail + (parseFloat(s.priceDelta) || 0)).toFixed(2))
+                })),
                 updatedAt: new Date().toISOString()
             };
 
@@ -336,20 +357,57 @@ export default function EditProductPage() {
                                     <span className="text-[11px] text-slate-400">Custom pricing delta per size</span>
                                 </div>
 
-                                <div className="space-y-2">
-                                    {sizeVariants.map((s, idx) => (
-                                        <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
-                                            <span>{s.name}</span>
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-emerald-700 font-bold">
-                                                    {s.priceDelta > 0 ? `+$${s.priceDelta.toFixed(2)}` : 'Standard Price'}
-                                                </span>
-                                                <button type="button" onClick={() => handleRemoveSize(idx)} className="text-slate-400 hover:text-rose-600">
-                                                    <X size={14} />
-                                                </button>
+                                <div className="space-y-2 mb-4">
+                                    {sizeVariants.map((s, idx) => {
+                                        const basePrice = parseFloat(formData.price) || 0;
+                                        const delta = parseFloat(s.priceDelta) || 0;
+                                        const effectivePrice = (basePrice + delta).toFixed(2);
+                                        return (
+                                            <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 sm:p-3 rounded-2xl border border-slate-200 bg-slate-50 text-xs gap-2">
+                                                <div className="flex-1 min-w-0">
+                                                    <input
+                                                        type="text"
+                                                        value={s.name}
+                                                        onChange={(e) => handleUpdateSize(idx, 'name', e.target.value)}
+                                                        className="font-bold text-slate-800 bg-white sm:bg-transparent border border-slate-200 sm:border-0 rounded-xl sm:rounded-none px-2.5 py-1.5 sm:p-0 w-full outline-none focus:bg-white focus:border-emerald-500 sm:focus:ring-1 sm:focus:ring-emerald-500"
+                                                        placeholder="Variant name"
+                                                        title="Edit variant name"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-2 shrink-0 justify-between sm:justify-end">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-xs text-slate-400 font-bold">Price delta ($):</span>
+                                                        <div className="relative flex items-center">
+                                                            <span className="absolute left-2.5 text-xs text-emerald-600 font-bold">+</span>
+                                                            <input 
+                                                                type="number" 
+                                                                step="0.01" 
+                                                                min="0"
+                                                                placeholder="0" 
+                                                                value={s.priceDelta !== undefined ? s.priceDelta : 0} 
+                                                                onChange={(e) => handleUpdateSize(idx, 'priceDelta', parseFloat(e.target.value) || 0)} 
+                                                                className="w-24 pl-5 pr-2 py-1.5 text-xs font-black text-emerald-700 bg-white border border-slate-200 rounded-xl outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-right shadow-2xs"
+                                                                title="Edit variant price delta"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    {basePrice > 0 && (
+                                                        <span className="text-[11px] font-bold text-slate-500 bg-slate-200/60 px-2 py-1 rounded-lg">
+                                                            =${effectivePrice}
+                                                        </span>
+                                                    )}
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => handleRemoveSize(idx)} 
+                                                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                                                        title="Delete variant"
+                                                    >
+                                                        <Trash2 size={15} />
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                     {sizeVariants.length === 0 && (
                                         <span className="text-xs text-slate-400 italic">No package size variants added yet.</span>
                                     )}

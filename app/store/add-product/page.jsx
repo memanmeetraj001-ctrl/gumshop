@@ -149,6 +149,11 @@ function AddProductContent() {
                     }
                     if (Array.isArray(product.sizes) && product.sizes.length > 0) {
                         setSizeVariants(product.sizes)
+                    } else if (Array.isArray(product.variants) && product.variants.length > 0) {
+                        setSizeVariants(product.variants.map(v => ({
+                            name: v.name || v.title || 'Variant',
+                            priceDelta: parseFloat(v.priceDelta !== undefined ? v.priceDelta : (v.price && product.price ? Math.max(0, v.price - product.price) : 0)) || 0
+                        })))
                     }
                     if (Array.isArray(product.features) && product.features.length > 0) {
                         setFeatures(product.features)
@@ -198,6 +203,10 @@ function AddProductContent() {
 
     const handleRemoveSize = (idx) => {
         setSizeVariants(prev => prev.filter((_, i) => i !== idx))
+    }
+
+    const handleUpdateSize = (idx, field, value) => {
+        setSizeVariants(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s))
     }
 
     // Features Highlights Actions
@@ -289,6 +298,13 @@ function AddProductContent() {
                 storeId: store.id,
                 colors: colorVariants,
                 sizes: sizeVariants,
+                variants: sizeVariants.map((s, idx) => ({
+                    id: s.id || `var_${idx}_${Date.now()}`,
+                    name: s.name,
+                    price: Number((productPrice + (parseFloat(s.priceDelta) || 0)).toFixed(2)),
+                    priceDelta: parseFloat(s.priceDelta) || 0,
+                    effectivePrice: Number((productPrice + (parseFloat(s.priceDelta) || 0)).toFixed(2))
+                })),
                 features: features,
                 customBundles,
                 updatedAt: new Date().toISOString(),
@@ -637,19 +653,56 @@ function AddProductContent() {
 
                     {/* Existing Size Variants */}
                     <div className="space-y-2 mb-4">
-                        {sizeVariants.map((s, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 bg-slate-50 text-xs">
-                                <span className="font-bold text-slate-800">{s.name}</span>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-emerald-700 font-extrabold">
-                                        {s.priceDelta > 0 ? `+$${s.priceDelta.toFixed(2)}` : 'Base Price'}
-                                    </span>
-                                    <button type="button" onClick={() => handleRemoveSize(idx)} className="text-slate-400 hover:text-rose-600 transition">
-                                        <Trash2 size={14} />
-                                    </button>
+                        {sizeVariants.map((s, idx) => {
+                            const basePrice = parseFloat(productInfo.price) || 0;
+                            const delta = parseFloat(s.priceDelta) || 0;
+                            const effectivePrice = (basePrice + delta).toFixed(2);
+                            return (
+                                <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 sm:p-3 rounded-2xl border border-slate-200 bg-slate-50 text-xs gap-2">
+                                    <div className="flex-1 min-w-0">
+                                        <input
+                                            type="text"
+                                            value={s.name}
+                                            onChange={(e) => handleUpdateSize(idx, 'name', e.target.value)}
+                                            className="font-bold text-slate-800 bg-white sm:bg-transparent border border-slate-200 sm:border-0 rounded-xl sm:rounded-none px-2.5 py-1.5 sm:p-0 w-full outline-none focus:bg-white focus:border-emerald-500 sm:focus:ring-1 sm:focus:ring-emerald-500"
+                                            placeholder="Variant name"
+                                            title="Edit variant name"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0 justify-between sm:justify-end">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-xs text-slate-400 font-bold">Price delta ($):</span>
+                                            <div className="relative flex items-center">
+                                                <span className="absolute left-2.5 text-xs text-emerald-600 font-bold">+</span>
+                                                <input 
+                                                    type="number" 
+                                                    step="0.01" 
+                                                    min="0"
+                                                    placeholder="0" 
+                                                    value={s.priceDelta !== undefined ? s.priceDelta : 0} 
+                                                    onChange={(e) => handleUpdateSize(idx, 'priceDelta', parseFloat(e.target.value) || 0)} 
+                                                    className="w-24 pl-5 pr-2 py-1.5 text-xs font-black text-emerald-700 bg-white border border-slate-200 rounded-xl outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-right shadow-2xs"
+                                                    title="Edit variant price delta"
+                                                />
+                                            </div>
+                                        </div>
+                                        {basePrice > 0 && (
+                                            <span className="text-[11px] font-bold text-slate-500 bg-slate-200/60 px-2 py-1 rounded-lg">
+                                                =${effectivePrice}
+                                            </span>
+                                        )}
+                                        <button 
+                                            type="button" 
+                                            onClick={() => handleRemoveSize(idx)} 
+                                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                                            title="Delete variant"
+                                        >
+                                            <Trash2 size={15} />
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     {/* Add Size Form */}

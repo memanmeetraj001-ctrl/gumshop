@@ -65,11 +65,16 @@ export default function StanStoreBioEditor() {
     const [autoSaveStatus, setAutoSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
     const isInitialMount = useRef(true);
     const autoSaveTimerRef = useRef(null);
+    const lastSavedProfileJsonRef = useRef('');
     const [copied, setCopied] = useState(false);
     const [activeTab, setActiveTab] = useState('branding'); // 'branding' | 'socials' | 'links' | 'products'
     
     // Store reference
     const [currentStore, setCurrentStore] = useState(initialStore);
+    const currentStoreRef = useRef(initialStore);
+    useEffect(() => {
+        currentStoreRef.current = currentStore;
+    }, [currentStore]);
     const [catalogProducts, setCatalogProducts] = useState(initialStore?.products || []);
 
     // Bio Profile State
@@ -113,18 +118,25 @@ export default function StanStoreBioEditor() {
                 }
 
                 let store = null;
-                if (targetSlug) {
-                    const cleanSlug = targetSlug.toLowerCase().replace(/^store_/, '');
-                    const localStores = getAllLocalStores();
-                    store = localStores.find(s => (s.username || s.slug || s.id || '').toLowerCase().replace(/^store_/, '') === cleanSlug);
-                    if (!store) {
-                        try {
-                            const res = await fetch(`/api/store/data?slug=${encodeURIComponent(cleanSlug)}`, { cache: 'no-store' });
-                            if (res.ok) {
-                                const data = await res.json();
-                                if (data.success && data.store) store = data.store;
+                let fetchedProducts = [];
+                const cleanSlug = targetSlug ? targetSlug.toLowerCase().replace(/^store_/, '') : '';
+
+                if (cleanSlug) {
+                    try {
+                        const res = await fetch(`/api/store/data?slug=${encodeURIComponent(cleanSlug)}&fresh=true`, { cache: 'no-store' });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.success) {
+                                if (data.store) store = data.store;
+                                if (Array.isArray(data.products) && data.products.length > 0) {
+                                    fetchedProducts = data.products;
+                                }
                             }
-                        } catch {}
+                        }
+                    } catch {}
+                    if (!store) {
+                        const localStores = getAllLocalStores();
+                        store = localStores.find(s => (s.username || s.slug || s.id || '').toLowerCase().replace(/^store_/, '') === cleanSlug);
                     }
                 }
 
@@ -138,11 +150,12 @@ export default function StanStoreBioEditor() {
                 }
 
                 setCurrentStore(store);
+                currentStoreRef.current = store;
                 const storeSlug = (store.username || (store.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'shop';
                 
                 // Existing bio profile or fallback from main store
                 const existingBio = store.bioProfile || {};
-                setProfile({
+                const initialBioState = {
                     displayName: existingBio.displayName || store.name || 'Creator Store',
                     handle: existingBio.handle || storeSlug,
                     tagline: existingBio.tagline || store.bio || store.description || 'Curated creator products & digital downloads.',
@@ -169,16 +182,20 @@ export default function StanStoreBioEditor() {
                         subtitle: '',
                         buttonText: 'Claim Free'
                     }
-                });
+                };
+                setProfile(initialBioState);
+                lastSavedProfileJsonRef.current = JSON.stringify(initialBioState);
 
                 // Load products
-                if (Array.isArray(store.products) && store.products.length > 0) {
+                if (fetchedProducts.length > 0) {
+                    setCatalogProducts(fetchedProducts);
+                } else if (Array.isArray(store.products) && store.products.length > 0) {
                     setCatalogProducts(store.products);
                 } else {
                     let prods = await getProductsByStore(store.id || store.username);
                     if (!Array.isArray(prods) || prods.length === 0) {
                         try {
-                            const res = await fetch(`/api/store/data?slug=${encodeURIComponent(storeSlug)}`, { cache: 'no-store' });
+                            const res = await fetch(`/api/store/data?slug=${encodeURIComponent(storeSlug)}&fresh=true`, { cache: 'no-store' });
                             if (res.ok) {
                                 const d = await res.json();
                                 if (Array.isArray(d.products)) prods = d.products;
@@ -202,36 +219,44 @@ export default function StanStoreBioEditor() {
 
     // Debounced Auto-Save on profile edits
     useEffect(() => {
-        if (loading || isInitialMount.current || !currentStore) return;
+        if (loading || isInitialMount.current) return;
         if (!profile.displayName && !profile.handle) return;
+        const currentProfileJson = JSON.stringify(profile);
+        if (currentProfileJson === lastSavedProfileJsonRef.current) return;
 
         setAutoSaveStatus('saving');
         if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
 
         autoSaveTimerRef.current = setTimeout(async () => {
             try {
-                const cleanSlug = (profile.handle || currentStore.username || (currentStore.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'shop';
-                const targetStoreId = currentStore.id || `store_${cleanSlug}`;
+                const storeToUpdate = currentStoreRef.current;
+                if (!storeToUpdate) {
+                    setAutoSaveStatus('idle');
+                    return;
+                }
+                const cleanSlug = (profile.handle || storeToUpdate.username || (storeToUpdate.name || 'shop').replace(/\s+/g, '-')).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'shop';
+                const targetStoreId = storeToUpdate.id || `store_${cleanSlug}`;
 
                 const updatedStore = {
-                    ...currentStore,
+                    ...storeToUpdate,
                     id: targetStoreId,
                     username: cleanSlug,
-                    name: profile.displayName || currentStore.name,
-                    avatar: profile.avatar || currentStore.avatar || currentStore.logo,
-                    logo: profile.avatar || currentStore.logo || currentStore.avatar,
-                    bio: profile.tagline || currentStore.bio || currentStore.description,
-                    description: profile.tagline || currentStore.description || currentStore.bio,
-                    themeColor: profile.themeColor || currentStore.themeColor,
+                    name: profile.displayName || storeToUpdate.name,
+                    avatar: profile.avatar || storeToUpdate.avatar || storeToUpdate.logo,
+                    logo: profile.avatar || storeToUpdate.logo || storeToUpdate.avatar,
+                    bio: profile.tagline || storeToUpdate.bio || storeToUpdate.description,
+                    description: profile.tagline || storeToUpdate.description || storeToUpdate.bio,
+                    themeColor: profile.themeColor || storeToUpdate.themeColor,
                     bioProfile: profile,
                     updatedAt: new Date().toISOString()
                 };
                 setCurrentStore(updatedStore);
+                currentStoreRef.current = updatedStore;
+                lastSavedProfileJsonRef.current = currentProfileJson;
 
-                // Sync active store slug
+                // Sync active store slug without noisy event storming during typing
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('active_store_slug', cleanSlug);
-                    window.dispatchEvent(new Event('active_store_changed'));
                 }
 
                 // Background sync to server API
@@ -246,7 +271,7 @@ export default function StanStoreBioEditor() {
                 setAutoSaveStatus('saved');
                 setTimeout(() => {
                     setAutoSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
-                }, 3000);
+                }, 2500);
             } catch (e) {
                 console.warn("Bio editor auto-save notice:", e);
                 setAutoSaveStatus('idle');
@@ -256,7 +281,7 @@ export default function StanStoreBioEditor() {
         return () => {
             if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
         };
-    }, [profile, currentStore, loading]);
+    }, [profile, loading]);
 
     // Handle Copy Bio Link
     const handleCopyBioLink = () => {
@@ -364,7 +389,12 @@ export default function StanStoreBioEditor() {
             }
 
             setCurrentStore(updatedStore);
+            currentStoreRef.current = updatedStore;
+            lastSavedProfileJsonRef.current = JSON.stringify(profile);
             setAutoSaveStatus('saved');
+            setTimeout(() => {
+                setAutoSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
+            }, 3000);
             toast.success("Mobile Stan Storefront published successfully! 🚀", {
                 duration: 3500,
                 icon: '📱'
