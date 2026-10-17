@@ -61,11 +61,20 @@ const COUNTRY_MAP = {
 
 export async function POST(req) {
     try {
+        // Support both application/json and text/plain (navigator.sendBeacon)
+        const contentType = req.headers.get('content-type') || '';
         let body = {};
         try {
-            const raw = await req.text();
-            if (raw && raw.trim()) {
-                body = JSON.parse(raw);
+            if (contentType.includes('text/plain') || contentType.includes('application/json')) {
+                const raw = await req.text();
+                if (raw && raw.trim()) {
+                    body = JSON.parse(raw);
+                }
+            } else {
+                const raw = await req.text();
+                if (raw && raw.trim()) {
+                    body = JSON.parse(raw);
+                }
             }
         } catch {
             body = {};

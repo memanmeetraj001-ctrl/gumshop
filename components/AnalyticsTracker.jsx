@@ -82,16 +82,19 @@ export function trackEvent(eventType, metadata = {}) {
         };
 
         const jsonStr = JSON.stringify(payload);
-        if (navigator.sendBeacon) {
-            const blob = new Blob([jsonStr], { type: 'text/plain;charset=UTF-8' });
-            navigator.sendBeacon('/api/analytics/track', blob);
-        } else {
+        if (typeof fetch !== 'undefined') {
             fetch('/api/analytics/track', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: jsonStr,
                 keepalive: true
-            }).catch(() => {});
+            }).catch(() => {
+                if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+                    navigator.sendBeacon('/api/analytics/track', new Blob([jsonStr], { type: 'text/plain;charset=UTF-8' }));
+                }
+            });
+        } else if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+            navigator.sendBeacon('/api/analytics/track', new Blob([jsonStr], { type: 'text/plain;charset=UTF-8' }));
         }
     } catch (e) {
         console.warn('Analytics dispatch note:', e.message);
