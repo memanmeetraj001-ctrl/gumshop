@@ -360,10 +360,15 @@ export default function StoreManageProducts() {
         if (targetBulkProducts.length === 0) return;
         setIsApplyingBulkPrice(true);
         try {
+            const activeStoreSlug = activeStore?.username || storeSlug || '';
+            const activeStoreId = activeStore?.id || (activeStoreSlug ? `store_${activeStoreSlug}` : '');
+
             const updatesList = targetBulkProducts.map(p => {
                 const calc = calculateBulkItemPrice(p, bulkPriceConfig);
                 return {
                     id: p.id,
+                    storeSlug: activeStoreSlug,
+                    storeId: activeStoreId,
                     price: calc.finalPrice,
                     compareAtPrice: calc.compareAtPrice,
                     mrp: calc.compareAtPrice,
@@ -397,6 +402,8 @@ export default function StoreManageProducts() {
         if (targets.length === 0) return;
         setIsBulkActing(true);
         try {
+            const activeStoreSlug = activeStore?.username || storeSlug || '';
+            const activeStoreId = activeStore?.id || (activeStoreSlug ? `store_${activeStoreSlug}` : '');
             const config = {
                 mode: 'percent',
                 percentType: 'markup',
@@ -408,6 +415,8 @@ export default function StoreManageProducts() {
                 const calc = calculateBulkItemPrice(p, config);
                 return {
                     id: p.id,
+                    storeSlug: activeStoreSlug,
+                    storeId: activeStoreId,
                     price: calc.finalPrice,
                     compareAtPrice: calc.compareAtPrice,
                     mrp: calc.compareAtPrice,
@@ -436,6 +445,8 @@ export default function StoreManageProducts() {
         if (targets.length === 0) return;
         setIsBulkActing(true);
         try {
+            const activeStoreSlug = activeStore?.username || storeSlug || '';
+            const activeStoreId = activeStore?.id || (activeStoreSlug ? `store_${activeStoreSlug}` : '');
             const config = {
                 mode: 'percent',
                 percentType: 'discount',
@@ -447,6 +458,8 @@ export default function StoreManageProducts() {
                 const calc = calculateBulkItemPrice(p, config);
                 return {
                     id: p.id,
+                    storeSlug: activeStoreSlug,
+                    storeId: activeStoreId,
                     price: calc.finalPrice,
                     compareAtPrice: calc.compareAtPrice,
                     mrp: calc.compareAtPrice,
@@ -475,6 +488,8 @@ export default function StoreManageProducts() {
         if (targets.length === 0) return;
         setIsBulkActing(true);
         try {
+            const activeStoreSlug = activeStore?.username || storeSlug || '';
+            const activeStoreId = activeStore?.id || (activeStoreSlug ? `store_${activeStoreSlug}` : '');
             const config = {
                 mode: 'percent',
                 percentType: 'markup',
@@ -486,6 +501,8 @@ export default function StoreManageProducts() {
                 const calc = calculateBulkItemPrice(p, config);
                 return {
                     id: p.id,
+                    storeSlug: activeStoreSlug,
+                    storeId: activeStoreId,
                     price: calc.finalPrice,
                     compareAtPrice: calc.compareAtPrice,
                     mrp: calc.compareAtPrice,

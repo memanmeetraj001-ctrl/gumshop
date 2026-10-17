@@ -395,6 +395,13 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts, storeSlug: p
                 price: finalTotal
             });
 
+            // ⚡ 0ms Instant Feedback: Open Checkout Modal immediately at Step 1 (Shipping Address)
+            setCheckoutModal({
+                isOpen: true,
+                gumroadUrl: effectiveGumroadUrl,
+                orderSessionId: `ord_${Date.now()}`
+            });
+
             const res = await fetch('/api/gumroad/dynamic-checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -426,11 +433,13 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts, storeSlug: p
             if (!res.ok && data.error) {
                 toast.error(data.error);
             }
-            setCheckoutModal({
-                isOpen: true,
-                gumroadUrl: data.checkoutUrl || effectiveGumroadUrl,
-                orderSessionId: data.orderSessionId || `ord_${Date.now()}`
-            });
+            if (data.checkoutUrl) {
+                setCheckoutModal(prev => ({
+                    ...prev,
+                    gumroadUrl: data.checkoutUrl,
+                    orderSessionId: data.orderSessionId || prev.orderSessionId
+                }));
+            }
         } catch (err) {
             console.error('Checkout error:', err);
             const activeStore = getActiveStoreSync();

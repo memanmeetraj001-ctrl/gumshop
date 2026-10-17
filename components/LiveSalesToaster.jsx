@@ -25,14 +25,14 @@ export default function LiveSalesToaster({ product, products, storeName }) {
     useEffect(() => {
         if (isDismissed || !activeItem) return;
 
-        // Initial delay before first pop-up (5 seconds)
+        // Initial delay before first pop-up (3 seconds)
         const initialTimer = setTimeout(() => {
             if (typeof document !== 'undefined' && document.hidden) return;
             setIsVisible(true);
-        }, 5000);
+        }, 3000);
 
         let innerTimeoutId = null;
-        // Rotating interval: visible for 6s, hidden for 18s
+        // Rotating interval: visible for 5.5s, hidden for 12s
         const interval = setInterval(() => {
             if (typeof document !== 'undefined' && document.hidden) return;
             setIsVisible(false);
@@ -40,8 +40,8 @@ export default function LiveSalesToaster({ product, products, storeName }) {
                 if (typeof document !== 'undefined' && document.hidden) return;
                 setCurrentIndex(prev => (prev + 1) % BUYER_PROFILES.length);
                 setIsVisible(true);
-            }, 18000); // 18s hidden
-        }, 24000); // 24s total cycle
+            }, 12000); // 12s hidden
+        }, 17500); // 17.5s total cycle
 
         return () => {
             clearTimeout(initialTimer);
@@ -50,12 +50,12 @@ export default function LiveSalesToaster({ product, products, storeName }) {
         };
     }, [isDismissed, activeItem]);
 
-    // Auto-hide each toast after 6 seconds
+    // Auto-hide each toast after 5.5 seconds
     useEffect(() => {
         if (!isVisible) return;
         const hideTimer = setTimeout(() => {
             setIsVisible(false);
-        }, 6000);
+        }, 5500);
         return () => clearTimeout(hideTimer);
     }, [isVisible]);
 
@@ -73,7 +73,7 @@ export default function LiveSalesToaster({ product, products, storeName }) {
     return (
         <aside
             aria-live="polite"
-            className="hidden sm:block fixed sm:bottom-6 sm:left-6 z-40 max-w-[340px] animate-in slide-in-from-bottom-5 fade-in duration-300"
+            className="fixed bottom-24 sm:bottom-6 left-3 sm:left-6 right-3 sm:right-auto z-40 max-w-[340px] animate-in slide-in-from-bottom-5 fade-in duration-300 pointer-events-auto"
         >
             <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3 border border-slate-200/90 shadow-[0_10px_30px_rgba(0,0,0,0.12)] flex items-center gap-3 relative group text-left">
                 {/* Product Thumbnail */}

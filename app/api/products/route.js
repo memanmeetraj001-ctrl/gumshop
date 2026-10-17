@@ -87,13 +87,51 @@ export async function PATCH(req) {
       : (Array.isArray(body.products) ? body.products : (Array.isArray(body.batch) ? body.batch : null));
 
     if (items && items.length > 0) {
+      // 1. Identify store slug from batch items if available
+      const sample = items.find(i => i.storeSlug || i.storeId);
+      const storeSlug = sample?.storeSlug || (sample?.storeId ? String(sample.storeId).replace(/^store_/, '') : null);
+
+      // 2. Synchronize parent store's products array in ONE single atomic PATCH!
+      if (storeSlug) {
+        try {
+          const { dbGetStoreBySlug, dbUpdateStore } = await import('@/lib/db/stores.js');
+          const store = await dbGetStoreBySlug(storeSlug);
+          if (store && Array.isArray(store.products)) {
+            const updatesMap = new Map();
+            items.forEach(i => { if (i?.id) updatesMap.set(i.id, i.updates || i); });
+            const updatedProducts = store.products.map(p => {
+              const u = updatesMap.get(p.id);
+              if (!u) return p;
+              const newPrice = u.price !== undefined ? parseFloat(u.price) : p.price;
+              const newCompare = u.compareAtPrice !== undefined ? parseFloat(u.compareAtPrice) : p.compareAtPrice;
+              return {
+                ...p,
+                ...u,
+                price: newPrice,
+                compareAtPrice: newCompare,
+                mrp: newCompare,
+                customBundles: u.customBundles || p.customBundles
+              };
+            });
+            await dbUpdateStore(storeSlug, { products: updatedProducts });
+          }
+        } catch (e) {
+          console.warn('Batch store array sync notice:', e.message);
+        }
+      }
+
+      // 3. Update products table in parallel chunks of 15 items to stay well below Cloudflare subrequest limits
+      const chunkSize = 15;
       const results = [];
-      for (const item of items) {
-        if (!item || !item.id) continue;
-        const updates = item.updates || { ...item };
-        delete updates.id;
-        const updated = await dbUpdateProduct(item.id, updates);
-        results.push(updated);
+      for (let i = 0; i < items.length; i += chunkSize) {
+        const chunk = items.slice(i, i + chunkSize);
+        const chunkRes = await Promise.all(chunk.map(async (item) => {
+          if (!item || !item.id) return null;
+          const updates = item.updates || { ...item };
+          delete updates.id;
+          return await dbUpdateProduct(item.id, { ...updates, _skipStoreSync: Boolean(storeSlug) });
+        }));
+        results.push(...chunkRes.filter(Boolean));
       }
       return NextResponse.json({ success: true, count: results.length, products: results }, { headers: NO_CACHE_HEADERS });
     }
