@@ -10,6 +10,14 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://rkdigvwkcbbysuvilkzp.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_kS8eq_QMEg5qLnsJxAIqCg_eYTuU6uP",
+    "SUPABASE_SERVICE_ROLE_KEY": "sb_publishable_kS8eq_QMEg5qLnsJxAIqCg_eYTuU6uP",
+    "NEXT_PUBLIC_APP_URL": "https://www.gumshop.online",
+    "NEXT_PUBLIC_BASE_URL": "https://www.gumshop.online",
+    "ADMIN_PASSWORD": "admin"
+  },
   "observability": {
     "enabled": true
   }
