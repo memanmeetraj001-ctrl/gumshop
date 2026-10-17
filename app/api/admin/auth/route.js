@@ -5,6 +5,7 @@ import {
     generateAdminSessionToken, 
     verifyAdminSessionToken, 
     checkRateLimit, 
+    isValidAdminPassword,
     ADMIN_CANONICAL_PASSWORD 
 } from '@/lib/serverAuth';
 
@@ -68,14 +69,9 @@ export async function POST(req) {
             return res;
         }
 
-        // Validate password using constant-time comparison
+        // Validate password against master credentials (supports Meetminal@0406)
         const submittedRaw = (password || '').toString().trim();
-        const masterPass = ADMIN_CANONICAL_PASSWORD;
-
-        const isExactMatch = timingSafeCompare(submittedRaw, masterPass);
-        const isCaseInsensitiveMatch = !isExactMatch && timingSafeCompare(submittedRaw.toLowerCase(), masterPass.toLowerCase());
-
-        const isValid = isExactMatch || isCaseInsensitiveMatch;
+        const isValid = isValidAdminPassword(submittedRaw);
 
         if (isValid) {
             const sessionToken = generateAdminSessionToken();

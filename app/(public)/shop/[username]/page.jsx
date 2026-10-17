@@ -1,13 +1,21 @@
+import { cache } from 'react';
 import { getStoreBySlug } from '@/lib/db/stores.js';
 import { getProductsByStore } from '@/lib/db/products.js';
 import ShopClient from './ShopClient';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 3600;
+export const revalidate = 60;
+
+const getCachedStore = cache(async (slug) => {
+    return await getStoreBySlug(slug);
+});
+
+const getCachedProducts = cache(async (slug) => {
+    return await getProductsByStore(slug);
+});
 
 export async function generateMetadata({ params }) {
     const { username } = await params;
-    const store = await getStoreBySlug(username);
+    const store = await getCachedStore(username);
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';
 
     if (!store) {
@@ -57,8 +65,8 @@ export async function generateMetadata({ params }) {
 
 export default async function StoreShopPage({ params }) {
     const { username } = await params;
-    const store = await getStoreBySlug(username);
-    const products = store ? await getProductsByStore(username) : [];
+    const store = await getCachedStore(username);
+    const products = store ? await getCachedProducts(username) : [];
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';
 
     let jsonLdSchemas = [];

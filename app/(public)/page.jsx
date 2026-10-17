@@ -3,8 +3,7 @@ import { resolveHomepageStore, PRIMARY_FALLBACK_STORE } from '@/lib/serverDb';
 import { getAllProductsWithStores } from '@/lib/db/products';
 import HomeClient from './HomeClient';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 3600;
+export const revalidate = 60;
 
 export async function generateMetadata() {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';

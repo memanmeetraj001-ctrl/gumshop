@@ -1,12 +1,16 @@
+import { cache } from 'react';
 import { getProductById } from '@/lib/db/products.js';
 import ProductClient from './ProductClient';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 3600;
+export const revalidate = 60;
+
+const getCachedProduct = cache(async (id) => {
+    return await getProductById(id);
+});
 
 export async function generateMetadata({ params }) {
     const { productId } = await params;
-    const product = await getProductById(productId);
+    const product = await getCachedProduct(productId);
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';
 
     if (!product) {
@@ -64,7 +68,7 @@ export async function generateMetadata({ params }) {
 
 export default async function ProductPage({ params }) {
     const { productId } = await params;
-    const product = await getProductById(productId);
+    const product = await getCachedProduct(productId);
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';
 
     // Build rich Schema.org structured data (Product, Breadcrumbs, FAQs)

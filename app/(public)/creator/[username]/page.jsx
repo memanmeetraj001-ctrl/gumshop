@@ -1160,10 +1160,10 @@ export default function CreatorBioPage({ params }) {
                     The link-in-bio store <code className="font-mono text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded">@{rawUsername}</code> may have been renamed or has not been published yet.
                 </p>
                 <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                    <Link href={`/shop/${rawUsername}`} className="px-6 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition">
+                    <Link prefetch={false}href={`/shop/${rawUsername}`} className="px-6 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition">
                         Check Standard Shop
                     </Link>
-                    <Link href="/dashboard" className="px-6 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 transition">
+                    <Link prefetch={false}href="/dashboard" className="px-6 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 transition">
                         Master HQ
                     </Link>
                 </div>
@@ -1182,7 +1182,7 @@ export default function CreatorBioPage({ params }) {
                     The link-in-bio profile <code className="font-mono text-amber-700 font-bold bg-amber-100/60 px-2 py-0.5 rounded">@{rawUsername}</code> is currently archived.
                 </p>
                 <div className="mt-6 flex items-center justify-center gap-3">
-                    <Link href="/dashboard" className="px-6 py-2.5 rounded-2xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition">
+                    <Link prefetch={false}href="/dashboard" className="px-6 py-2.5 rounded-2xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition">
                         Manage in Master HQ
                     </Link>
                 </div>
@@ -1285,8 +1285,7 @@ export default function CreatorBioPage({ params }) {
             {isPreviewMode && !isMobileDevice && (
                 <header className="hidden md:flex items-center justify-between px-6 py-3 bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-40 shadow-xs">
                     <div className="flex items-center gap-3">
-                        <Link 
-                            href="/" 
+                        <Link prefetch={false}href="/" 
                             className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition"
                         >
                             <ArrowLeft size={14} /> Back to GumShop
@@ -1295,8 +1294,7 @@ export default function CreatorBioPage({ params }) {
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100">
                             ⚡ Link-in-Bio Mode • Live Store Sync
                         </span>
-                        <Link
-                            href={`/store/bio-editor?store=${encodeURIComponent(rawUsername)}`}
+                        <Link prefetch={false}href={`/store/bio-editor?store=${encodeURIComponent(rawUsername)}`}
                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
                         >
                             <Smartphone size={12} className="text-rose-500" />
@@ -1338,8 +1336,7 @@ export default function CreatorBioPage({ params }) {
                         </button>
 
                         {/* View Standard Catalog */}
-                        <Link
-                            href={`/shop/${rawUsername}`}
+                        <Link prefetch={false}href={`/shop/${rawUsername}`}
                             className="px-3.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
                         >
                             <Globe size={13} />
@@ -1420,8 +1417,7 @@ export default function CreatorBioPage({ params }) {
 
                                 {/* Direct Bridge to Full Storefront & Cart */}
                                 <div className="mt-3 flex items-center justify-center flex-wrap gap-2">
-                                    <Link
-                                        href={`/shop/${rawUsername}`}
+                                    <Link prefetch={false}href={`/shop/${rawUsername}`}
                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold shadow-xs transition active:scale-95"
                                     >
                                         <Globe size={12} className="text-emerald-400" />
@@ -1440,8 +1436,7 @@ export default function CreatorBioPage({ params }) {
                                             </span>
                                         )}
                                     </button>
-                                    <Link
-                                        href={`/shop/${rawUsername}/track`}
+                                    <Link prefetch={false}href={`/shop/${rawUsername}/track`}
                                         className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium transition"
                                     >
                                         <span>Track Order</span>
@@ -2461,8 +2456,7 @@ export default function CreatorBioPage({ params }) {
                                         This store is currently curating their catalog. Check back shortly!
                                     </p>
                                     <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-2">
-                                        <Link
-                                            href={`/shop/${rawUsername}`}
+                                        <Link prefetch={false}href={`/shop/${rawUsername}`}
                                             className="text-xs font-bold text-slate-900 bg-white hover:bg-slate-100 px-4 py-2 rounded-xl border border-slate-200 shadow-2xs transition"
                                         >
                                             Visit Full Storefront
@@ -2558,23 +2552,23 @@ export default function CreatorBioPage({ params }) {
                             {/* ─── Stan Store In-Bio Footer ─── */}
                             <footer className="mt-8 pt-5 pb-2 border-t border-slate-200/80 px-2 text-center">
                                 <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5 text-[11px] font-semibold text-slate-500">
-                                    <Link href={`/shop/${cleanUser}`} className="hover:text-slate-900 font-bold text-slate-800 transition">
+                                    <Link prefetch={false}href={`/shop/${cleanUser}`} className="hover:text-slate-900 font-bold text-slate-800 transition">
                                         Full Storefront
                                     </Link>
                                     <span className="text-slate-300">•</span>
-                                    <Link href={`/policies/shipping?store=${cleanUser}`} className="hover:text-slate-900 transition">
+                                    <Link prefetch={false}href={`/policies/shipping?store=${cleanUser}`} className="hover:text-slate-900 transition">
                                         Shipping Policy
                                     </Link>
                                     <span className="text-slate-300">•</span>
-                                    <Link href={`/policies/refund?store=${cleanUser}`} className="hover:text-slate-900 transition">
+                                    <Link prefetch={false}href={`/policies/refund?store=${cleanUser}`} className="hover:text-slate-900 transition">
                                         Refund & Return Policy
                                     </Link>
                                     <span className="text-slate-300">•</span>
-                                    <Link href={`/policies/privacy?store=${cleanUser}`} className="hover:text-slate-900 transition">
+                                    <Link prefetch={false}href={`/policies/privacy?store=${cleanUser}`} className="hover:text-slate-900 transition">
                                         Privacy Policy
                                     </Link>
                                     <span className="text-slate-300">•</span>
-                                    <Link href={`/policies/terms?store=${cleanUser}`} className="hover:text-slate-900 transition">
+                                    <Link prefetch={false}href={`/policies/terms?store=${cleanUser}`} className="hover:text-slate-900 transition">
                                         Terms of Service
                                     </Link>
                                 </div>

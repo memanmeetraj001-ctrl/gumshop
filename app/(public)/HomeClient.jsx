@@ -95,6 +95,7 @@ export default function HomeClient({ initialStore = null, initialMode = 'single'
                 return s.products;
             }
         }
+        return Array.isArray(initialProducts) ? initialProducts : [];
     });
 
     const [loading, setLoading] = useState(false);
@@ -296,8 +297,8 @@ export default function HomeClient({ initialStore = null, initialMode = 'single'
     // Extract dynamic unique categories
     const categories = useMemo(() => {
         const set = new Set(['All']);
-        products.forEach(p => {
-            if (p.category) set.add(p.category);
+        (Array.isArray(products) ? products : []).forEach(p => {
+            if (p && p.category) set.add(p.category);
         });
         return Array.from(set);
     }, [products]);
@@ -308,8 +309,9 @@ export default function HomeClient({ initialStore = null, initialMode = 'single'
     const shopsList = useMemo(() => {
         if (!isMultiStore) return [];
         const map = new Map();
-        products.forEach(p => {
-            const slug = p.storeSlug || p.storeId?.replace(/^store_/, '');
+        (Array.isArray(products) ? products : []).forEach(p => {
+            if (!p) return;
+            const slug = p.storeSlug || (p.storeId ? String(p.storeId).replace(/^store_/, '') : '');
             const name = p.storeName || slug;
             if (slug && !map.has(slug)) {
                 map.set(slug, { slug, name });

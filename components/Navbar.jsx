@@ -197,11 +197,11 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                         </span>
                         <span>•</span>
                         {isOwner ? (
-                            <Link href="/dashboard" className="text-emerald-400 hover:underline font-bold flex items-center gap-1">
+                            <Link prefetch={false}href="/dashboard" className="text-emerald-400 hover:underline font-bold flex items-center gap-1">
                                 <Store size={12} /> HQ Dashboard
                             </Link>
                         ) : (
-                            <Link href="/track" className="hover:text-slate-200 transition">
+                            <Link prefetch={false}href="/track" className="hover:text-slate-200 transition">
                                 📦 Track Order
                             </Link>
                         )}
@@ -215,7 +215,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                     
                     {/* Brand Logo & Stores Switcher */}
                     <div className="flex items-center gap-3">
-                        <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
+                        <Link prefetch={false}href="/" className="flex items-center gap-2.5 shrink-0 group">
                             <div className="size-10 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-md shadow-slate-900/10 group-hover:bg-emerald-600 transition-colors">
                                 <Zap size={20} className="fill-white" />
                             </div>
@@ -247,8 +247,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                                         {availableStores.map(s => {
                                             const sLogo = s.logo || s.avatar;
                                             return (
-                                                <Link
-                                                    key={s.username}
+                                                <Link prefetch={false}key={s.username}
                                                     href={`/shop/${s.username}`}
                                                     onClick={() => setStoresMenuOpen(false)}
                                                     className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs hover:bg-slate-50 text-slate-800 transition"
@@ -298,13 +297,13 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
 
                     {/* Quick Category Navigation Links */}
                     <nav className="hidden lg:flex items-center gap-6 text-xs font-bold text-slate-600">
-                        <Link href="/#catalog" className="hover:text-emerald-600 transition">
+                        <Link prefetch={false}href="/#catalog" className="hover:text-emerald-600 transition">
                             All Products
                         </Link>
-                        <Link href="/#special-deals" className="hover:text-emerald-600 transition flex items-center gap-1 text-rose-600 font-extrabold">
+                        <Link prefetch={false}href="/#special-deals" className="hover:text-emerald-600 transition flex items-center gap-1 text-rose-600 font-extrabold">
                             🔥 Special Deals
                         </Link>
-                        <Link href="/track" className="hover:text-emerald-600 transition">
+                        <Link prefetch={false}href="/track" className="hover:text-emerald-600 transition">
                             📦 Track Order
                         </Link>
                     </nav>
@@ -344,8 +343,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
 
                         {/* Owner Quick Access */}
                         {isOwner && (
-                            <Link
-                                href="/dashboard"
+                            <Link prefetch={false}href="/dashboard"
                                 className="hidden sm:inline-flex p-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                                 title="Store HQ / Cloner"
                                 aria-label="Open Master Fleet Dashboard"
@@ -412,30 +410,26 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
 
                             {/* Storefront Navigation Links */}
                             <div className="flex flex-col gap-1.5 mt-5 text-sm font-bold text-slate-700">
-                                <Link 
-                                    href="/#catalog" 
+                                <Link prefetch={false}href="/#catalog" 
                                     onClick={() => setMobileMenuOpen(false)}
                                     className="p-3 rounded-xl hover:bg-slate-50 text-slate-800 transition flex items-center justify-between"
                                 >
                                     <span>Browse All Products</span>
                                 </Link>
-                                <Link 
-                                    href="/#special-deals" 
+                                <Link prefetch={false}href="/#special-deals" 
                                     onClick={() => setMobileMenuOpen(false)}
                                     className="p-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold transition flex items-center justify-between"
                                 >
                                     <span>🔥 Special Deals</span>
                                     <span className="text-[10px] bg-rose-200/80 text-rose-800 px-2 py-0.5 rounded-full font-bold">Limited</span>
                                 </Link>
-                                <Link 
-                                    href="/shop" 
+                                <Link prefetch={false}href="/shop" 
                                     onClick={() => setMobileMenuOpen(false)}
                                     className="p-3 rounded-xl hover:bg-slate-50 text-slate-800 transition"
                                 >
                                     Trending Collections
                                 </Link>
-                                <Link 
-                                    href="/track" 
+                                <Link prefetch={false}href="/track" 
                                     onClick={() => setMobileMenuOpen(false)}
                                     className="p-3 rounded-xl hover:bg-slate-50 text-slate-800 transition"
                                 >
@@ -465,8 +459,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                                     </div>
                                     <div className="space-y-1">
                                         {availableStores.map(store => (
-                                            <Link
-                                                key={store.id || store.username}
+                                            <Link prefetch={false}key={store.id || store.username}
                                                 href={`/shop/${store.username || store.id}`}
                                                 onClick={() => setMobileMenuOpen(false)}
                                                 className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition text-xs font-bold text-slate-700"
@@ -486,15 +479,14 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                         {/* Footer Quick Links & Owner Button */}
                         <div className="pt-6 border-t border-slate-100 mt-6 space-y-3">
                             <div className="grid grid-cols-2 gap-2 text-[11px] font-medium text-slate-500">
-                                <Link href="/policies/shipping" onClick={() => setMobileMenuOpen(false)} className="hover:text-slate-800">Shipping Policy</Link>
-                                <Link href="/policies/refund" onClick={() => setMobileMenuOpen(false)} className="hover:text-slate-800">Refund Policy</Link>
-                                <Link href="/policies/privacy" onClick={() => setMobileMenuOpen(false)} className="hover:text-slate-800">Privacy Policy</Link>
-                                <Link href="/policies/terms" onClick={() => setMobileMenuOpen(false)} className="hover:text-slate-800">Terms of Service</Link>
+                                <Link prefetch={false}href="/policies/shipping" onClick={() => setMobileMenuOpen(false)} className="hover:text-slate-800">Shipping Policy</Link>
+                                <Link prefetch={false}href="/policies/refund" onClick={() => setMobileMenuOpen(false)} className="hover:text-slate-800">Refund Policy</Link>
+                                <Link prefetch={false}href="/policies/privacy" onClick={() => setMobileMenuOpen(false)} className="hover:text-slate-800">Privacy Policy</Link>
+                                <Link prefetch={false}href="/policies/terms" onClick={() => setMobileMenuOpen(false)} className="hover:text-slate-800">Terms of Service</Link>
                             </div>
 
                             {isOwner ? (
-                                <Link
-                                    href="/dashboard"
+                                <Link prefetch={false}href="/dashboard"
                                     onClick={() => setMobileMenuOpen(false)}
                                     className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition"
                                 >
@@ -502,8 +494,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                                     <span>Enter Owner HQ</span>
                                 </Link>
                             ) : (
-                                <Link
-                                    href="/login"
+                                <Link prefetch={false}href="/login"
                                     onClick={() => setMobileMenuOpen(false)}
                                     className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition"
                                 >
