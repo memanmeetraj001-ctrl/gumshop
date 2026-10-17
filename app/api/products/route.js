@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { dbGetProducts, dbCreateProduct, dbUpdateProduct, dbDeleteProduct } from '@/lib/supabase';
+import { dbGetProducts, dbCreateProduct, dbUpdateProduct, dbUpsertProductsBulk, dbDeleteProduct } from '@/lib/supabase';
 import { getAllProductsWithStores } from '@/lib/db/products';
 
 export const dynamic = 'force-dynamic';
@@ -120,19 +120,8 @@ export async function PATCH(req) {
         }
       }
 
-      // 3. Update products table in parallel chunks of 15 items to stay well below Cloudflare subrequest limits
-      const chunkSize = 15;
-      const results = [];
-      for (let i = 0; i < items.length; i += chunkSize) {
-        const chunk = items.slice(i, i + chunkSize);
-        const chunkRes = await Promise.all(chunk.map(async (item) => {
-          if (!item || !item.id) return null;
-          const updates = item.updates || { ...item };
-          delete updates.id;
-          return await dbUpdateProduct(item.id, { ...updates, _skipStoreSync: Boolean(storeSlug) });
-        }));
-        results.push(...chunkRes.filter(Boolean));
-      }
+      // 3. Update products table via native multi-row upsert in ONE single atomic subrequest!
+      const results = await dbUpsertProductsBulk(items);
       return NextResponse.json({ success: true, count: results.length, products: results }, { headers: NO_CACHE_HEADERS });
     }
 

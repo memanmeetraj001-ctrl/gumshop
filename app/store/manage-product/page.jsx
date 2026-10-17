@@ -100,6 +100,7 @@ export default function StoreManageProducts() {
         customMsrpPercent: 35
     });
     const [isApplyingBulkPrice, setIsApplyingBulkPrice] = useState(false);
+    const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, percent: 0, batch: 0, totalBatches: 0, statusText: '' });
 
     const fetchProducts = async () => {
         try {
@@ -356,6 +357,7 @@ export default function StoreManageProducts() {
     };
 
     // Bulk Price Studio Full Execution
+    // Bulk Price Studio Full Execution
     const handleApplyBulkPricing = async () => {
         if (targetBulkProducts.length === 0) return;
         setIsApplyingBulkPrice(true);
@@ -378,12 +380,32 @@ export default function StoreManageProducts() {
                 };
             });
 
-            await updateProductsBatch(updatesList);
+            const BATCH_SIZE = 50;
+            const totalBatches = Math.ceil(updatesList.length / BATCH_SIZE);
+            setBulkProgress({ current: 0, total: updatesList.length, percent: 0, batch: 0, totalBatches, statusText: 'Starting update...' });
 
-            setProducts(prev => prev.map(p => {
-                const match = updatesList.find(u => u.id === p.id);
-                return match ? { ...p, ...match } : p;
-            }));
+            for (let i = 0; i < updatesList.length; i += BATCH_SIZE) {
+                const batchItems = updatesList.slice(i, i + BATCH_SIZE);
+                const currentBatchNum = Math.floor(i / BATCH_SIZE) + 1;
+                const processedCount = Math.min(i + BATCH_SIZE, updatesList.length);
+                const percent = Math.round((processedCount / updatesList.length) * 100);
+
+                setBulkProgress({
+                    current: processedCount,
+                    total: updatesList.length,
+                    percent,
+                    batch: currentBatchNum,
+                    totalBatches,
+                    statusText: `Updating Batch ${currentBatchNum} of ${totalBatches} (${processedCount}/${updatesList.length} items)...`
+                });
+
+                await updateProductsBatch(batchItems);
+
+                setProducts(prev => prev.map(p => {
+                    const match = batchItems.find(u => u.id === p.id);
+                    return match ? { ...p, ...match } : p;
+                }));
+            }
 
             toast.success(`Successfully updated ${updatesList.length} products! 🚀`);
             setShowBulkPriceModal(false);
@@ -393,6 +415,7 @@ export default function StoreManageProducts() {
             toast.error("Failed to update products in bulk");
         } finally {
             setIsApplyingBulkPrice(false);
+            setBulkProgress({ current: 0, total: 0, percent: 0, batch: 0, totalBatches: 0, statusText: '' });
         }
     };
 
@@ -425,11 +448,17 @@ export default function StoreManageProducts() {
                     customBundles: calc.customBundles
                 };
             });
-            await updateProductsBatch(updatesList);
-            setProducts(prev => prev.map(p => {
-                const match = updatesList.find(u => u.id === p.id);
-                return match ? { ...p, ...match } : p;
-            }));
+
+            const BATCH_SIZE = 50;
+            for (let i = 0; i < updatesList.length; i += BATCH_SIZE) {
+                const batchItems = updatesList.slice(i, i + BATCH_SIZE);
+                await updateProductsBatch(batchItems);
+                setProducts(prev => prev.map(p => {
+                    const match = batchItems.find(u => u.id === p.id);
+                    return match ? { ...p, ...match } : p;
+                }));
+            }
+
             toast.success(`Applied +${Math.round(percentMultiplier * 100)}% markup (.99) to ${updatesList.length} products! 🚀`);
             setSelectedIds([]);
         } catch (err) {
@@ -468,11 +497,17 @@ export default function StoreManageProducts() {
                     customBundles: calc.customBundles
                 };
             });
-            await updateProductsBatch(updatesList);
-            setProducts(prev => prev.map(p => {
-                const match = updatesList.find(u => u.id === p.id);
-                return match ? { ...p, ...match } : p;
-            }));
+
+            const BATCH_SIZE = 50;
+            for (let i = 0; i < updatesList.length; i += BATCH_SIZE) {
+                const batchItems = updatesList.slice(i, i + BATCH_SIZE);
+                await updateProductsBatch(batchItems);
+                setProducts(prev => prev.map(p => {
+                    const match = batchItems.find(u => u.id === p.id);
+                    return match ? { ...p, ...match } : p;
+                }));
+            }
+
             toast.success(`Applied -${discountPercent}% flash discount to ${updatesList.length} products! ⚡`);
             setSelectedIds([]);
         } catch (err) {
@@ -511,11 +546,17 @@ export default function StoreManageProducts() {
                     customBundles: calc.customBundles
                 };
             });
-            await updateProductsBatch(updatesList);
-            setProducts(prev => prev.map(p => {
-                const match = updatesList.find(u => u.id === p.id);
-                return match ? { ...p, ...match } : p;
-            }));
+
+            const BATCH_SIZE = 50;
+            for (let i = 0; i < updatesList.length; i += BATCH_SIZE) {
+                const batchItems = updatesList.slice(i, i + BATCH_SIZE);
+                await updateProductsBatch(batchItems);
+                setProducts(prev => prev.map(p => {
+                    const match = batchItems.find(u => u.id === p.id);
+                    return match ? { ...p, ...match } : p;
+                }));
+            }
+
             toast.success(`Formatted ${updatesList.length} prices to end cleanly in .99! ✨`);
             setSelectedIds([]);
         } catch (err) {
@@ -1776,12 +1817,32 @@ export default function StoreManageProducts() {
                             </div>
                         </div>
 
+                        {/* Live Visual Progress Bar for Large Batches */}
+                        {isApplyingBulkPrice && (
+                            <div className="px-6 py-3 bg-emerald-50/70 border-t border-emerald-100">
+                                <div className="flex items-center justify-between text-xs font-bold mb-1.5">
+                                    <span className="flex items-center gap-1.5 text-emerald-800">
+                                        <RefreshCw size={12} className="animate-spin text-emerald-600" />
+                                        <span>{bulkProgress.statusText || 'Updating products...'}</span>
+                                    </span>
+                                    <span className="font-mono text-emerald-700 font-extrabold">{bulkProgress.percent}%</span>
+                                </div>
+                                <div className="w-full bg-emerald-200/60 h-2.5 rounded-full overflow-hidden">
+                                    <div 
+                                        className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full transition-all duration-300 rounded-full"
+                                        style={{ width: `${bulkProgress.percent}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         {/* Modal Footer Actions */}
                         <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
                             <button
                                 type="button"
                                 onClick={() => setShowBulkPriceModal(false)}
-                                className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-200/60 transition cursor-pointer"
+                                disabled={isApplyingBulkPrice}
+                                className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-200/60 transition disabled:opacity-40 cursor-pointer"
                             >
                                 Cancel
                             </button>
@@ -1795,7 +1856,7 @@ export default function StoreManageProducts() {
                                 {isApplyingBulkPrice ? (
                                     <>
                                         <RefreshCw size={14} className="animate-spin" />
-                                        <span>Applying to {targetBulkProducts.length} Items...</span>
+                                        <span>{bulkProgress.percent > 0 ? `Updating (${bulkProgress.percent}%)` : `Applying to ${targetBulkProducts.length} Items...`}</span>
                                     </>
                                 ) : (
                                     <>
