@@ -146,10 +146,14 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
         );
     }
 
-    const categories = ['All', ...new Set((products || []).map(p => p.category).filter(Boolean))];
+    const categoryList = Array.from(new Set((products || []).map(p => p.category).filter(Boolean)));
+    const hasFeatured = (products || []).some(p => p.is_featured);
+    const categories = ['All', ...(hasFeatured ? ['Featured'] : []), ...categoryList.filter(c => c !== 'Featured')];
     const filteredProducts = activeCategory === 'All'
         ? products
-        : products.filter(p => p.category === activeCategory);
+        : activeCategory === 'Featured'
+            ? products.filter(p => p.is_featured)
+            : products.filter(p => p.category === activeCategory);
     const displayedProducts = filteredProducts.slice(0, visibleCount);
 
     return (
