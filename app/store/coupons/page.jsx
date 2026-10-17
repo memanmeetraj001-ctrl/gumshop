@@ -79,7 +79,11 @@ export default function StoreCoupons() {
             }
 
             const data = await getAllCoupons()
-            setCoupons((data || []).filter(c => c.storeId === currentStore.id))
+            const cleanCurId = (currentStore.id || currentStore.username || '').toLowerCase().replace(/^store_/, '');
+            setCoupons((data || []).filter(c => {
+                const cSid = (c.storeId || '').toLowerCase().replace(/^store_/, '');
+                return cSid === cleanCurId || c.storeId === currentStore.id;
+            }))
         } catch (err) {
             console.error("Error fetching coupons:", err)
         } finally {

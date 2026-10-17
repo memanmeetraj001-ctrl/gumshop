@@ -1023,6 +1023,7 @@ export default function StoreManageProducts() {
                                                 <div className="flex items-center gap-1">
                                                     <span className="text-slate-400 text-xs font-bold">$</span>
                                                     <input
+                                                        key={`${product.id}_price_${retail}`}
                                                         type="number"
                                                         step="0.01"
                                                         defaultValue={retail}
@@ -1044,6 +1045,7 @@ export default function StoreManageProducts() {
                                                 <div className="flex items-center gap-1">
                                                     <span className="text-slate-400 text-xs">$</span>
                                                     <input
+                                                        key={`${product.id}_cost_${supplier}`}
                                                         type="number"
                                                         step="0.5"
                                                         defaultValue={supplier}

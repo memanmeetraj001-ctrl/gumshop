@@ -1,11 +1,13 @@
 'use client'
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { HomeIcon, SquarePenIcon, SquarePlusIcon, TicketPercentIcon, SettingsIcon, Sparkles, ExternalLink, Smartphone, Package, Users, BarChart3, CreditCard } from "lucide-react"
 import Link from "next/link"
 import { getActiveStoreSync } from "@/lib/activeStore"
 
 const StoreSidebar = ({ storeInfo }) => {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const currentTab = searchParams?.get('tab');
     const active = getActiveStoreSync();
     const storeSlug = storeInfo?.username || storeInfo?.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '') || active?.username || active?.id || 'store';
 
@@ -69,7 +71,10 @@ const StoreSidebar = ({ storeInfo }) => {
                 <nav className="py-4 space-y-1">
                     {sidebarLinks.map((link, index) => {
                         const Icon = link.icon;
-                        const isActive = pathname === link.href;
+                        const [linkPath, linkQuery] = link.href.split('?');
+                        const linkParams = new URLSearchParams(linkQuery || '');
+                        const linkTab = linkParams.get('tab');
+                        const isActive = !link.external && pathname === linkPath && (linkTab ? currentTab === linkTab : !currentTab);
                         return (
                             <Link 
                                 key={index} 

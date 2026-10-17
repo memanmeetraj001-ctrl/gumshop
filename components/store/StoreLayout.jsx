@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useEffect, useState, useRef, useCallback, Suspense } from "react"
 import Loading from "../Loading"
 import SellerNavbar from "./StoreNavbar"
 import SellerSidebar from "./StoreSidebar"
@@ -90,9 +90,13 @@ const StoreLayout = ({ children }) => {
             <SellerNavbar storeInfo={storeInfo} />
 
             <div className="flex flex-1 items-start h-full overflow-y-scroll no-scrollbar">
-                <SellerSidebar storeInfo={storeInfo} />
+                <Suspense fallback={<div className="w-16 md:w-64" />}>
+                    <SellerSidebar storeInfo={storeInfo} />
+                </Suspense>
                 <div className="flex-1 h-full p-5 lg:pl-10 lg:pt-8 overflow-y-scroll">
-                    {children}
+                    <Suspense fallback={<Loading />}>
+                        {children}
+                    </Suspense>
                 </div>
             </div>
         </div>

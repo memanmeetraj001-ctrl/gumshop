@@ -306,7 +306,8 @@ function AddProductContent() {
                 toast.success(`Product published to "${store.name}"! 🎉`)
             }
             setActiveStoreSlug(store);
-            router.push('/store/manage-product');
+            const targetSlug = store?.username || store?.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '') || store?.id || searchParams?.get('store') || '';
+            router.push(targetSlug ? `/store/manage-product?store=${targetSlug}` : '/store/manage-product');
         } catch (error) {
             console.error("Error creating/updating product:", error)
             toast.error(error.message || "Failed to save product")

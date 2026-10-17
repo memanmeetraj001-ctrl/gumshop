@@ -75,20 +75,26 @@ export default function StoreCustomersPage() {
 
                 // Load Stan Store Lead Magnet Subscribers
                 let loadedLeads = [];
+                try {
+                    const lRes = await fetch(`/api/store/leads?store=${encodeURIComponent(cleanSlug)}`, { cache: 'no-store' });
+                    if (lRes.ok) {
+                        const lData = await lRes.json().catch(() => ({}));
+                        if (Array.isArray(lData.leads)) loadedLeads = lData.leads;
+                    }
+                } catch {}
+
                 if (typeof window !== 'undefined') {
                     try {
                         const raw1 = localStorage.getItem(`gumshop_customers_${cleanSlug}`);
                         const raw2 = localStorage.getItem(`gumshop_customers_${storeId}`);
                         const list1 = raw1 ? JSON.parse(raw1) : [];
                         const list2 = raw2 ? JSON.parse(raw2) : [];
-                        loadedLeads = Array.isArray(list1) ? [...list1] : [];
-                        if (Array.isArray(list2)) {
-                            list2.forEach(l => {
-                                if (l && l.email && !loadedLeads.some(x => x.email === l.email)) {
-                                    loadedLeads.push(l);
-                                }
-                            });
-                        }
+                        const localCombined = [...(Array.isArray(list1) ? list1 : []), ...(Array.isArray(list2) ? list2 : [])];
+                        localCombined.forEach(l => {
+                            if (l && l.email && !loadedLeads.some(x => x.email === l.email)) {
+                                loadedLeads.push(l);
+                            }
+                        });
                     } catch {}
                 }
 

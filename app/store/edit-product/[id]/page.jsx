@@ -1,7 +1,8 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { getActiveStoreSync } from '@/lib/activeStore';
 import { generateContextualBundles } from '@/lib/importer/productEnhancer';
 import { 
     ArrowLeft, 
@@ -27,6 +28,10 @@ import toast from 'react-hot-toast';
 export default function EditProductPage() {
     const { id: productId } = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const active = getActiveStoreSync();
+    const storeSlug = searchParams?.get('store') || active?.username || active?.id || '';
+    const backUrl = storeSlug ? `/store/manage-product?store=${storeSlug}` : '/store/manage-product';
 
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -156,7 +161,7 @@ export default function EditProductPage() {
 
             await updateProduct(productId, updatedData);
             toast.success(`"${formData.name}" saved successfully! 🚀`);
-            router.push('/store/manage-product');
+            router.push(backUrl);
         } catch (err) {
             console.error('Save product error:', err);
             toast.error(err.message || 'Failed to save product changes');
@@ -171,7 +176,7 @@ export default function EditProductPage() {
         try {
             await deleteProduct(productId);
             toast.success('Product removed from catalog');
-            router.push('/store/manage-product');
+            router.push(backUrl);
         } catch (err) {
             toast.error('Failed to delete product');
         } finally {
@@ -191,7 +196,7 @@ export default function EditProductPage() {
             {/* Top Navigation */}
             <div className="flex items-center justify-between pb-6 border-b border-slate-200">
                 <Link
-                    href="/store/manage-product"
+                    href={backUrl}
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition"
                 >
                     <ArrowLeft size={16} />

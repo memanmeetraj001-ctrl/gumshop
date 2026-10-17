@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import { getActiveStore, getActiveStoreSync } from "@/lib/activeStore";
 import { 
@@ -26,6 +27,7 @@ import toast from "react-hot-toast";
 
 export default function StoreMarketingLaunchKit() {
     const { user } = useAuth();
+    const searchParams = useSearchParams();
     const [storeInfo, setStoreInfo] = useState(() => getActiveStoreSync());
     const [activeTab, setActiveTab] = useState('content'); // 'content' | 'utm' | 'qr' | 'leads'
     const [copiedIndex, setCopiedIndex] = useState(null);
@@ -60,7 +62,8 @@ export default function StoreMarketingLaunchKit() {
     }, [user]);
 
     const activeSyncStore = storeInfo || getActiveStoreSync();
-    const storeSlug = activeSyncStore?.username || activeSyncStore?.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '') || (typeof window !== 'undefined' ? (localStorage.getItem('active_store_slug') || '') : '') || '';
+    const urlStore = searchParams?.get('store');
+    const storeSlug = urlStore || activeSyncStore?.username || activeSyncStore?.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '') || (typeof window !== 'undefined' ? (localStorage.getItem('active_store_slug') || '') : '') || '';
     const baseOrigin = mountedOrigin || 'https://gumshop.online';
     const storeLink = storeSlug ? `${baseOrigin}/shop/${storeSlug}` : `${baseOrigin}/dashboard`;
     const bioLink = storeSlug ? `${baseOrigin}/creator/${storeSlug}` : `${baseOrigin}/dashboard`;
