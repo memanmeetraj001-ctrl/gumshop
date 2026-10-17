@@ -32,7 +32,7 @@ function getFiles(dir, exts = ['.js', '.jsx']) {
     let results = [];
     const list = fs.readdirSync(dir);
     for (const file of list) {
-        if (file === 'node_modules' || file === '.next' || file === '.git' || file === '.agents') continue;
+        if (file === 'node_modules' || file === '.next' || file === '.open-next' || file === '.git' || file === '.agents') continue;
         const filePath = path.join(dir, file);
         const stat = fs.statSync(filePath);
         if (stat && stat.isDirectory()) {

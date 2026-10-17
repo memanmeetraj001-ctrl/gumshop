@@ -10,6 +10,11 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "gumshop.online/*", "zone_name": "gumshop.online" },
+    { "pattern": "*.gumshop.online/*", "zone_name": "gumshop.online" }
+  ],
   "vars": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://rkdigvwkcbbysuvilkzp.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_kS8eq_QMEg5qLnsJxAIqCg_eYTuU6uP",
