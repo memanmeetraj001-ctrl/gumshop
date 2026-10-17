@@ -64,13 +64,26 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function CreatorBioPage({ params }) {
-    const { username } = await params;
-    const store = await getCachedStore(username);
-    const products = store ? await getCachedProducts(username) : [];
+    let username = '';
+    let store = null;
+    let products = [];
+
+    try {
+        const resolvedParams = await params;
+        username = resolvedParams?.username || '';
+        store = await getCachedStore(username);
+        products = store ? await getCachedProducts(username) : [];
+    } catch (err) {
+        console.error('[CreatorBioPage] Resolution notice:', err.message);
+    }
+
+    // De-duplicate products payload: initialProducts is the authoritative array,
+    // so omit store.products from initialStore to keep React Server Component Flight stream ultra-lean (<150KB)
+    const leanStore = store ? { ...store, products: [] } : null;
 
     return (
         <CreatorClient 
-            initialStore={store} 
+            initialStore={leanStore} 
             initialProducts={products} 
             username={username} 
         />

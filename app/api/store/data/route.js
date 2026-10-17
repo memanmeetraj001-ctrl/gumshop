@@ -50,10 +50,13 @@ export async function GET(req) {
             ? store.products
             : (store && store.id ? await serverGetProducts(store.id) : []);
 
+        // De-duplicate products: return lean store without duplicate products array inside store object
+        const leanStore = store ? { ...store, products: [] } : null;
+
         return NextResponse.json({
             success: true,
             isSupabase: isSupabaseConfigured(),
-            store,
+            store: leanStore,
             products
         }, { headers: responseHeaders });
     } catch (e) {

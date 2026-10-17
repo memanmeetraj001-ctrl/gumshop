@@ -695,12 +695,25 @@ export default function CreatorClient({ initialStore = null, initialProducts = [
 
     useEffect(() => {
         let isMounted = true;
+
+        // If initialStore is already provided from Server Component SSR, skip redundant network fetch
+        if (initialStore) {
+            setLoading(false);
+            // Still register store sync listeners below
+        }
+
         // Safety timer to prevent perpetual loading spinner if network drops
         const safetyTimer = setTimeout(() => {
             if (isMounted) setLoading(false);
-        }, 3000);
+        }, 5000);
 
         const loadCreatorStore = async (isRetry = false) => {
+            // If already loaded from SSR and this is the initial mount, skip
+            if (initialStore && !isRetry) {
+                if (isMounted) setLoading(false);
+                return;
+            }
+
             try {
                 // 1. Authoritative Supabase / serverDb fetch
                 let store = null;
