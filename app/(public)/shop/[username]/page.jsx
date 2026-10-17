@@ -67,6 +67,7 @@ export default async function StoreShopPage({ params }) {
     const { username } = await params;
     const store = await getCachedStore(username);
     const products = store ? await getCachedProducts(username) : [];
+    const leanStore = store ? { ...store, products: [] } : null;
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';
 
     let jsonLdSchemas = [];
@@ -143,7 +144,7 @@ export default async function StoreShopPage({ params }) {
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
                 />
             ))}
-            <ShopClient initialStore={store} initialProducts={products} username={username} />
+            <ShopClient initialStore={leanStore} initialProducts={products} username={username} />
         </>
     );
 }
