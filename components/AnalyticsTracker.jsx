@@ -51,6 +51,21 @@ export function trackEvent(eventType, metadata = {}) {
         const vid = getOrCreateVisitorId();
         const sid = getOrCreateSessionId();
 
+        // Automatically resolve storeSlug from URL if not explicitly provided
+        let storeSlug = metadata.storeSlug || metadata.storeId || '';
+        if (!storeSlug) {
+            if (pathname.startsWith('/shop/')) {
+                storeSlug = pathname.split('/shop/')[1]?.split('/')[0] || '';
+            } else if (pathname.startsWith('/creator/')) {
+                storeSlug = pathname.split('/creator/')[1]?.split('/')[0] || '';
+            } else if (typeof window !== 'undefined' && window.location.search) {
+                try {
+                    const params = new URLSearchParams(window.location.search);
+                    storeSlug = params.get('store') || '';
+                } catch {}
+            }
+        }
+
         const payload = {
             visitorId: vid,
             sessionId: sid,
@@ -59,8 +74,8 @@ export function trackEvent(eventType, metadata = {}) {
             pageTitle: document.title || 'GumShop',
             referrer: document.referrer || '',
             deviceType: window.innerWidth < 640 ? 'mobile' : (window.innerWidth < 1024 ? 'tablet' : 'desktop'),
-            storeId: metadata.storeId || metadata.storeSlug || '',
-            storeSlug: metadata.storeSlug || metadata.storeId || '',
+            storeId: storeSlug,
+            storeSlug: storeSlug,
             productId: metadata.productId || '',
             productName: metadata.productName || '',
             metadata: metadata.data || metadata
@@ -137,9 +152,8 @@ export default function AnalyticsTracker() {
         });
     }, [pathname, searchParams]);
 
-    // Throttled Presence Pulse (120s) & Session Exit Beacon
+    // Throttled Presence Pulse (45s) & Session Exit Beacon
     useEffect(() => {
-        // 1. Throttled Presence Pulse (Reduced from 30s to 120s to conserve serverless/edge compute)
         const interval = setInterval(() => {
             if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
                 const p = window.location.pathname;
@@ -147,7 +161,7 @@ export default function AnalyticsTracker() {
                     trackEvent('heartbeat');
                 }
             }
-        }, 120000);
+        }, 45000);
 
         // 2. Beacon on page hide / exit
         const handleVisibilityChange = () => {

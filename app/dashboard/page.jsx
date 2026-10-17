@@ -231,9 +231,10 @@ export default function MasterDashboardPage() {
         try {
             const query = new URLSearchParams({
                 timeframe: analyticsTimeframe,
-                store: analyticsStoreFilter
+                store: analyticsStoreFilter,
+                _t: String(Date.now())
             });
-            const res = await fetch(`/api/analytics/stats?${query.toString()}`);
+            const res = await fetch(`/api/analytics/stats?${query.toString()}`, { cache: 'no-store' });
             if (res.ok) {
                 const data = await res.json();
                 if (data.success) {
@@ -692,14 +693,14 @@ export default function MasterDashboardPage() {
         }
     }, [activeNavTab, analyticsTimeframe, analyticsStoreFilter]);
 
-    // Live Pulse Auto-Refresh (Throttled to 60s to conserve serverless invocations)
+    // Live Pulse Auto-Refresh (Every 15s when active tab is analytics)
     useEffect(() => {
         if (activeNavTab !== 'analytics' || !livePulseEnabled) return;
         const interval = setInterval(() => {
             if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
                 loadAnalytics();
             }
-        }, 60000);
+        }, 15000);
         return () => clearInterval(interval);
     }, [activeNavTab, livePulseEnabled, analyticsTimeframe, analyticsStoreFilter]);
 

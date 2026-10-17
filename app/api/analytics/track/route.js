@@ -62,26 +62,21 @@ const COUNTRY_MAP = {
 export async function POST(req) {
     try {
         let body = {};
-        const contentType = req.headers.get('content-type') || '';
-        
-        if (contentType.includes('application/json')) {
-            body = await req.json().catch(() => ({}));
-        } else if (contentType.includes('text/plain') || contentType.includes('application/x-www-form-urlencoded')) {
-            // navigator.sendBeacon frequently dispatches as text/plain
-            const text = await req.text();
-            try {
-                body = JSON.parse(text);
-            } catch {
-                body = {};
+        try {
+            const raw = await req.text();
+            if (raw && raw.trim()) {
+                body = JSON.parse(raw);
             }
+        } catch {
+            body = {};
         }
 
         const userAgent = req.headers.get('user-agent') || body.userAgent || '';
         const { deviceType, os, browser } = parseUserAgent(userAgent);
 
-        // Geolocation from Vercel / Cloudflare / Proxy headers
-        const headerCountry = req.headers.get('x-vercel-ip-country') 
-            || req.headers.get('cf-ipcountry') 
+        // Geolocation from Cloudflare / Vercel / Proxy headers
+        const headerCountry = req.headers.get('cf-ipcountry')
+            || req.headers.get('x-vercel-ip-country')
             || req.headers.get('x-country-code')
             || body.countryCode
             || 'US';

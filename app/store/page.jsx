@@ -202,7 +202,7 @@ export default function StoreAnalyticsDashboard() {
             .catch(() => {});
     }, [currentStore, timeRange]);
 
-    // Live Pulse Telemetry Auto-Refresh (Throttled to 60s with Tab Visibility Guard)
+    // Live Pulse Telemetry Auto-Refresh (Every 15s with Tab Visibility Guard)
     useEffect(() => {
         if (!currentStore) return;
         const cleanSid = (currentStore.username || currentStore.id || '').toLowerCase().replace(/^store_/, '');
@@ -211,7 +211,7 @@ export default function StoreAnalyticsDashboard() {
             // Guard: Pause polling if user is on another tab or browser is minimized
             if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
             try {
-                const aRes = await fetch(`/api/analytics/stats?timeframe=${encodeURIComponent(tfParam)}&store=${encodeURIComponent(cleanSid)}`, { cache: 'no-store' });
+                const aRes = await fetch(`/api/analytics/stats?timeframe=${encodeURIComponent(tfParam)}&store=${encodeURIComponent(cleanSid)}&_t=${Date.now()}`, { cache: 'no-store' });
                 if (aRes.ok) {
                     const aData = await aRes.json().catch(() => null);
                     if (aData && aData.success) {
@@ -219,7 +219,7 @@ export default function StoreAnalyticsDashboard() {
                     }
                 }
             } catch {}
-        }, 60000);
+        }, 15000);
         return () => clearInterval(interval);
     }, [currentStore, timeRange]);
 
