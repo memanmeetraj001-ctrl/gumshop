@@ -14,7 +14,7 @@ import {
     AlertCircle
 } from "lucide-react"
 import { getAllCoupons, createCoupon as dbCreateCoupon, deleteCoupon as dbDeleteCoupon, getProductsByStore } from "@/lib/firebaseDb"
-import { getActiveStore, getActiveStoreSync } from "@/lib/activeStore"
+import { getActiveStore, getActiveStoreSync, getAllLocalStores } from "@/lib/activeStore"
 import { useAuth } from "@/lib/AuthContext"
 import Loading from "@/components/Loading"
 
@@ -49,8 +49,18 @@ export default function StoreCoupons() {
             }
             let currentStore = null;
             if (targetSlug) {
-                const { resolveStoreFromSlug } = await import('@/lib/resolveStoreServer');
-                currentStore = await resolveStoreFromSlug(targetSlug, user);
+                const cleanSlug = targetSlug.toLowerCase().replace(/^store_/, '');
+                const localStores = getAllLocalStores();
+                currentStore = localStores.find(s => (s.username || s.slug || s.id || '').toLowerCase().replace(/^store_/, '') === cleanSlug);
+                if (!currentStore) {
+                    try {
+                        const res = await fetch(`/api/store/data?slug=${encodeURIComponent(cleanSlug)}`, { cache: 'no-store' });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.success && data.store) currentStore = data.store;
+                        }
+                    } catch {}
+                }
             }
             if (!currentStore) {
                 currentStore = await getActiveStore(user) || getActiveStoreSync();

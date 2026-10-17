@@ -1,17 +1,18 @@
 'use client'
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import Loading from "../Loading"
 import SellerNavbar from "./StoreNavbar"
 import SellerSidebar from "./StoreSidebar"
 import { useAuth } from "@/lib/AuthContext"
-import { getActiveStore, getActiveStoreSync } from "@/lib/activeStore"
+import { getActiveStore, getActiveStoreSync, getAllLocalStores, setActiveStoreSlug } from "@/lib/activeStore"
 
 const StoreLayout = ({ children }) => {
     const { user, loading: authLoading } = useAuth()
     const [storeInfo, setStoreInfo] = useState(() => getActiveStoreSync())
     const [loading, setLoading] = useState(false)
+    const lastInitSlugRef = useRef('')
 
-    const initStoreAccess = async () => {
+    const initStoreAccess = useCallback(async () => {
         try {
             let targetSlug = '';
             if (typeof window !== 'undefined') {
@@ -19,9 +20,14 @@ const StoreLayout = ({ children }) => {
                 targetSlug = (sp.get('store') || '').toLowerCase().trim().replace(/^store_/, '');
             }
 
+            // Deduplicate: Don't re-run if already initialized for this targetSlug
+            if (lastInitSlugRef.current === targetSlug && storeInfo) {
+                return;
+            }
+            lastInitSlugRef.current = targetSlug;
+
             let store = null;
             if (targetSlug) {
-                const { getAllLocalStores, setActiveStoreSlug } = await import('@/lib/activeStore');
                 const localStores = getAllLocalStores();
                 const found = localStores.find(s => (s.username || s.slug || s.id || '').toLowerCase().replace(/^store_/, '') === targetSlug);
                 if (found) {
@@ -51,27 +57,29 @@ const StoreLayout = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    }
+    }, [user, storeInfo]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
             setLoading(false);
-        }, 800);
+        }, 500);
 
         if (!authLoading) {
             initStoreAccess();
         }
 
+        // When active store changes externally, simply update local state — DO NOT re-invoke initStoreAccess!
         const handleStoreChange = () => {
             const active = getActiveStoreSync();
             if (active) setStoreInfo(active);
         };
+
         window.addEventListener('active_store_changed', handleStoreChange);
         return () => {
             clearTimeout(timer);
             window.removeEventListener('active_store_changed', handleStoreChange);
         };
-    }, [user, authLoading])
+    }, [authLoading, initStoreAccess]);
 
     if (loading) {
         return <Loading />

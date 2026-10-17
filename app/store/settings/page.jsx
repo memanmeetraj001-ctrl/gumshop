@@ -1,9 +1,9 @@
 'use client'
 import { useState, useEffect, useRef } from "react";
-import { toast } from "react-hot-toast";
 import { useAuth } from "@/lib/AuthContext";
+import { toast } from "react-hot-toast";
 import { updateStore, updateUser } from "@/lib/firebaseDb";
-import { getActiveStore, getActiveStoreSync, setActiveStoreSlug } from "@/lib/activeStore";
+import { getActiveStore, getActiveStoreSync, getAllLocalStores, setActiveStoreSlug } from "@/lib/activeStore";
 const database = null;
 const ref = () => null;
 const update = () => Promise.resolve();
@@ -111,11 +111,17 @@ export default function StoreSettings() {
 
                 let store = null;
                 if (targetSlug) {
-                    const { resolveStoreFromSlug } = await import('@/lib/resolveStoreServer');
-                    const resolved = await resolveStoreFromSlug(targetSlug, user);
-                    if (resolved) {
-                        store = resolved;
-                        setActiveStoreSlug(store);
+                    const cleanSlug = targetSlug.toLowerCase().replace(/^store_/, '');
+                    const localStores = getAllLocalStores();
+                    store = localStores.find(s => (s.username || s.slug || s.id || '').toLowerCase().replace(/^store_/, '') === cleanSlug);
+                    if (!store) {
+                        try {
+                            const res = await fetch(`/api/store/data?slug=${encodeURIComponent(cleanSlug)}`, { cache: 'no-store' });
+                            if (res.ok) {
+                                const data = await res.json();
+                                if (data.success && data.store) store = data.store;
+                            }
+                        } catch {}
                     }
                 }
 

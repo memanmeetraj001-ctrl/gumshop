@@ -131,8 +131,6 @@ export default function StoreOrders() {
                             const data = await res.json();
                             if (data.success && data.store) {
                                 store = data.store;
-                                const { setActiveStoreSlug } = await import('@/lib/activeStore');
-                                setActiveStoreSlug(store);
                             }
                         }
                     } catch {}

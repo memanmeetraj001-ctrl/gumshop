@@ -27,7 +27,7 @@ import {
     RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
-import { getActiveStore, getActiveStoreSync, setActiveStoreSlug } from '@/lib/activeStore';
+import { getActiveStore, getActiveStoreSync, getAllLocalStores, setActiveStoreSlug } from '@/lib/activeStore';
 import { getProductsByStore } from '@/lib/firebaseDb';
 import Loading from '@/components/Loading';
 import toast from 'react-hot-toast';
@@ -114,11 +114,17 @@ export default function StanStoreBioEditor() {
 
                 let store = null;
                 if (targetSlug) {
-                    const { resolveStoreFromSlug } = await import('@/lib/resolveStoreServer');
-                    const resolved = await resolveStoreFromSlug(targetSlug, user);
-                    if (resolved) {
-                        store = resolved;
-                        setActiveStoreSlug(store);
+                    const cleanSlug = targetSlug.toLowerCase().replace(/^store_/, '');
+                    const localStores = getAllLocalStores();
+                    store = localStores.find(s => (s.username || s.slug || s.id || '').toLowerCase().replace(/^store_/, '') === cleanSlug);
+                    if (!store) {
+                        try {
+                            const res = await fetch(`/api/store/data?slug=${encodeURIComponent(cleanSlug)}`, { cache: 'no-store' });
+                            if (res.ok) {
+                                const data = await res.json();
+                                if (data.success && data.store) store = data.store;
+                            }
+                        } catch {}
                     }
                 }
 

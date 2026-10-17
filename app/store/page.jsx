@@ -185,7 +185,22 @@ export default function StoreAnalyticsDashboard() {
         if (!authLoading) {
             fetchDashboardData();
         }
-    }, [user, authLoading, timeRange]);
+    }, [user, authLoading]);
+
+    // Fast-path timeframe switch without full catalog refetch
+    useEffect(() => {
+        if (!currentStore) return;
+        const cleanSid = (currentStore.username || currentStore.id || '').toLowerCase().replace(/^store_/, '');
+        const tfParam = timeRange === 'all' ? 'all' : (timeRange === 'today' ? 'today' : (timeRange === '7d' ? '7d' : '30d'));
+        fetch(`/api/analytics/stats?timeframe=${encodeURIComponent(tfParam)}&store=${encodeURIComponent(cleanSid)}`, { cache: 'no-store' })
+            .then(res => res.ok ? res.json() : null)
+            .then(aData => {
+                if (aData && aData.success) {
+                    setAnalyticsStats(aData);
+                }
+            })
+            .catch(() => {});
+    }, [currentStore, timeRange]);
 
     // Live Pulse Telemetry Auto-Refresh (Throttled to 60s with Tab Visibility Guard)
     useEffect(() => {
