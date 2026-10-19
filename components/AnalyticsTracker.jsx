@@ -155,7 +155,7 @@ export default function AnalyticsTracker() {
         });
     }, [pathname, searchParams]);
 
-    // Throttled Presence Pulse (45s) & Session Exit Beacon
+    // Throttled Presence Pulse (120s) & Session Exit Beacon
     useEffect(() => {
         const interval = setInterval(() => {
             if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
@@ -164,7 +164,7 @@ export default function AnalyticsTracker() {
                     trackEvent('heartbeat');
                 }
             }
-        }, 45000);
+        }, 120000);
 
         // 2. Beacon on page hide / exit
         const handleVisibilityChange = () => {
