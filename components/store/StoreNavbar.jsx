@@ -17,11 +17,21 @@ const StoreNavbar = ({ storeInfo }) => {
     const dropdownRef = useRef(null)
 
     const loadAllStoresData = async () => {
-        const local = getAllLocalStores().filter(s => s && !isStoreDeleted(s.id) && !isStoreDeleted(s.username));
+        const isTestStore = (s) => {
+            if (!s) return true;
+            const id = String(s.id || '').toLowerCase();
+            const user = String(s.username || s.slug || '').toLowerCase();
+            const name = String(s.name || '').toLowerCase();
+            return id.includes('test') || user.includes('test') || name.includes('test') ||
+                   id.startsWith('store_m2_hp_') || user.startsWith('m2-hp-') ||
+                   id.startsWith('system_') || user.startsWith('system-');
+        };
+
+        const local = getAllLocalStores().filter(s => s && !isTestStore(s) && !isStoreDeleted(s.id) && !isStoreDeleted(s.username));
         const map = new Map();
         local.forEach(s => {
             const slug = (s.username || s.id || '').toLowerCase();
-            if (slug) map.set(slug, s);
+            if (slug && !isTestStore(s)) map.set(slug, s);
         });
 
         try {
@@ -31,6 +41,7 @@ const StoreNavbar = ({ storeInfo }) => {
                 const storesData = await storesRes.json().catch(() => ({}));
                 if (Array.isArray(storesData.stores)) {
                     storesData.stores.forEach(s => {
+                        if (isTestStore(s)) return;
                         const slug = (s.username || s.name || s.id || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
                         if (slug && !isStoreDeleted(slug) && !isStoreDeleted(s.id) && !map.has(slug)) {
                             map.set(slug, {
@@ -49,6 +60,7 @@ const StoreNavbar = ({ storeInfo }) => {
                 const data = await res.json().catch(() => ({}));
                 if (Array.isArray(data.stores)) {
                     data.stores.forEach(s => {
+                        if (isTestStore(s)) return;
                         const slug = (s.username || s.name || s.id || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
                         if (slug && !isStoreDeleted(slug) && !isStoreDeleted(s.id) && !map.has(slug)) {
                             map.set(slug, {

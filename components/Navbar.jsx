@@ -101,11 +101,21 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
         }
 
         const loadStores = async () => {
-            const local = getAllLocalStores().filter(s => s && !isStoreDeleted(s.id) && !isStoreDeleted(s.username));
+            const isTestStore = (s) => {
+                if (!s) return true;
+                const id = String(s.id || '').toLowerCase();
+                const user = String(s.username || s.slug || '').toLowerCase();
+                const name = String(s.name || '').toLowerCase();
+                return id.includes('test') || user.includes('test') || name.includes('test') ||
+                       id.startsWith('store_m2_hp_') || user.startsWith('m2-hp-') ||
+                       id.startsWith('system_') || user.startsWith('system-');
+            };
+
+            const local = getAllLocalStores().filter(s => s && !isTestStore(s) && !isStoreDeleted(s.id) && !isStoreDeleted(s.username));
             const map = new Map();
             local.forEach(s => {
                 const slug = (s.username || s.id || '').toLowerCase();
-                if (slug) map.set(slug, s);
+                if (slug && !isTestStore(s)) map.set(slug, s);
             });
 
             try {
@@ -114,6 +124,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                     const data = await res.json().catch(() => ({}));
                     if (Array.isArray(data.stores)) {
                         data.stores.forEach(s => {
+                            if (isTestStore(s)) return;
                             const slug = (s.username || s.name || s.id || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
                             const logo = s.logo || s.avatar || s.logo_url || s.bioProfile?.avatar || (Array.isArray(s.products) && s.products[0]?.image) || '';
                             if (slug && !isStoreDeleted(slug) && !isStoreDeleted(s.id) && !map.has(slug)) {
