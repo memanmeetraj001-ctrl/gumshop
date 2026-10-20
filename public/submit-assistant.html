@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GumShop.online — 1-Click Public Directory Submission Assistant</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .copy-badge { transition: all 0.2s ease; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen py-10 px-4">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <header class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm mb-8 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200 mb-3">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    DA Growth & Authority Toolkit
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Public Directory Submission Assistant</h1>
+                <p class="text-slate-600 mt-2 text-sm sm:text-base">
+                    Quickly submit <strong>GumShop.online</strong> to top-tier DA 80–95 directories with pre-formatted copy-paste fields.
+                </p>
+            </div>
+            <div class="bg-slate-100 rounded-xl p-4 text-center border border-slate-200 min-w-[160px]">
+                <div class="text-xs uppercase font-bold text-slate-500 tracking-wider">Target Domain</div>
+                <div class="text-sm font-bold text-emerald-600 mt-0.5">gumshop.online</div>
+                <div class="text-xs text-slate-400 mt-1">186 URLs Ingested</div>
+            </div>
+        </header>
+
+        <!-- Quick Copy Assets Bar -->
+        <div class="bg-emerald-900 text-white rounded-2xl p-6 shadow-md mb-8">
+            <h2 class="text-lg font-bold flex items-center gap-2 mb-4">
+                <span>📋</span> Universal Submission Dossier (Click to Copy)
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <button onclick="copyToClipboard('GumShop', this)" class="bg-emerald-800 hover:bg-emerald-700 text-left p-3 rounded-xl border border-emerald-700/60 transition group flex flex-col justify-between">
+                    <span class="text-xs text-emerald-300 font-medium">Brand Name</span>
+                    <span class="text-sm font-semibold truncate group-hover:text-white">GumShop</span>
+                </button>
+                <button onclick="copyToClipboard('https://www.gumshop.online', this)" class="bg-emerald-800 hover:bg-emerald-700 text-left p-3 rounded-xl border border-emerald-700/60 transition group flex flex-col justify-between">
+                    <span class="text-xs text-emerald-300 font-medium">Website URL</span>
+                    <span class="text-sm font-semibold truncate group-hover:text-white">https://www.gumshop.online</span>
+                </button>
+                <button onclick="copyToClipboard('Free Stan Store & 1-Click Gumroad E-Commerce Builder', this)" class="bg-emerald-800 hover:bg-emerald-700 text-left p-3 rounded-xl border border-emerald-700/60 transition group flex flex-col justify-between">
+                    <span class="text-xs text-emerald-300 font-medium">Tagline</span>
+                    <span class="text-sm font-semibold truncate group-hover:text-white">Free Stan Store & Gumroad Builder</span>
+                </button>
+                <button onclick="copyToClipboard('support@gumshop.online', this)" class="bg-emerald-800 hover:bg-emerald-700 text-left p-3 rounded-xl border border-emerald-700/60 transition group flex flex-col justify-between">
+                    <span class="text-xs text-emerald-300 font-medium">Support Email</span>
+                    <span class="text-sm font-semibold truncate group-hover:text-white">support@gumshop.online</span>
+                </button>
+                <button onclick="copyToClipboard('Curated e-commerce storefront builder and 1-click Gumroad store cloner for creators and digital merchants with zero monthly subscription fees.', this)" class="bg-emerald-800 hover:bg-emerald-700 text-left p-3 rounded-xl border border-emerald-700/60 transition group flex flex-col justify-between">
+                    <span class="text-xs text-emerald-300 font-medium">Short Pitch (150 chars)</span>
+                    <span class="text-sm font-semibold truncate group-hover:text-white">Curated e-commerce storefront...</span>
+                </button>
+                <button onclick="copyToClipboard('https://www.gumshop.online/favicon.svg', this)" class="bg-emerald-800 hover:bg-emerald-700 text-left p-3 rounded-xl border border-emerald-700/60 transition group flex flex-col justify-between">
+                    <span class="text-xs text-emerald-300 font-medium">Logo URL</span>
+                    <span class="text-sm font-semibold truncate group-hover:text-white">https://gumshop.online/favicon.svg</span>
+                </button>
+            </div>
+
+            <!-- Full Description Modal / Copy -->
+            <div class="mt-4 pt-4 border-t border-emerald-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <span class="text-xs text-emerald-200">Full detailed pitch ready for directories:</span>
+                <button onclick="copyFullDescription(this)" class="w-full sm:w-auto px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-xs rounded-lg shadow transition flex items-center justify-center gap-2">
+                    <span>📄</span> Copy Full Description Paragraph
+                </button>
+            </div>
+        </div>
+
+        <!-- Priority Submission Cards -->
+        <h2 class="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <span>⭐</span> Priority Tier 1 Directories (Highest DA Impact)
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            <!-- 1. Trustpilot -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg">DA 93 • Crucial</span>
+                        <span class="text-xs text-slate-500">Free Profile</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900">Trustpilot Business</h3>
+                    <p class="text-xs text-slate-600 mt-1 mb-4">
+                        Claiming your profile directly neutralizes automated ScamAdviser alerts and gives you an authoritative dofollow backlink.
+                    </p>
+                    <ul class="text-xs text-slate-500 space-y-1 mb-4 list-disc pl-4">
+                        <li>Enter domain: <code>gumshop.online</code></li>
+                        <li>Sign up with business or Google email</li>
+                        <li>Paste short description & logo</li>
+                    </ul>
+                </div>
+                <a href="https://business.trustpilot.com/signup" target="_blank" rel="noopener noreferrer" class="w-full text-center py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow transition">
+                    Open Trustpilot Signup →
+                </a>
+            </div>
+
+            <!-- 2. Product Hunt -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg">DA 91 • High Authority</span>
+                        <span class="text-xs text-slate-500">Free Launch</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900">Product Hunt</h3>
+                    <p class="text-xs text-slate-600 mt-1 mb-4">
+                        Launch GumShop as a free tool for creators. Passes massive authority and instant viral referral traffic.
+                    </p>
+                    <ul class="text-xs text-slate-500 space-y-1 mb-4 list-disc pl-4">
+                        <li>Sign in with your Google Account</li>
+                        <li>Title: <code>GumShop</code></li>
+                        <li>Tagline: <code>Free Stan Store & 1-Click Gumroad Cloner</code></li>
+                    </ul>
+                </div>
+                <a href="https://www.producthunt.com/posts/new" target="_blank" rel="noopener noreferrer" class="w-full text-center py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl shadow transition">
+                    Open Product Hunt Submit →
+                </a>
+            </div>
+
+            <!-- 3. Crunchbase -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold px-2.5 py-1 bg-blue-100 text-blue-800 rounded-lg">DA 91 • Entity Trust</span>
+                        <span class="text-xs text-slate-500">Free Basic</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900">Crunchbase</h3>
+                    <p class="text-xs text-slate-600 mt-1 mb-4">
+                        Creates an official corporate entity in Google's Knowledge Graph, tying GumShop to e-commerce & creator software categories.
+                    </p>
+                    <ul class="text-xs text-slate-500 space-y-1 mb-4 list-disc pl-4">
+                        <li>Select "Company / Organization"</li>
+                        <li>Category: E-Commerce / Creator Tools</li>
+                        <li>URL: <code>https://www.gumshop.online</code></li>
+                    </ul>
+                </div>
+                <a href="https://www.crunchbase.com/add-new" target="_blank" rel="noopener noreferrer" class="w-full text-center py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow transition">
+                    Open Crunchbase Form →
+                </a>
+            </div>
+
+            <!-- 4. AlternativeTo -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-lg">DA 82 • Search Intent</span>
+                        <span class="text-xs text-slate-500">Free Listing</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900">AlternativeTo</h3>
+                    <p class="text-xs text-slate-600 mt-1 mb-4">
+                        Ranks directly when users search "Free alternative to Stan Store" or "Shopify alternative with zero fees".
+                    </p>
+                    <ul class="text-xs text-slate-500 space-y-1 mb-4 list-disc pl-4">
+                        <li>Suggest application: GumShop</li>
+                        <li>Tags: Stan Store, Beacons, Gumroad, Shopify</li>
+                        <li>License: Free</li>
+                    </ul>
+                </div>
+                <a href="https://alternativeto.net/software/post/" target="_blank" rel="noopener noreferrer" class="w-full text-center py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow transition">
+                    Open AlternativeTo Submit →
+                </a>
+            </div>
+        </div>
+
+        <!-- Tier 2 Tech & Software Directories -->
+        <h2 class="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+            <span>🌐</span> Secondary Software & Startup Directories
+        </h2>
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm mb-10">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <a href="https://betalist.com/submit" target="_blank" class="p-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-center transition">
+                    <div class="font-bold text-sm text-slate-800">BetaList</div>
+                    <div class="text-xs text-slate-500 mt-0.5">DA 71 • Free</div>
+                </a>
+                <a href="https://saashub.com/submit" target="_blank" class="p-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-center transition">
+                    <div class="font-bold text-sm text-slate-800">SaaSHub</div>
+                    <div class="text-xs text-slate-500 mt-0.5">DA 68 • Free</div>
+                </a>
+                <a href="https://uneed.best/submit" target="_blank" class="p-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-center transition">
+                    <div class="font-bold text-sm text-slate-800">Uneed.best</div>
+                    <div class="text-xs text-slate-500 mt-0.5">DA 52 • Free</div>
+                </a>
+                <a href="https://startupbase.io/submit" target="_blank" class="p-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-center transition">
+                    <div class="font-bold text-sm text-slate-800">StartupBase</div>
+                    <div class="text-xs text-slate-500 mt-0.5">DA 45 • Free</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer Notice -->
+        <footer class="text-center text-xs text-slate-400 py-4">
+            GumShop.online • Search Engine & Backlink Acceleration Pipeline
+        </footer>
+    </div>
+
+    <!-- Script for 1-Click Clipboard Copying -->
+    <script>
+        const FULL_DESCRIPTION = `GumShop.online is a modern, high-converting e-commerce storefront platform and creator bio store builder. Designed as a zero-fee alternative to expensive monthly platforms, GumShop allows digital creators, merchants, and dropshippers to launch dedicated Stan-style bio stores and full product catalogs with automated, store-isolated Gumroad checkouts. Features include multi-tier volume bundles, dynamic cart drawers, instant Google Shopping XML feeds, and complete mobile responsiveness.`;
+
+        function copyToClipboard(text, btn) {
+            navigator.clipboard.writeText(text).then(() => {
+                const orig = btn.innerHTML;
+                btn.classList.add('ring-2', 'ring-emerald-400');
+                const badge = document.createElement('span');
+                badge.className = 'text-xs text-emerald-200 font-bold';
+                badge.innerText = 'Copied! ✓';
+                btn.appendChild(badge);
+                setTimeout(() => {
+                    btn.classList.remove('ring-2', 'ring-emerald-400');
+                    if (btn.contains(badge)) btn.removeChild(badge);
+                }, 1500);
+            });
+        }
+
+        function copyFullDescription(btn) {
+            navigator.clipboard.writeText(FULL_DESCRIPTION).then(() => {
+                const orig = btn.innerText;
+                btn.innerText = 'Copied to Clipboard! ✓';
+                btn.classList.add('bg-white', 'text-emerald-800');
+                setTimeout(() => {
+                    btn.innerText = orig;
+                    btn.classList.remove('bg-white', 'text-emerald-800');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
