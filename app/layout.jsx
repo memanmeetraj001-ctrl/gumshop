@@ -80,6 +80,11 @@ export const metadata = {
             'max-image-preview': 'large',
             'max-snippet': -1,
         }
+    },
+    verification: {
+        google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '',
+        bing: process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION || '',
+        yandex: process.env.NEXT_PUBLIC_YANDEX_SITE_VERIFICATION || '',
     }
 };
 
@@ -87,12 +92,24 @@ const jsonLdOrg = {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "GumShop",
+    "legalName": "GumShop.online",
     "url": "https://gumshop.online",
     "logo": "https://gumshop.online/favicon.svg",
-    "description": "1-Click Store Cloner & Automated E-Commerce platform for creators and digital merchants.",
+    "description": "Curated creator marketplace and automated e-commerce platform with verified Gumroad checkout.",
+    "email": "support@gumshop.online",
+    "contactPoint": [
+        {
+            "@type": "ContactPoint",
+            "contactType": "Customer Support",
+            "email": "support@gumshop.online",
+            "availableLanguage": ["English"],
+            "url": "https://gumshop.online/contact"
+        }
+    ],
     "sameAs": [
         "https://twitter.com/gumshop",
-        "https://github.com/gumshop"
+        "https://github.com/gumshop",
+        "https://trustpilot.com/review/gumshop.online"
     ]
 };
 

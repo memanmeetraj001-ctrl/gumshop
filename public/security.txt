@@ -1,0 +1,6 @@
+Contact: mailto:support@gumshop.online
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://www.gumshop.online/.well-known/security.txt
+Policy: https://www.gumshop.online/policies/privacy
+Acknowledgments: https://www.gumshop.online/contact
