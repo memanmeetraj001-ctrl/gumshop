@@ -517,7 +517,7 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts, storeSlug: p
                                 style={{ width: `${overallTierProgress}%` }}
                             />
                         </div>
-                        <div className="flex items-center justify-between text-[10px] font-bold mt-1.5 text-slate-400">
+                        <div className="flex items-center justify-between text-[10px] font-bold mt-1.5 text-slate-500">
                             <span className={subtotal >= 50 ? 'text-emerald-700 font-black' : ''}>
                                 {subtotal >= 50 ? '✓ $50 Free Ship' : '$50 Free Ship'}
                             </span>
@@ -573,7 +573,7 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts, storeSlug: p
                                 </p>
                                 <button
                                     onClick={onClose}
-                                    className="mt-6 px-6 py-2.5 rounded-full bg-emerald-600 text-white font-bold text-xs shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition"
+                                    className="mt-6 px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                                 >
                                     Start Shopping
                                 </button>

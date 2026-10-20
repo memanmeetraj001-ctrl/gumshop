@@ -123,7 +123,7 @@ export default function ProductCard({ product, onOpenCart, showShopName = false,
 
     return (
         <>
-            <div className="group relative flex flex-col bg-white rounded-3xl border border-slate-200/80 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 overflow-hidden">
+            <div className="group relative flex flex-col bg-white rounded-3xl border border-slate-200/90 hover:border-emerald-500/60 hover:shadow-xl hover:shadow-slate-200/60 transition-all duration-300 overflow-hidden">
                 {/* Image Container */}
                 <div className="relative aspect-square w-full bg-slate-50 flex items-center justify-center p-4 overflow-hidden">
                     <Link href={`/product/${product.id}`} className="w-full h-full flex items-center justify-center">
@@ -263,7 +263,7 @@ export default function ProductCard({ product, onOpenCart, showShopName = false,
                                     {currency}{price.toFixed(2)}
                                 </span>
                                 {compareAtPrice > price && (
-                                    <span className="text-xs text-slate-400 line-through">
+                                    <span className="text-xs text-slate-500 line-through font-medium">
                                         {currency}{compareAtPrice.toFixed(2)}
                                     </span>
                                 )}

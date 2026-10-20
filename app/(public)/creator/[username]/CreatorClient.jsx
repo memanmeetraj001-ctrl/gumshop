@@ -2260,7 +2260,7 @@ export default function CreatorClient({ initialStore = null, initialProducts = [
                                                             {/* Category Pill & Scarcity */}
                                                             <div className="flex items-center justify-between gap-1 mt-1">
                                                                 {item.category && (
-                                                                    <span className="inline-block text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
+                                                                    <span className="inline-block text-[9px] font-semibold text-slate-500 uppercase tracking-wider">
                                                                         {typeof item.category === 'string' ? item.category : (item.category?.name || 'Featured')}
                                                                     </span>
                                                                 )}
@@ -2285,7 +2285,7 @@ export default function CreatorClient({ initialStore = null, initialProducts = [
                                                                     {priceDisplay}
                                                                 </span>
                                                                 {item.compareAtPrice > item.price && (
-                                                                    <span className="text-[10px] text-slate-400 line-through">
+                                                                    <span className="text-[10px] text-slate-500 line-through font-medium">
                                                                         ${parseFloat(item.compareAtPrice).toFixed(2)}
                                                                     </span>
                                                                 )}

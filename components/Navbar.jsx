@@ -202,7 +202,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                         </span>
                     </div>
 
-                    <div className="hidden md:flex items-center gap-3 text-slate-400 text-[11px]">
+                    <div className="hidden md:flex items-center gap-3 text-slate-500 text-[11px]">
                         <span className="flex items-center gap-1">
                             <ShieldCheck size={13} className="text-emerald-400" /> Buyer Protection
                         </span>
@@ -234,7 +234,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                                 <span className="text-lg sm:text-xl font-black tracking-tight text-slate-900 leading-none">
                                     GUM<span className="text-emerald-600">SHOP</span>
                                 </span>
-                                <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase mt-0.5">
+                                <span className="text-[10px] font-bold text-slate-500 tracking-wider uppercase mt-0.5">
                                     Super Store
                                 </span>
                             </div>
@@ -245,7 +245,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                                 <button
                                     type="button"
                                     onClick={() => setStoresMenuOpen(!storesMenuOpen)}
-                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/80 text-slate-700 text-xs font-bold transition"
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/80 text-slate-700 text-xs font-bold transition active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
                                     title="Explore multiple stores"
                                 >
                                     <Store size={12} className="text-emerald-600" />
@@ -292,7 +292,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                                 placeholder="Search by product name, category, or trend..."
                                 value={searchInput}
                                 onChange={handleSearch}
-                                className="w-full pl-10 pr-4 py-2.5 bg-slate-100 hover:bg-slate-100/80 focus:bg-white border border-transparent focus:border-emerald-500 rounded-full text-xs font-medium text-slate-800 outline-none transition"
+                                className="w-full pl-10 pr-4 py-2.5 bg-slate-100 hover:bg-slate-100/80 focus:bg-white border border-transparent focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-full text-xs font-medium text-slate-800 outline-none transition"
                             />
                             {searchInput && (
                                 <button
