@@ -13,14 +13,31 @@ function escapeXml(unsafe) {
         .replace(/'/g, '&apos;');
 }
 
+// Google Merchant Center requires <g:id> to be 1 to 50 characters max
+function formatGoogleMerchantId(rawId) {
+    if (!rawId) return 'prod_default';
+    const idStr = String(rawId).trim();
+    if (idStr.length <= 50) return idStr;
+    
+    // Deterministic 8-char hex hash
+    let hash = 0;
+    for (let i = 0; i < idStr.length; i++) {
+        hash = (Math.imul(31, hash) + idStr.charCodeAt(i)) | 0;
+    }
+    const hashStr = Math.abs(hash).toString(16).padStart(8, '0');
+    // Prefix up to 41 characters + '_' + 8-char hash = <= 50 characters
+    const prefix = idStr.slice(0, 41).replace(/_+$/, '');
+    return `${prefix}_${hashStr}`;
+}
+
 export async function GET() {
     try {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gumshop.online';
         const products = await getAllProductsWithStores().catch(() => []);
 
         const xmlItems = products.map(product => {
-            const id = escapeXml(product.id);
-            const title = escapeXml(product.name || product.title || 'Product');
+            const id = escapeXml(formatGoogleMerchantId(product.id));
+            const title = escapeXml((product.name || product.title || 'Product').slice(0, 150));
             const description = escapeXml(
                 (product.description || `${product.name} available at GumShop with fast delivery, authentic guarantee, and secure checkout.`)
                     .replace(/<[^>]*>?/gm, '')
@@ -29,7 +46,7 @@ export async function GET() {
             const link = `${baseUrl}/product/${encodeURIComponent(product.id)}`;
             const imageLink = product.image || (Array.isArray(product.images) && product.images[0]) || `${baseUrl}/favicon.svg`;
             const price = `${Number(product.price || 52.99).toFixed(2)} USD`;
-            const brand = escapeXml(product.storeName || 'GumShop');
+            const brand = escapeXml((product.storeName || 'GumShop').slice(0, 70));
 
             return `    <item>
       <g:id>${id}</g:id>
