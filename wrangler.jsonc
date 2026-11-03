@@ -21,7 +21,8 @@
     "SUPABASE_SERVICE_ROLE_KEY": "sb_publishable_kS8eq_QMEg5qLnsJxAIqCg_eYTuU6uP",
     "NEXT_PUBLIC_APP_URL": "https://www.gumshop.online",
     "NEXT_PUBLIC_BASE_URL": "https://www.gumshop.online",
-    "ADMIN_PASSWORD": "Meetminal@0406"
+    "ADMIN_PASSWORD": "Meetminal@0406",
+    "NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION": "eeoD4y3J6f3mk3SUHhVu1SAyEh5n3B8GRVbxvJc0dWc"
   },
   "observability": {
     "enabled": true

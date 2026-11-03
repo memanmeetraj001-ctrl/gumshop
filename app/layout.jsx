@@ -82,7 +82,7 @@ export const metadata = {
         }
     },
     verification: {
-        google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '',
+        google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || 'eeoD4y3J6f3mk3SUHhVu1SAyEh5n3B8GRVbxvJc0dWc',
         bing: process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION || '',
         yandex: process.env.NEXT_PUBLIC_YANDEX_SITE_VERIFICATION || '',
     }
@@ -176,6 +176,7 @@ export default function RootLayout({ children }) {
                 <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
                 <link rel="manifest" href="/manifest.json" />
                 <meta name="theme-color" content="#10b981" />
+                <meta name="google-site-verification" content="eeoD4y3J6f3mk3SUHhVu1SAyEh5n3B8GRVbxvJc0dWc" />
                 <meta name="apple-mobile-web-app-capable" content="yes" />
                 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
                 {/* Schema.org Structured Data */}
