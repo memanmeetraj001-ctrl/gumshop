@@ -3,7 +3,8 @@ import { getStoreBySlug } from '@/lib/db/stores.js';
 import { getProductsByStore } from '@/lib/db/products.js';
 import ShopClient from '@/app/(public)/shop/[username]/ShopClient';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const RESERVED_ROUTES = new Set([
     'admin', 

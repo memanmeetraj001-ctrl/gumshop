@@ -146,9 +146,12 @@ function getProductVariantPricing(product, variantOrSizeName) {
     }
     const cleanName = String(variantOrSizeName).toLowerCase().trim();
 
+    const rawVariants = Array.isArray(product.variants) ? product.variants : [];
+    const allVariantsShareSamePrice = rawVariants.length > 0 && rawVariants.every(v => Math.abs(parseFloat(v.price || 0) - parseFloat(rawVariants[0]?.price || 0)) < 0.01);
+
     // 1. Check product.variants
-    if (Array.isArray(product.variants) && product.variants.length > 0) {
-        const matched = product.variants.find(v => {
+    if (rawVariants.length > 0) {
+        const matched = rawVariants.find(v => {
             if (!v) return false;
             if (v.id && String(v.id) === String(variantOrSizeName)) return true;
             const vName = String(v.name || v.label || v.title || '').toLowerCase().trim();
@@ -156,17 +159,25 @@ function getProductVariantPricing(product, variantOrSizeName) {
         });
         if (matched) {
             const vPrice = parseFloat(matched.price || 0);
-            const baseV0Price = parseFloat(product.variants[0]?.price || 0);
+            const baseV0Price = parseFloat(rawVariants[0]?.price || 0);
             let priceDelta = 0;
-            if (matched.priceDelta !== undefined && matched.priceDelta !== null && !isNaN(parseFloat(matched.priceDelta))) {
-                priceDelta = Math.max(0, parseFloat(matched.priceDelta));
-            } else if (matched.effectivePrice && parseFloat(matched.effectivePrice) >= basePrice) {
+
+            if (allVariantsShareSamePrice) {
+                priceDelta = 0;
+            } else if (baseV0Price > 0 && vPrice > baseV0Price) {
+                const discountRatio = (baseV0Price > 0 && basePrice < baseV0Price) ? (basePrice / baseV0Price) : 1;
+                priceDelta = Math.round((vPrice - baseV0Price) * discountRatio * 100) / 100;
+            } else if (matched.priceDelta !== undefined && matched.priceDelta !== null && !isNaN(parseFloat(matched.priceDelta))) {
+                const rawDelta = Math.max(0, parseFloat(matched.priceDelta));
+                if (Math.abs((basePrice + rawDelta) - vPrice) < 0.01 && vPrice > basePrice && (baseV0Price === vPrice || allVariantsShareSamePrice)) {
+                    priceDelta = 0;
+                } else {
+                    priceDelta = rawDelta;
+                }
+            } else if (matched.effectivePrice && parseFloat(matched.effectivePrice) > basePrice && !allVariantsShareSamePrice) {
                 priceDelta = Math.max(0, Math.round((parseFloat(matched.effectivePrice) - basePrice) * 100) / 100);
-            } else if (vPrice > baseV0Price && baseV0Price > 0) {
-                priceDelta = Math.round((vPrice - baseV0Price) * 100) / 100;
-            } else if (vPrice > 0 && (!baseV0Price || baseV0Price === 0) && vPrice > basePrice) {
-                priceDelta = Math.round((vPrice - basePrice) * 100) / 100;
             }
+
             return {
                 effectivePrice: Math.round((basePrice + priceDelta) * 100) / 100,
                 priceDelta,
@@ -177,13 +188,18 @@ function getProductVariantPricing(product, variantOrSizeName) {
 
     // 2. Check product.sizes
     if (Array.isArray(product.sizes) && product.sizes.length > 0) {
-        const matched = product.sizes.find(s => {
+        const rawSizes = product.sizes;
+        const allSizesShareSamePrice = rawSizes.every(s => Math.abs(parseFloat(s.priceDelta || 0) - parseFloat(rawSizes[0]?.priceDelta || 0)) < 0.01);
+        const matched = rawSizes.find(s => {
             if (!s) return false;
             const sName = String(s.name || s.label || '').toLowerCase().trim();
             return sName === cleanName || sName.includes(cleanName) || cleanName.includes(sName);
         });
-        if (matched && matched.priceDelta) {
-            const priceDelta = parseFloat(matched.priceDelta) || 0;
+        if (matched) {
+            let priceDelta = parseFloat(matched.priceDelta) || 0;
+            if (allSizesShareSamePrice || allVariantsShareSamePrice) {
+                priceDelta = 0;
+            }
             return {
                 effectivePrice: Math.round((basePrice + priceDelta) * 100) / 100,
                 priceDelta,
@@ -193,6 +209,50 @@ function getProductVariantPricing(product, variantOrSizeName) {
     }
 
     return { effectivePrice: basePrice, priceDelta: 0, matchedVariant: null };
+}
+
+function normalizeProductOptions(product) {
+    if (!product) return { hasOptions: false, optionsList: [], hasBundles: false, rawVariants: [] };
+
+    // 1. Check custom variants (excluding single dummy "Default Title")
+    const rawVariants = Array.isArray(product.variants) ? product.variants.filter(v => {
+        if (!v) return false;
+        const vTitle = String(v.name || v.title || v.label || '').trim().toLowerCase();
+        return vTitle && vTitle !== 'default title';
+    }) : [];
+
+    // 2. Check wearable / custom sizes
+    const rawSizes = Array.isArray(product.sizes) ? product.sizes : [];
+
+    // 3. Check Shopify options: [{ name: 'Color', values: ['Pink', 'White'] }]
+    let rawOptionsList = [];
+    if (Array.isArray(product.options) && product.options.length > 0) {
+        product.options.forEach(opt => {
+            if (Array.isArray(opt?.values)) {
+                rawOptionsList.push(...opt.values);
+            } else if (typeof opt === 'string' && opt.toLowerCase() !== 'title' && opt.toLowerCase() !== 'default title') {
+                rawOptionsList.push(opt);
+            }
+        });
+    }
+
+    // Candidate list of labels
+    const candidateList = rawVariants.length > 0
+        ? rawVariants.map(v => typeof v === 'string' ? v : (v.name || v.label || v.title || String(v)))
+        : (rawSizes.length > 0
+            ? rawSizes.map(s => typeof s === 'string' ? s : (s.name || s.label || s.title || String(s)))
+            : rawOptionsList);
+
+    const uniqueOptions = Array.from(new Set(candidateList.filter(Boolean)));
+    const hasBundleOptions = Array.isArray(product.customBundles) && product.customBundles.length > 1;
+    const hasOptions = uniqueOptions.length > 1 || (uniqueOptions.length >= 1 && hasBundleOptions) || hasBundleOptions;
+
+    return {
+        hasOptions,
+        optionsList: uniqueOptions,
+        hasBundles: hasBundleOptions,
+        rawVariants
+    };
 }
 
 function formatCreatorProfile(store, rawUsername) {
@@ -708,10 +768,9 @@ export default function CreatorClient({ initialStore = null, initialProducts = [
         }, 5000);
 
         const loadCreatorStore = async (isRetry = false) => {
-            // If already loaded from SSR and this is the initial mount, skip
+            // SWR: If initialStore is present and this is initial mount, ensure loading is dismissed but continue background sync
             if ((initialStore || (Array.isArray(initialProducts) && initialProducts.length > 0)) && !isRetry) {
                 if (isMounted) setLoading(false);
-                return;
             }
 
             try {
@@ -798,9 +857,25 @@ export default function CreatorClient({ initialStore = null, initialProducts = [
             loadCreatorStore(true);
         };
 
+        const handleStorageChange = (e) => {
+            if (e.key === 'creator_bio_last_updated' || e.key === 'active_store_slug') {
+                handleSync();
+            }
+        };
+
+        let bc = null;
         if (typeof window !== 'undefined') {
             window.addEventListener('products_updated', handleSync);
             window.addEventListener('active_store_changed', handleSync);
+            window.addEventListener('storage', handleStorageChange);
+            try {
+                bc = new BroadcastChannel('creator_store_sync');
+                bc.onmessage = (msg) => {
+                    if (!msg?.data?.slug || msg.data.slug === cleanUser) {
+                        handleSync();
+                    }
+                };
+            } catch {}
         }
 
         return () => {
@@ -809,6 +884,10 @@ export default function CreatorClient({ initialStore = null, initialProducts = [
             if (typeof window !== 'undefined') {
                 window.removeEventListener('products_updated', handleSync);
                 window.removeEventListener('active_store_changed', handleSync);
+                window.removeEventListener('storage', handleStorageChange);
+                if (bc) {
+                    try { bc.close(); } catch {}
+                }
             }
         };
     }, [cleanUser, rawUsername]);
@@ -1787,16 +1866,19 @@ export default function CreatorClient({ initialStore = null, initialProducts = [
 
                                             {/* Dynamic Multi-Pack Bundle Selector */}
                                             {(() => {
+                                                const normHero = normalizeProductOptions(heroItem);
                                                 const rawSizes = (Array.isArray(heroItem.sizes) && heroItem.sizes.length > 0)
                                                     ? heroItem.sizes
                                                     : ((Array.isArray(heroItem.variants) && heroItem.variants.length > 0)
                                                         ? heroItem.variants
-                                                        : (hasWearableSizes ? [
-                                                            { name: 'Small (S)', label: 'Small (S)' },
-                                                            { name: 'Medium (M)', label: 'Medium (M)', popular: true },
-                                                            { name: 'Large (L)', label: 'Large (L)' },
-                                                            { name: 'X-Large (XL)', label: 'X-Large (XL)' }
-                                                        ] : []));
+                                                        : (normHero.optionsList.length > 0
+                                                            ? normHero.optionsList
+                                                            : (hasWearableSizes ? [
+                                                                { name: 'Small (S)', label: 'Small (S)' },
+                                                                { name: 'Medium (M)', label: 'Medium (M)', popular: true },
+                                                                { name: 'Large (L)', label: 'Large (L)' },
+                                                                { name: 'X-Large (XL)', label: 'X-Large (XL)' }
+                                                            ] : [])));
 
                                                 const heroSizes = rawSizes.map(s => {
                                                     if (typeof s === 'string') return { name: s, label: s };
@@ -2301,7 +2383,7 @@ export default function CreatorClient({ initialStore = null, initialProducts = [
                                                                     <span>Free Sample</span>
                                                                 </button>
                                                             ) : (() => {
-                                                                const hasMultipleOptions = (Array.isArray(item.variants) && item.variants.length > 1) || (Array.isArray(item.sizes) && item.sizes.length > 1);
+                                                                const hasMultipleOptions = normalizeProductOptions(item).hasOptions;
                                                                 return (
                                                                     <div className="grid grid-cols-2 gap-1.5">
                                                                         <button
@@ -2433,7 +2515,7 @@ export default function CreatorClient({ initialStore = null, initialProducts = [
                                                                         <span>Claim Free Sample</span>
                                                                     </button>
                                                                 ) : (() => {
-                                                                    const hasMultipleOptions = (Array.isArray(item.variants) && item.variants.length > 1) || (Array.isArray(item.sizes) && item.sizes.length > 1);
+                                                                    const hasMultipleOptions = normalizeProductOptions(item).hasOptions;
                                                                     return (
                                                                         <div className="flex items-center gap-1.5">
                                                                             <button
@@ -3167,11 +3249,9 @@ export default function CreatorClient({ initialStore = null, initialProducts = [
                             
                             const qvBasePrice = parseFloat(quickViewProduct.price || 0);
 
-                            // Detect Variants / Sizes
-                            const rawVariants = Array.isArray(quickViewProduct.variants) && quickViewProduct.variants.length > 0
-                                ? quickViewProduct.variants
-                                : (Array.isArray(quickViewProduct.sizes) && quickViewProduct.sizes.length > 0 ? quickViewProduct.sizes : []);
-                            const optionsList = rawVariants.map(v => typeof v === 'string' ? v : (v.name || v.label || v.title || String(v)));
+                            // Detect Variants / Sizes / Options
+                            const qvNormalized = normalizeProductOptions(quickViewProduct);
+                            const optionsList = qvNormalized.optionsList;
                             const activeOptionName = quickViewSelectedVariant || optionsList[0] || '';
                             
                             const variantPricing = getProductVariantPricing(quickViewProduct, activeOptionName);

@@ -264,14 +264,25 @@ export default function StoreImportPage() {
     const handleSelectRounding = (strategy) => {
         setPriceRounding(strategy);
         if (!importData?.products) return;
+        const newOverrides = { ...editedProducts };
         const updated = importData.products.map(p => {
-            const newPrice = roundPriceStrategy(p.price, strategy);
-            const newCompare = p.compareAtPrice ? roundPriceStrategy(p.compareAtPrice, strategy) : roundPriceStrategy(newPrice * 1.35, strategy);
+            const currentPrice = newOverrides[p.id]?.price !== undefined ? newOverrides[p.id].price : p.price;
+            const newPrice = roundPriceStrategy(currentPrice, strategy);
+            const currentCompare = newOverrides[p.id]?.compareAtPrice !== undefined ? newOverrides[p.id].compareAtPrice : p.compareAtPrice;
+            const newCompare = currentCompare ? roundPriceStrategy(currentCompare, strategy) : roundPriceStrategy(newPrice * 1.35, strategy);
+
+            newOverrides[p.id] = {
+                ...(newOverrides[p.id] || {}),
+                price: newPrice,
+                compareAtPrice: newCompare
+            };
+
             const enhanced = autoEnhance 
                 ? enhanceProduct({ ...p, price: newPrice, compareAtPrice: newCompare }, { roundingStrategy: strategy, storeName: destStoreName || 'Store' })
                 : { ...p, price: newPrice, compareAtPrice: newCompare };
             return enhanced;
         });
+        setEditedProducts(newOverrides);
         setImportData(prev => ({ ...prev, products: updated }));
         toast.success(`Applied ${strategy === 'charm99' ? '.99 Charm' : strategy === 'charm95' ? '.95 Charm' : strategy === 'whole' ? '.00 Whole' : 'Exact'} pricing`);
     };
@@ -409,10 +420,12 @@ export default function StoreImportPage() {
         importData.products.forEach(p => {
             const basePrice = p.price || 0;
             const { price: slashed, compareAtPrice: compare } = applyPriceSlash(basePrice, pct, p.compareAtPrice);
+            const finalPrice = priceRounding ? roundPriceStrategy(slashed, priceRounding) : slashed;
+            const finalCompare = (compare && priceRounding) ? roundPriceStrategy(compare, priceRounding) : compare;
             newOverrides[p.id] = {
                 ...(newOverrides[p.id] || {}),
-                price: slashed,
-                compareAtPrice: compare
+                price: finalPrice,
+                compareAtPrice: finalCompare
             };
         });
         setEditedProducts(newOverrides);

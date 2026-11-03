@@ -3,7 +3,8 @@ import { getStoreBySlug } from '@/lib/db/stores.js';
 import { getProductsByStore } from '@/lib/db/products.js';
 import CreatorClient from './CreatorClient';
 
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const getCachedStore = cache(async (slug) => {
     return await getStoreBySlug(slug);

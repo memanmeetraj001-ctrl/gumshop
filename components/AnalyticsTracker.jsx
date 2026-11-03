@@ -40,6 +40,52 @@ function getOrCreateSessionId() {
     }
 }
 
+// Forward standard e-commerce and navigation events to Google Analytics (GA4)
+function forwardToGA4(eventType, metadata, pathname) {
+    if (typeof window === 'undefined' || typeof window.gtag !== 'function') return;
+    try {
+        if (eventType === 'page_view') {
+            window.gtag('event', 'page_view', {
+                page_path: pathname || window.location.pathname,
+                page_title: document.title || 'GumShop',
+                page_location: window.location.href,
+            });
+        } else if (eventType === 'product_view') {
+            window.gtag('event', 'view_item', {
+                currency: 'USD',
+                value: parseFloat(metadata.price || 0) || 0,
+                items: [{
+                    item_id: String(metadata.productId || ''),
+                    item_name: String(metadata.productName || ''),
+                    price: parseFloat(metadata.price || 0) || 0,
+                }]
+            });
+        } else if (eventType === 'add_to_cart') {
+            window.gtag('event', 'add_to_cart', {
+                currency: 'USD',
+                value: parseFloat(metadata.price || 0) || 0,
+                items: [{
+                    item_id: String(metadata.productId || ''),
+                    item_name: String(metadata.productName || ''),
+                    price: parseFloat(metadata.price || 0) || 0,
+                    quantity: parseInt(metadata.quantity || 1, 10) || 1,
+                }]
+            });
+        } else if (eventType === 'initiate_checkout') {
+            window.gtag('event', 'begin_checkout', {
+                currency: 'USD',
+                value: parseFloat(metadata.price || 0) || 0,
+            });
+        } else if (eventType && !['heartbeat', 'session_pause'].includes(eventType)) {
+            window.gtag('event', eventType, {
+                event_category: 'ecommerce',
+                event_label: metadata.productName || metadata.storeSlug || '',
+                value: parseFloat(metadata.price || 0) || 0
+            });
+        }
+    } catch {}
+}
+
 // Global programmatic dispatcher for custom events (e.g. product_view, add_to_cart, initiate_checkout)
 export function trackEvent(eventType, metadata = {}) {
     if (typeof window === 'undefined') return;

@@ -7,7 +7,7 @@ import { getSafeImageUrl, handleImageError } from '@/lib/imageUtils';
 export default function StorefrontFooter({ store }) {
     const storeSlug = store?.username || store?.slug || store?.name?.toLowerCase().replace(/[^a-z0-9-]+/g, '') || 'shop';
     const storeName = store?.name || 'Official Store';
-    const logoSrc = store?.logo || store?.avatar || store?.bioProfile?.avatar;
+    const logoSrc = store?.bioProfile?.avatar || store?.avatar || store?.logo;
     const year = new Date().getFullYear();
 
     return (

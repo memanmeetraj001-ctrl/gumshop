@@ -490,15 +490,15 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts, storeSlug: p
                         </button>
                     </div>
 
-                    {/* Cart Reservation Urgency Banner */}
+                    {/* Cart Reservation Notice */}
                     {items.length > 0 && (
-                        <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-2.5 flex items-center justify-between text-xs font-bold text-amber-900">
+                        <div className="bg-slate-50 border-b border-slate-200/80 px-6 py-2 flex items-center justify-between text-xs font-medium text-slate-600">
                             <div className="flex items-center gap-1.5">
-                                <span className="inline-block size-2 rounded-full bg-amber-500 animate-ping" />
-                                <span>High demand: Cart items reserved</span>
+                                <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
+                                <span>Cart items reserved</span>
                             </div>
-                            <div className="flex items-center gap-1 font-mono bg-amber-500/20 px-2 py-0.5 rounded text-amber-950 font-black">
-                                <span>⚡ {formattedReserveTime}</span>
+                            <div className="flex items-center gap-1 font-mono text-slate-700 font-semibold text-[11px]">
+                                <span>{formattedReserveTime}</span>
                             </div>
                         </div>
                     )}
@@ -812,7 +812,7 @@ function CartDrawerInner({ isOpen, onClose, products: propProducts, storeSlug: p
                                     className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-98 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer"
                                 >
                                     <Zap size={18} className="fill-white" />
-                                    <span>{isCheckingOut ? 'Opening Secure Checkout...' : `⚡ Buy Now • $${finalTotal.toFixed(2)}`}</span>
+                                    <span>{isCheckingOut ? 'Opening Secure Checkout...' : `Checkout • $${finalTotal.toFixed(2)}`}</span>
                                 </button>
                                 <Link
                                     href="/cart"

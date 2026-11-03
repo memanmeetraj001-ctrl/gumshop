@@ -156,12 +156,29 @@ export async function POST(req) {
                 };
             });
 
-            // Ensure variant prices scale with any store-wide slash discount
+            // Ensure variant prices scale with any store-wide slash discount or pre-calculated pricing
+            const rawVariants = Array.isArray(p.variants) ? p.variants : [];
+            const allVariantsShareSamePrice = rawVariants.length > 0 &&
+                rawVariants.every(v => Math.abs((parseFloat(v.price) || 0) - (parseFloat(rawVariants[0].price) || 0)) < 0.01);
+
+            const minVarPrice = rawVariants.length > 0 ? Math.min(...rawVariants.map(v => parseFloat(v.price) || 0)) : 0;
             const discountRatio = (rawPrice > 0 && price > 0) ? (price / rawPrice) : 1;
-            const processedVariants = (Array.isArray(p.variants) ? p.variants : []).map(v => {
+            const effectiveRatio = (discountRatio < 0.999 && discountRatio > 0)
+                ? discountRatio
+                : (minVarPrice > price && price > 0 ? (price / minVarPrice) : 1);
+
+            const processedVariants = rawVariants.map(v => {
+                if (allVariantsShareSamePrice) {
+                    return {
+                        ...v,
+                        price: price,
+                        priceDelta: 0,
+                        effectivePrice: price
+                    };
+                }
                 const vRawPrice = parseFloat(v.price || 0);
-                const vEffPrice = (discountRatio < 0.999 && discountRatio > 0 && vRawPrice > 0)
-                    ? Math.round(vRawPrice * discountRatio * 100) / 100
+                const vEffPrice = (effectiveRatio < 0.999 && effectiveRatio > 0 && vRawPrice > 0)
+                    ? Math.round(vRawPrice * effectiveRatio * 100) / 100
                     : vRawPrice;
                 const vDelta = Math.max(0, Math.round((vEffPrice - price) * 100) / 100);
                 return {
@@ -177,8 +194,8 @@ export async function POST(req) {
                     const matchedVar = processedVariants.find(pv => pv.name === s.name || pv.name.includes(s.name));
                     return {
                         ...s,
-                        priceDelta: matchedVar ? matchedVar.priceDelta : (parseFloat(s.priceDelta) || 0),
-                        effectivePrice: matchedVar ? matchedVar.price : (price + (parseFloat(s.priceDelta) || 0))
+                        priceDelta: matchedVar ? matchedVar.priceDelta : (allVariantsShareSamePrice ? 0 : (parseFloat(s.priceDelta) || 0)),
+                        effectivePrice: matchedVar ? matchedVar.price : (allVariantsShareSamePrice ? price : (price + (parseFloat(s.priceDelta) || 0)))
                     };
                 })
                 : (processedVariants.length > 0

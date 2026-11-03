@@ -91,9 +91,8 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
     };
 
     useEffect(() => {
-        if (initialStore && initialProducts) {
+        if (initialStore) {
             setLoading(false);
-            return;
         }
 
         const safetyTimer = setTimeout(() => {
@@ -102,14 +101,15 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
 
         const fetchStoreData = async () => {
             try {
-                const res = await fetch(`/api/store/data?slug=${encodeURIComponent(rawUsername)}`, { cache: 'no-store' });
+                const res = await fetch(`/api/store/data?slug=${encodeURIComponent(rawUsername)}&fresh=true`, { cache: 'no-store' });
                 if (res.ok) {
                     const apiData = await res.json();
                     if (apiData.success && apiData.store) {
                         const s = apiData.store;
                         setStoreInfo(s);
-                        setProducts(Array.isArray(apiData.products) ? apiData.products : []);
-                        return;
+                        if (Array.isArray(apiData.products) && apiData.products.length > 0) {
+                            setProducts(apiData.products);
+                        }
                     }
                 }
             } catch (err) {
@@ -121,8 +121,44 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
         };
 
         fetchStoreData();
-        return () => clearTimeout(safetyTimer);
-    }, [rawUsername, initialStore, initialProducts]);
+
+        const handleSync = () => {
+            fetchStoreData();
+        };
+
+        const handleStorage = (e) => {
+            if (e.key === 'creator_bio_last_updated' || e.key === 'active_store_slug') {
+                handleSync();
+            }
+        };
+
+        let bc = null;
+        if (typeof window !== 'undefined') {
+            window.addEventListener('products_updated', handleSync);
+            window.addEventListener('active_store_changed', handleSync);
+            window.addEventListener('storage', handleStorage);
+            try {
+                bc = new BroadcastChannel('creator_store_sync');
+                bc.onmessage = (msg) => {
+                    if (!msg?.data?.slug || msg.data.slug === cleanUser) {
+                        handleSync();
+                    }
+                };
+            } catch {}
+        }
+
+        return () => {
+            clearTimeout(safetyTimer);
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('products_updated', handleSync);
+                window.removeEventListener('active_store_changed', handleSync);
+                window.removeEventListener('storage', handleStorage);
+                if (bc) {
+                    try { bc.close(); } catch {}
+                }
+            }
+        };
+    }, [rawUsername, initialStore, cleanUser]);
 
     if (loading) return <Loading />;
 
@@ -160,7 +196,7 @@ export default function ShopClient({ initialStore, initialProducts, username: pr
         <div className="min-h-screen bg-slate-50 flex flex-col">
             {/* ⚡ Sticky Flash Sale Announcement Bar */}
             {storeInfo?.urgencyEnabled !== false && (
-                <div className="bg-slate-950 text-white py-2 px-3 sm:px-4 text-xs font-semibold border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md bg-slate-950/95">
+                <div className="bg-slate-900 text-white py-2 px-3 sm:px-4 text-xs font-medium border-b border-slate-800">
                     <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
                         <div className="flex items-center gap-2 text-xs">
                             <span className="flex items-center gap-1.5 text-amber-400 font-extrabold uppercase tracking-wider text-[11px] sm:text-xs">

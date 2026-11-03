@@ -31,7 +31,7 @@ const StoreSidebar = ({ storeInfo }) => {
                 {/* Store Profile Header */}
                 <div className="flex flex-col gap-2 justify-center items-center pt-8 pb-6 px-4 border-b border-slate-100 max-sm:hidden text-center">
                     {(() => {
-                        const dp = storeInfo?.logo || storeInfo?.avatar || storeInfo?.logo_url || storeInfo?.bioProfile?.avatar || (Array.isArray(storeInfo?.products) && storeInfo?.products[0]?.image);
+                        const dp = storeInfo?.bioProfile?.avatar || storeInfo?.avatar || storeInfo?.logo || storeInfo?.logo_url || (Array.isArray(storeInfo?.products) && storeInfo?.products[0]?.image);
                         return (
                             <div className="size-16 rounded-2xl shadow-sm border border-slate-100 overflow-hidden relative">
                                 {dp ? (

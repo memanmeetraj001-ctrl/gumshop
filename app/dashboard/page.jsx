@@ -415,7 +415,7 @@ export default function MasterDashboardPage() {
                     (typeof sStore.theme === 'object' ? sStore.theme?.primary : null) || 
                     '#10B981';
 
-                let storeDp = sStore.logo || sStore.avatar || sStore.logo_url || sStore.bioProfile?.avatar || (Array.isArray(sStore.products) && sStore.products[0]?.image) || '';
+                let storeDp = sStore.bioProfile?.avatar || sStore.avatar || sStore.logo || sStore.logo_url || (Array.isArray(sStore.products) && sStore.products[0]?.image) || '';
                 if (!storeDp) {
                     if (isRubber) storeDp = 'https://theluckylk.com/cdn/shop/files/30kb.webp?crop=center&height=32&v=1792057646&width=32';
                     if (isPhantom) storeDp = 'https://cdn.shopify.com/s/files/1/0680/7997/6546/files/1_1c648c33-92f0-4ba2-a0ec-487472836950.png?v=1790669403';
@@ -2334,7 +2334,7 @@ export default function MasterDashboardPage() {
 function StoreCard({ shop, activeStore, homepageStoreSlug, onSetActiveStore, onSetHomepage, onDelete, onArchive, onDuplicate, onOpenDashboard }) {
     const isActive = Boolean(activeStore && (activeStore.username === shop.username || activeStore.id === shop.id));
     const isHomepage = Boolean(homepageStoreSlug && (homepageStoreSlug === shop.username || homepageStoreSlug === shop.id));
-    const storeDp = shop.logo || shop.avatar || shop.logo_url || shop.bioProfile?.avatar || (Array.isArray(shop.products) && shop.products[0]?.image);
+    const storeDp = shop.bioProfile?.avatar || shop.avatar || shop.logo || shop.logo_url || (Array.isArray(shop.products) && shop.products[0]?.image);
 
     return (
         <div

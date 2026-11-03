@@ -31,15 +31,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isOwner, setIsOwner] = useState(false);
     const [searchInput, setSearchInput] = useState(searchTerm);
-    const [availableStores, setAvailableStores] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const local = getAllLocalStores().filter(s => s && !isStoreDeleted(s.id) && !isStoreDeleted(s.username));
-                if (local.length > 0) return local;
-            } catch {}
-        }
-        return [];
-    });
+    const [availableStores, setAvailableStores] = useState([]);
     const [storesMenuOpen, setStoresMenuOpen] = useState(false);
     const [copiedFlashDeal, setCopiedFlashDeal] = useState(false);
     const storesMenuRef = useRef(null);
@@ -126,7 +118,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                         data.stores.forEach(s => {
                             if (isTestStore(s)) return;
                             const slug = (s.username || s.name || s.id || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
-                            const logo = s.logo || s.avatar || s.logo_url || s.bioProfile?.avatar || (Array.isArray(s.products) && s.products[0]?.image) || '';
+                            const logo = s.bioProfile?.avatar || s.avatar || s.logo || s.logo_url || (Array.isArray(s.products) && s.products[0]?.image) || '';
                             if (slug && !isStoreDeleted(slug) && !isStoreDeleted(s.id) && !map.has(slug)) {
                                 map.set(slug, {
                                     id: s.id || `store_${slug}`,
@@ -207,7 +199,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                             <ShieldCheck size={13} className="text-emerald-400" /> Buyer Protection
                         </span>
                         <span>•</span>
-                        {isOwner ? (
+                        {mounted && isOwner ? (
                             <Link prefetch={false} href="/dashboard" className="text-emerald-400 hover:underline font-bold flex items-center gap-1">
                                 <Store size={12} /> HQ Dashboard
                             </Link>
@@ -240,7 +232,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                             </div>
                         </Link>
 
-                        {availableStores.length > 1 && (
+                        {mounted && availableStores.length > 1 && (
                             <div className="relative hidden lg:block" ref={storesMenuRef}>
                                 <button
                                     type="button"
@@ -256,7 +248,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                                     <div className="absolute left-0 mt-2 w-60 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1">
                                         <div className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">Available Stores</div>
                                         {availableStores.map(s => {
-                                            const sLogo = s.logo || s.avatar;
+                                            const sLogo = s.bioProfile?.avatar || s.avatar || s.logo;
                                             return (
                                                 <Link prefetch={false} key={s.username}
                                                     href={`/shop/${s.username}`}
@@ -326,10 +318,10 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                             onClick={onOpenWishlist || (() => router.push('/shop'))}
                             className="relative p-2.5 text-slate-600 hover:text-rose-600 hover:bg-slate-100 rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-rose-500 cursor-pointer"
                             title="View Wishlist"
-                            aria-label={`View Wishlist (${wishlistCount} items)`}
+                            aria-label={`View Wishlist${mounted && wishlistCount > 0 ? ` (${wishlistCount} items)` : ''}`}
                         >
                             <Heart size={20} />
-                            {wishlistCount > 0 && (
+                            {mounted && wishlistCount > 0 && (
                                 <span className="absolute top-1 right-1 size-4 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-in zoom-in">
                                     {wishlistCount}
                                 </span>
@@ -341,11 +333,11 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                             onClick={onOpenCart || (() => router.push('/cart'))}
                             className="relative p-2.5 sm:px-4 sm:py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-full flex items-center gap-2 shadow-sm transition active:scale-98 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
                             title="Open Cart"
-                            aria-label={`Open Cart (${cartCount} items)`}
+                            aria-label={`Open Cart${mounted && cartCount > 0 ? ` (${cartCount} items)` : ''}`}
                         >
                             <ShoppingBag size={18} />
                             <span className="hidden sm:inline text-xs font-bold">Cart</span>
-                            {cartCount > 0 && (
+                            {mounted && cartCount > 0 && (
                                 <span className="size-4 sm:size-5 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
                                     {cartCount}
                                 </span>
@@ -353,7 +345,7 @@ export default function Navbar({ onOpenCart, onOpenWishlist, onSearchChange, sea
                         </button>
 
                         {/* Owner Quick Access */}
-                        {isOwner && (
+                        {mounted && isOwner && (
                             <Link prefetch={false} href="/dashboard"
                                 className="hidden sm:inline-flex p-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                                 title="Store HQ / Cloner"

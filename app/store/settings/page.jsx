@@ -153,7 +153,7 @@ export default function StoreSettings() {
 
                 const baseStore = store;
                 const cleanId = baseStore.id || `store_${baseStore.username || 'shop'}`;
-                const resolvedAvatar = baseStore.logo || baseStore.avatar || baseStore.logo_url || baseStore.bioProfile?.avatar || "";
+                const resolvedAvatar = baseStore.bioProfile?.avatar || baseStore.avatar || baseStore.logo || baseStore.logo_url || "";
                 const resolvedBio = baseStore.description || baseStore.bio || baseStore.bioProfile?.tagline || "";
                 const resolvedBioProfile = baseStore.bioProfile || {
                     displayName: baseStore.name || "My Store",
@@ -210,7 +210,7 @@ export default function StoreSettings() {
                 let targetStoreId = String(storeInfo.id || `store_${cleanSlug}`);
                 targetStoreId = targetStoreId.replace(/^store_store_/, 'store_');
 
-                const activeAvatar = storeInfo.logo || storeInfo.avatar || storeInfo.bioProfile?.avatar || "";
+                const activeAvatar = storeInfo.bioProfile?.avatar || storeInfo.avatar || storeInfo.logo || "";
                 const activeBio = storeInfo.description || storeInfo.bio || storeInfo.bioProfile?.tagline || "";
                 const payload = {
                     ...storeInfo,

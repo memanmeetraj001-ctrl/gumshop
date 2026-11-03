@@ -266,6 +266,15 @@ export default function StanStoreBioEditor() {
                     body: JSON.stringify({
                         store: { ...updatedStore, products: undefined }
                     })
+                }).then(() => {
+                    if (typeof window !== 'undefined') {
+                        localStorage.setItem('creator_bio_last_updated', Date.now().toString());
+                        try {
+                            const bc = new BroadcastChannel('creator_store_sync');
+                            bc.postMessage({ type: 'BIO_SAVED', slug: cleanSlug });
+                            bc.close();
+                        } catch {}
+                    }
                 }).catch(() => {});
 
                 setAutoSaveStatus('saved');
@@ -380,10 +389,17 @@ export default function StanStoreBioEditor() {
                 })
             }).catch(() => {});
 
-            // 3. Dual-layer Firebase sync
+            // 3. Broadcast sync event
             try {
-                const { updateStore } = await import('@/lib/firebaseDb');
-                await updateStore(targetStoreId, updatedStore);
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('creator_bio_last_updated', Date.now().toString());
+                    try {
+                        const bc = new BroadcastChannel('creator_store_sync');
+                        bc.postMessage({ type: 'BIO_SAVED', slug: cleanSlug });
+                        bc.close();
+                    } catch {}
+                }
+
             } catch (e) {
                 console.warn("Firebase sync note:", e);
             }

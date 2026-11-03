@@ -1,7 +1,8 @@
 import { cache } from 'react';
 import { getStoreBySlug } from '@/lib/db/stores.js';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const getCachedStore = cache(async (slug) => {
     return await getStoreBySlug(slug);
